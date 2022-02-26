@@ -6,7 +6,7 @@ exp: valueexp ';';
 
 valueexp
     : '(' valueexp ')'
-    | value bop valueexp
+    | valueexp bop valueexp
     | value
     ;
 
@@ -23,9 +23,9 @@ bop
 
 // LEXER RULES
 
-UOP:    [+-] ;
-COP:    '<=' | '>=' | '!=' ;
-BOP:    [+\-*/><%] | '==' ;
+BOP:    '+' | '-' | '*' | '/' | '>' | '<' | '%' | '==' ;
+UOP:    '+' | '-' ;
 LOP:    '!' | '&&' | '||' ;
+COP:    '<=' | '>=' | '!=' ;
 INT:    [0-9]+ ;
 WS :    [ \r\t\n]+ -> skip ;
