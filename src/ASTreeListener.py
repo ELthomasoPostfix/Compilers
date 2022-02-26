@@ -10,15 +10,14 @@ class ASTreeListener(MyGrammarListener):
 
     # Enter a parse tree produced by MyGrammarParser#exp.
     def enterExp(self, ctx: MyGrammarParser.ExpContext):
-        # EXPRESSION
-        expNode = ASTree(None, "EXPRESSION")
-        self.root.children.append(expNode)
+        node = ASTree(None, "EXPRESSION")
+        self.root.children.append(node)
 
-    def exitValueexp(self, ctx: MyGrammarParser.ValueexpContext):
+    def enterValueexp(self, ctx: MyGrammarParser.ValueexpContext):
 
 
-    def exitBop(self, ctx: MyGrammarParser.BopContext):
+    def enterBop(self, ctx: MyGrammarParser.BopContext):
         pass
 
-    def exitValue(self, ctx:MyGrammarParser.ValueContext):
+    def enterValue(self, ctx:MyGrammarParser.ValueContext):
         pass
