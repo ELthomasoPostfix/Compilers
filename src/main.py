@@ -38,12 +38,12 @@ def main():
     parser: MyGrammarParser = MyGrammarParser(stream)
     tree = parser.exp()
 
-    # print(tree.toStringTree())
     printer = KeyPrinter()
     listener = ASTreeListener(ASTree(name="root", value=None))    # TODO make the root of the CST var 'tree' the ASTree root instead
     walker = ParseTreeWalker()
+    walker.walk(printer, tree)
     walker.walk(listener, tree)
-
+    i = 2
 
 if __name__ == '__main__':
     main()
