@@ -43,7 +43,7 @@ def main():
     walker = ParseTreeWalker()
     walker.walk(printer, tree)
     walker.walk(listener, tree)
-    i = 2
+    listener.root.toDot()
 
 if __name__ == '__main__':
     main()

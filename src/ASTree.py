@@ -5,17 +5,12 @@ class ASTree:
         self.name = name
 
     def preorderTraverse(self, progress, layer):
-        if len(self.children) == 0:
-            progress.append([self.name, self.value, layer])
-            return progress
-        else:
-            progress.append([self.name, self.value, layer])
-            for child in self.children:
-                if len(child.children) != 0:
-                    child.preorderTraverse(progress, layer+1)
-                else:
-                    progress.append([child.name, child.value, layer+1])
-                # break
+        progress.append([self.name, self.value, layer])
+        for child in self.children:
+            if len(child.children) != 0:
+                child.preorderTraverse(progress, layer+1)
+            else:
+                progress.append([child.name, child.value, layer+1])
         return progress
 
     def toDot(self):

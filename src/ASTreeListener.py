@@ -7,9 +7,9 @@ from ASTree import ASTree
 
 class ASTreeListener(MyGrammarListener):
     def __init__(self, root):
-        self.root = root
-        self.current = self.root
-        self.trace = []
+        self.root: ASTree = root
+        self.current: ASTree = self.root
+        self.trace: [ASTree] = []
 
     def enter(self, node):
         self.current = node
