@@ -4,6 +4,8 @@ from generated.Input.MyGrammarParser import MyGrammarParser
 from generated.Input.MyGrammarLexer import MyGrammarLexer
 from generated.Input.MyGrammarListener import MyGrammarListener
 from generated.Input.MyGrammarVisitor import MyGrammarVisitor
+from ASTree import ASTree
+from ASTreeListener import ASTreeListener
 
 
 def colored(r, g, b, text):
@@ -38,8 +40,9 @@ def main():
 
     # print(tree.toStringTree())
     printer = KeyPrinter()
+    listener = ASTreeListener(ASTree(name="root", value=None))    # TODO make the root of the CST var 'tree' the ASTree root instead
     walker = ParseTreeWalker()
-    walker.walk(printer, tree)
+    walker.walk(listener, tree)
 
 
 if __name__ == '__main__':
