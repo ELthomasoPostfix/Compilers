@@ -17,16 +17,16 @@ def coloredDef(text):
 
 
 class KeyPrinter(MyGrammarListener):
-    def exitExp(self, ctx):
+    def enterExp(self, ctx):
         print(f"Werner found a {coloredDef(ctx.getText())} (EXP)")
 
-    def exitValueexp(self, ctx: MyGrammarParser.ValueexpContext):
+    def enterValueexp(self, ctx: MyGrammarParser.ValueexpContext):
         print(f"Werner found a {coloredDef(ctx.getText())} (VEXP)")
 
-    def exitBop(self, ctx: MyGrammarParser.BopContext):
+    def enterBop(self, ctx: MyGrammarParser.BopContext):
         print(f"Werner found a {coloredDef(ctx.getText())} (BOP)")
 
-    def exitValue(self, ctx:MyGrammarParser.ValueContext):
+    def enterValue(self, ctx:MyGrammarParser.ValueContext):
         print(f"Werner found a {coloredDef(ctx.getText())} (VAL)")
 
 
