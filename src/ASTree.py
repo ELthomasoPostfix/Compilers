@@ -5,27 +5,35 @@ class ASTree:
         self.name = name
 
     def preorderTraverse(self, progress, layer):
-        progress.append([self.name, self.value, layer])
+        progress.append([self.value, self.name, layer])
         for child in self.children:
             if len(child.children) != 0:
-                child.preorderTraverse(progress, layer+1)
+                child.preorderTraverse(progress, layer + 1)
             else:
-                progress.append([child.name, child.value, layer+1])
+                progress.append([child.value, child.name, layer + 1])
         return progress
 
     def toDot(self):
         file = open("AST.dot", "w")
         file.write("digraph AST {" + '\n')
         traverse = self.preorderTraverse([], 0)
+        counter = 1
+        for i in range(len(traverse)):
+            file.write('\t' + "ID" + str(counter) + " [label=" + '"' + str(traverse[i][1]) + " | " +
+                       str(traverse[i][0]) + '"' + "]" + '\n')
+            counter += 1
+        file.write('\n')
+        counter = 0
         while len(traverse) != 0:
-            root = traverse[0]
-            del traverse[0]
-            for j in range(len(traverse)):
-                if traverse[j][2] == root[2]:
+            root = traverse[counter]
+            for j in range(counter, len(traverse)):
+                if traverse[j][2] == root[2] and j > counter:
                     break
                 if root[2] + 1 == traverse[j][2]:
-                    file.write('\t' + '"' + root[0] + "|" + str(root[1]) + '"' +
-                               "->" + '"' + traverse[j][0] + "|" + str(traverse[j][1]) + '"' + '\n')
+                    file.write('\t' + "ID" + str(counter + 1) + "->" + "ID" + str(j+1) + '\n')
+            counter += 1
+            if counter == len(traverse):
+                break
 
         file.write("}")
 
