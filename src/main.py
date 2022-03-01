@@ -1,20 +1,14 @@
-import sys
 from antlr4 import *
 from generated.Input.MyGrammarParser import MyGrammarParser
 from generated.Input.MyGrammarLexer import MyGrammarLexer
 from generated.Input.MyGrammarListener import MyGrammarListener
-from generated.Input.MyGrammarVisitor import MyGrammarVisitor
-from ASTree import ASTree
+from src.ASTree.ASTree import ASTree
 from ASTreeListener import ASTreeListener
-
+from src.Visitor.OptimizationVisitor import OptimizationVisitor
+from src.CompilersUtils import coloredDef
 
 def colored(r, g, b, text):
     return "\033[38;2;{};{};{}m{} \033[38;2;255;255;255m".format(r, g, b, text)
-
-
-def coloredDef(text):
-    return colored(255, 0, 0, text)
-
 
 class KeyPrinter(MyGrammarListener):
     def enterExp(self, ctx):
@@ -44,6 +38,13 @@ def main():
     walker.walk(printer, tree)
     walker.walk(listener, tree)
     listener.root.toDot()
+
+    OListener = OptimizationVisitor()
+    nodes = listener.root.preorderTraverse([], 0)
+    for node, layer in nodes:
+        node.accept(OListener)
+
+
 
 if __name__ == '__main__':
     main()
