@@ -7,8 +7,6 @@ from ASTreeListener import ASTreeListener
 from src.Visitor.OptimizationVisitor import OptimizationVisitor
 from src.CompilersUtils import coloredDef
 
-def colored(r, g, b, text):
-    return "\033[38;2;{};{};{}m{} \033[38;2;255;255;255m".format(r, g, b, text)
 
 class KeyPrinter(MyGrammarListener):
     def enterExp(self, ctx):
