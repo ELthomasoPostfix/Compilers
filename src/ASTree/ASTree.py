@@ -16,8 +16,8 @@ class ASTree(Element):
                 progress.append([child, layer + 1])
         return progress
 
-    def toDot(self):
-        file = open("../AST.dot", "w")
+    def toDot(self, fileName):
+        file = open("../Output/" + fileName, "w")
         file.write("digraph AST {" + '\n')
         traverse = self.preorderTraverse([], 0)
         counter = 1

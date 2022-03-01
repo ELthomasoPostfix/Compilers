@@ -18,9 +18,8 @@ class KeyPrinter(MyGrammarListener):
     def enterBop(self, ctx: MyGrammarParser.BopContext):
         print(f"Werner found a {coloredDef(ctx.getText())} (BOP)")
 
-    def enterValue(self, ctx:MyGrammarParser.ValueContext):
+    def enterValue(self, ctx: MyGrammarParser.ValueContext):
         print(f"Werner found a {coloredDef(ctx.getText())} (VAL)")
-
 
 
 def main():
@@ -31,17 +30,19 @@ def main():
     tree = parser.exp()
 
     printer = KeyPrinter()
-    listener = ASTreeListener(ASTree(name="root", value=None))    # TODO make the root of the CST var 'tree' the ASTree root instead
+    listener = ASTreeListener(
+        ASTree(name="root", value=None))  # TODO make the root of the CST var 'tree' the ASTree root instead
     walker = ParseTreeWalker()
     walker.walk(printer, tree)
     walker.walk(listener, tree)
-    listener.root.toDot()
+    listener.root.toDot("beginTree.dot")
 
     OListener = OptimizationVisitor()
     nodes = listener.root.preorderTraverse([], 0)
     for node, layer in nodes:
         node.accept(OListener)
 
+    listener.root.toDot("endTree.dot")
 
 
 if __name__ == '__main__':
