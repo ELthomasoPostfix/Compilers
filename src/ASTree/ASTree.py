@@ -40,4 +40,6 @@ class ASTree(Element):
 
         file.write("}")
 
+    def __repr__(self):
+        return self.name + " | " + str(self.value)
 

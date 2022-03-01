@@ -22,7 +22,7 @@ value
     ;
 bop
     : BOP
-    | LOP
+    | LOP       // ! is not binary !!!!
     | COP
     ;
 

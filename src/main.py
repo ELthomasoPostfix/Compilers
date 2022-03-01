@@ -38,9 +38,7 @@ def main():
     listener.root.toDot("beginTree.dot")
 
     OListener = OptimizationVisitor()
-    nodes = listener.root.preorderTraverse([], 0)
-    for node, layer in nodes:
-        node.accept(OListener)
+    listener.root.children[0].children[0].accept(OListener)
 
     listener.root.toDot("endTree.dot")
 
