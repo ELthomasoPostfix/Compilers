@@ -44,6 +44,7 @@ var  : VAR
 ///////////////////////////////////////////
 //              LEXER RULES              //
 ///////////////////////////////////////////
+
 WS :        [ \r\t\n]+ -> skip ;
 VAR:         [a-zA-Z_]+ [a-zA-Z0-9_]*
     ;
@@ -55,13 +56,15 @@ LPAREN:     '('
     ;
 RPAREN:     ')'
     ;
-MUL:        '*'
+STAR:       '*'        //Multiplication or Pointer
     ;
 DIV:        '/'
     ;
 MOD:        '%'
     ;
-EQUAL:      '=='
+REF:        '&'
+    ;
+EQ:         '=='
     ;
 PLUS:       '+'
     ;
@@ -75,11 +78,11 @@ AND:        '&&'
     ;
 OR:         '||'
     ;
-LESSEQ:     '<='
+LTE:        '<='
     ;
-GREATEQ:    '>='
+GTE:        '>='
     ;
-NOT:        '!='
+NEQ:        '!='
     ;
 ASSIG:      '='
     ;

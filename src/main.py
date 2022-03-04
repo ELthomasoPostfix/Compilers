@@ -30,7 +30,7 @@ def main():
     lexer: MyGrammarLexer = MyGrammarLexer(input_stream)
     stream = CommonTokenStream(lexer)
     parser: MyGrammarParser = MyGrammarParser(stream)
-    tree = parser.exp()
+    tree = parser.expression()
 
     printer = KeyPrinter()
     listener = ASTreeListener(
