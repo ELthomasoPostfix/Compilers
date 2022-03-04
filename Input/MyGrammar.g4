@@ -8,11 +8,11 @@
 
 grammar MyGrammar;
 
-exp: valueexp ';';
+statement: expression ';';
 
 valueexp
-    : '(' valueexp ')'
-    | value bop valueexp
+    : LPAREN valueexp RPAREN
+    | valueexp bop valueexp
     | value
     ;
 

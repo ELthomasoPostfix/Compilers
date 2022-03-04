@@ -47,7 +47,6 @@ class ASTreeListener(MyGrammarListener):
             parent: ASTree = self.trace[-2]
             parent.children[parent.children.index(valExp)] = bop
 
-
     def enterBop(self, ctx: MyGrammarParser.BopContext):
         node = BopNode(ctx.getText(), "BOP")
         self.current.children.append(node)
