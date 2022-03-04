@@ -22,6 +22,9 @@ class KeyPrinter(MyGrammarListener):
         print(f"Werner found a {coloredDef(ctx.getText())} (VAL)")
 
 
+
+
+
 def main():
     input_stream = FileStream("../Input/test.txt")
     lexer: MyGrammarLexer = MyGrammarLexer(input_stream)

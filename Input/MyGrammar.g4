@@ -17,21 +17,55 @@ valueexp
     ;
 
 value
-    : UOP value
-    | INT
+    :
+
+///////////////////////////////////////////
+//              LEXER RULES              //
+///////////////////////////////////////////
+WS :        [ \r\t\n]+ -> skip ;
+INCR:       '++'
     ;
-bop
-    : BOP
-    | LOP       // ! is not binary !!!!
-    | COP
+DECR:       '--'
     ;
-
-
-// LEXER RULES
-
-BOP:    [+\-*/><%] | '==';
-UOP:    [+\-];
-LOP:    '!' | '&&' | '||' ;
-COP:    '<=' | '>=' | '!=' ;
-INT:    [0-9]+ ;
-WS :    [ \r\t\n]+ -> skip ;
+LPAREN:     '('
+    ;
+RPAREN:     ')'
+    ;
+MUL:        '*'
+    ;
+DIV:        '/'
+    ;
+MOD:        '%'
+    ;
+EQUAL:      '=='
+    ;
+PLUS:       '+'
+    ;
+MIN:        '-'
+    ;
+LESS:       '<'
+    ;
+GREAT:      '>'
+    ;
+AND:        '&&'
+    ;
+OR:         '||'
+    ;
+LESSEQ:     '<='
+    ;
+GREATEQ:    '>='
+    ;
+NOT:        '!='
+    ;
+TYPE:       'char' | 'int' | 'float'
+    ;
+INT:        [0-9]+
+    ;
+FLOAT:      [0-9] + ('.' [0-9]+)?
+    ;
+POINT:      '*'
+    ;
+REF:        '&'
+    ;
+ID:        [a-zA-Z]+
+///////////////////////////////////////////
