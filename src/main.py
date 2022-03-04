@@ -12,13 +12,13 @@ class KeyPrinter(MyGrammarListener):
     def enterExp(self, ctx):
         print(f"Werner found a {coloredDef(ctx.getText())} (EXP)")
 
-    def enterValueexp(self, ctx: MyGrammarParser.ValueexpContext):
+    def enterValueexp(self, ctx):
         print(f"Werner found a {coloredDef(ctx.getText())} (VEXP)")
 
-    def enterBop(self, ctx: MyGrammarParser.BopContext):
+    def enterBop(self, ctx):
         print(f"Werner found a {coloredDef(ctx.getText())} (BOP)")
 
-    def enterValue(self, ctx: MyGrammarParser.ValueContext):
+    def enterValue(self, ctx):
         print(f"Werner found a {coloredDef(ctx.getText())} (VAL)")
 
 
@@ -45,6 +45,7 @@ def main():
 
     listener.root.toDot("endTree.dot")
 
+    print(tree.getText())
 
 
 if __name__ == '__main__':

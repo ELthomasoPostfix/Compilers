@@ -10,19 +10,43 @@ grammar MyGrammar;
 
 statement: expression ';';
 
-valueexp
-    : LPAREN valueexp RPAREN
-    | valueexp bop valueexp
-    | value
+expression  // TODO make a bop var so the expression var can be ignored in the AST????
+    : LPAREN expression RPAREN
+    | unaryop* value
+    | expression (STAR | DIV | MOD) expression
+    | expression (PLUS | MIN) expression
+    | expression relationalop expression
+    ;
+
+unaryop
+    : (INCR | DECR)
+    | (PLUS | MIN)
+    // TODO: BITWISE 'NOT' & 'AND'
+    | (STAR | REF)
+    ;
+
+relationalop
+    : (LT | LTE)
+    | (GT | GTE)
+    | (EQ | NEQ)
+    | (AND | OR)
     ;
 
 value
-    :
+    : INT
+    | FLOAT
+    ;
+
+var  : VAR
+    ;
+
 
 ///////////////////////////////////////////
 //              LEXER RULES              //
 ///////////////////////////////////////////
 WS :        [ \r\t\n]+ -> skip ;
+VAR:         [a-zA-Z_]+ [a-zA-Z0-9_]*
+    ;
 INCR:       '++'
     ;
 DECR:       '--'
@@ -43,9 +67,9 @@ PLUS:       '+'
     ;
 MIN:        '-'
     ;
-LESS:       '<'
+LT:         '<'
     ;
-GREAT:      '>'
+GT:         '>'
     ;
 AND:        '&&'
     ;
@@ -57,15 +81,19 @@ GREATEQ:    '>='
     ;
 NOT:        '!='
     ;
-TYPE:       'char' | 'int' | 'float'
+ASSIG:      '='
     ;
-INT:        [0-9]+
+T_CHAR:     'char'
     ;
-FLOAT:      [0-9] + ('.' [0-9]+)?
+T_FLOAT:    'float'
     ;
-POINT:      '*'
+T_INT:      'int'
     ;
-REF:        '&'
+fragment NAT:   [0-9]+
     ;
-ID:        [a-zA-Z]+
+INT:        NAT
+    ;
+FLOAT:      (NAT ('.' NAT?)?) | (NAT? '.' NAT)
+    ;
+
 ///////////////////////////////////////////

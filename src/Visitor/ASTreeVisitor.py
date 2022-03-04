@@ -1,23 +1,28 @@
-class ExpNode:
+class ExpressionNode:
     pass
-class ValueExpNode:
+class StatementNode:
     pass
 class ValueNode:
     pass
-class BopNode:
+class UnaryOpNode:
+    pass
+class relationalOpNode:
     pass
 
 
 class ASTreeVisitor:
-    def visitExp(self, exp: ExpNode):
+    def visitExpression(self, exp: ExpressionNode):
         pass
 
-    def visitValueExp(self, value: ValueExpNode):
+    def visitStatement(self, value: StatementNode):
         pass
 
     def visitValue(self, value: ValueNode):
         pass
 
-    def visitBop(self, value: BopNode):
+    def visitUnaryOp(self, value: UnaryOpNode):
+        pass
+
+    def visitRelationalOp(self, value: relationalOpNode):
         pass
 
