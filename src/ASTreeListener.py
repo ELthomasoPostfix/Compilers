@@ -2,7 +2,7 @@ from antlr4 import ParserRuleContext
 
 from generated.MyGrammarListener import MyGrammarListener
 from generated.MyGrammarParser import MyGrammarParser
-from src.Nodes.ASTreeNode import *
+from Nodes.ASTreeNode import *
 
 
 class ASTreeListener(MyGrammarListener):
