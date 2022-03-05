@@ -1,7 +1,7 @@
 from antlr4 import *
-from generated.Input.MyGrammarParser import MyGrammarParser
-from generated.Input.MyGrammarLexer import MyGrammarLexer
-from generated.Input.MyGrammarListener import MyGrammarListener
+from generated.MyGrammarParser import MyGrammarParser
+from generated.MyGrammarLexer import MyGrammarLexer
+from generated.MyGrammarListener import MyGrammarListener
 from src.ASTree.ASTree import ASTree
 from ASTreeListener import ASTreeListener
 from src.Visitor.OptimizationVisitor import OptimizationVisitor
@@ -26,7 +26,7 @@ class KeyPrinter(MyGrammarListener):
 
 
 def main():
-    input_stream = FileStream("../Input/test.txt")
+    input_stream = FileStream("Input/test.txt")
     lexer: MyGrammarLexer = MyGrammarLexer(input_stream)
     stream = CommonTokenStream(lexer)
     parser: MyGrammarParser = MyGrammarParser(stream)
