@@ -3,29 +3,26 @@ h_flag=false  # Display help
 GRAMMAR_LOC=Input
 DESTINATION=src/generated
 
-# Guard clause, destination folder must exist
-if ! [ -d "$DESTINATION" ]
-then
-  echo "ERROR: destination folder '${DESTINATION}' not found"
-  exit 1;
-fi
+chmod +x ensure_destination.sh
+./ensure_destination.sh -d $DESTINATION
 
 while getopts 'ch' flag; do
   case "${flag}" in
     c) c_flag=true ;;
     h) h_flag=true ;;
-    *) echo "unknown flag ${flag}";;
+    *) ;;
   esac
 done
 
-# Do cleanup flag
+# Display help
 if [ "$h_flag" = true ]
 then
-  echo "Call ANTLR using 'java -jar' in the subdirectory '${GRAMMAR_LOC}' to generate python files based on the grammar located in subdirectory ${GRAMMAR_LOC} into destination subdirectory '${DESTINATION}'.
+  echo "Call ANTLR using 'java -jar' in the subdirectory '${GRAMMAR_LOC}' to generate python files based on the grammar located in subdirectory ${GRAMMAR_LOC} into destination subdirectory '${DESTINATION}'. Will attempt to create the destination folder if it does not exist.
    possible flags:
     -h :  display help and exit without calling ANTLR
     -c :  remove all files in the destination folder before calling ANTLR"
   exit 0
+# Do pre-generation cleanup
 elif [ "$c_flag" = true ]
 then
   rm src/generated/*

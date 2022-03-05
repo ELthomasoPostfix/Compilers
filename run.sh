@@ -1,14 +1,19 @@
-FILE_COUNT=$(find src/generated -name "*Parser.py" | wc -l)
+DESTINATION=src/generated
+
+chmod +x ensure_destination.sh
+./ensure_destination.sh -d $DESTINATION
+
+FILE_COUNT=$(find $DESTINATION -name "*Parser.py" | wc -l)
 if [ $FILE_COUNT -ne 1 ]
 then
   echo "ANTLR generated files not found"
   echo "calling ANTLR ..."
-  sudo chmod +x generate.sh
+  chmod +x generate.sh
   ./generate.sh
   echo "finished calling ANTLR"
 fi
 
-FILE_COUNT=$(find src/generated -name  "*Parser.py" | wc -l)
+FILE_COUNT=$(find $DESTINATION -name  "*Parser.py" | wc -l)
 if [ $FILE_COUNT -eq 1 ]
 then
   echo "calling main.py"
