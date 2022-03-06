@@ -7,10 +7,8 @@ FILE_COUNT=$(find $DESTINATION -name "*Parser.py" | wc -l)
 if [ $FILE_COUNT -ne 1 ]
 then
   echo "ANTLR generated files not found"
-  echo "calling ANTLR ..."
   chmod +x generate.sh
   ./generate.sh
-  echo "finished calling ANTLR"
 fi
 
 FILE_COUNT=$(find $DESTINATION -name  "*Parser.py" | wc -l)
