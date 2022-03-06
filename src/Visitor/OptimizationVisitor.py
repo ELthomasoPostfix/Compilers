@@ -3,6 +3,7 @@ from src.Nodes.ASTreeNode import *
 from src.CompilersUtils import coloredDef
 from fnmatch import *
 
+
 class OptimizationVisitor:
     def visitStatement(self, value: StatementNode):
         print(coloredDef("STAT"), value.value, value.name)

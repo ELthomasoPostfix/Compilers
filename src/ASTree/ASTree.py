@@ -33,7 +33,7 @@ class ASTree(Element):
                 if traverse[j][1] == root[1] and j > counter:
                     break
                 if root[1] + 1 == traverse[j][1]:
-                    file.write('\t' + "ID" + str(counter + 1) + "->" + "ID" + str(j+1) + '\n')
+                    file.write('\t' + "ID" + str(counter + 1) + "->" + "ID" + str(j + 1) + '\n')
             counter += 1
             if counter == len(traverse):
                 break
@@ -42,4 +42,3 @@ class ASTree(Element):
 
     def __repr__(self):
         return self.name + " | " + str(self.value)
-

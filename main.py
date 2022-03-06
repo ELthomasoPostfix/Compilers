@@ -1,11 +1,11 @@
 from antlr4 import *
-from generated.MyGrammarParser import MyGrammarParser
-from generated.MyGrammarLexer import MyGrammarLexer
-from generated.MyGrammarListener import MyGrammarListener
-from ASTree.ASTree import ASTree
-from ASTreeListener import ASTreeListener
-from Visitor.OptimizationVisitor import OptimizationVisitor
-from CompilersUtils import coloredDef
+from src.generated.MyGrammarParser import MyGrammarParser
+from src.generated.MyGrammarLexer import MyGrammarLexer
+from src.generated.MyGrammarListener import MyGrammarListener
+from src.ASTree.ASTree import ASTree
+from src.ASTreeListener import ASTreeListener
+from src.Visitor.OptimizationVisitor import OptimizationVisitor
+from src.CompilersUtils import coloredDef
 
 
 class KeyPrinter(MyGrammarListener):

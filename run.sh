@@ -17,7 +17,7 @@ FILE_COUNT=$(find $DESTINATION -name  "*Parser.py" | wc -l)
 if [ $FILE_COUNT -eq 1 ]
 then
   echo "calling main.py"
-  python3 src/main.py
+  python3 main.py
   exit 0
 fi
 
