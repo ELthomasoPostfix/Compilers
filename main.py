@@ -5,18 +5,17 @@ from src.generated.MyGrammarListener import MyGrammarListener
 from src.ASTree.ASTree import ASTree
 from src.ASTreeListener import ASTreeListener
 from src.Visitor.OptimizationVisitor import OptimizationVisitor
-from src.CompilersUtils import coloredDef
 
 
 class KeyPrinter(MyGrammarListener):
-    def enterExp(self, ctx):
+    def enterExpression(self, ctx:MyGrammarParser.ExpressionContext):
         print(f"Werner found a {coloredDef(ctx.getText())} (EXP)")
 
-    def enterValueexp(self, ctx):
-        print(f"Werner found a {coloredDef(ctx.getText())} (VEXP)")
+    def enterCfile(self, ctx:MyGrammarParser.CfileContext):
+        print(f"Werner found a {coloredDef(ctx.getText())} (CF)")
 
-    def enterBop(self, ctx):
-        print(f"Werner found a {coloredDef(ctx.getText())} (BOP)")
+    def enterBlock(self, ctx:MyGrammarParser.BlockContext):
+        print(f"Werner found a {coloredDef(ctx.getText())} (B)")
 
     def enterValue(self, ctx):
         print(f"Werner found a {coloredDef(ctx.getText())} (VAL)")
@@ -30,7 +29,7 @@ def main():
     lexer: MyGrammarLexer = MyGrammarLexer(input_stream)
     stream = CommonTokenStream(lexer)
     parser: MyGrammarParser = MyGrammarParser(stream)
-    tree = parser.expression()
+    tree = parser.cfile()
 
     printer = KeyPrinter()
     listener = ASTreeListener(
