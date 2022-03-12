@@ -1,4 +1,6 @@
 from antlr4 import *
+
+from src.CompilersUtils import coloredDef
 from src.generated.MyGrammarParser import MyGrammarParser
 from src.generated.MyGrammarLexer import MyGrammarLexer
 from src.generated.MyGrammarListener import MyGrammarListener
