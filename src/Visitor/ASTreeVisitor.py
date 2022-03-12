@@ -1,28 +1,54 @@
-class ExpressionNode:
+###############
+# Node forward declarations (ASTreeVisitor.py)
+###############
+class CfileNode:
+    pass
+class BlockNode:
     pass
 class StatementNode:
     pass
-class ValueNode:
+class ExpressionNode:
     pass
-class UnaryOpNode:
+class UnaryopNode:
     pass
-class relationalOpNode:
+class RelationalopNode:
+    pass
+class LiteralNode:
+    pass
+class LvalNode:
+    pass
+class QualifierNode:
     pass
 
 
+
+###############
+# Visitor forward declaration (ASTreeVisitor.py)
+###############
 class ASTreeVisitor:
-    def visitExpression(self, exp: ExpressionNode):
+    def visitCfile(self, value: CfileNode):
+        pass
+
+    def visitBlock(self, value: BlockNode):
         pass
 
     def visitStatement(self, value: StatementNode):
         pass
 
-    def visitValue(self, value: ValueNode):
+    def visitExpression(self, value: ExpressionNode):
         pass
 
-    def visitUnaryOp(self, value: UnaryOpNode):
+    def visitUnaryop(self, value: UnaryopNode):
         pass
 
-    def visitRelationalOp(self, value: relationalOpNode):
+    def visitRelationalop(self, value: RelationalopNode):
         pass
 
+    def visitLiteral(self, value: LiteralNode):
+        pass
+
+    def visitLval(self, value: LvalNode):
+        pass
+
+    def visitQualifier(self, value: QualifierNode):
+        pass

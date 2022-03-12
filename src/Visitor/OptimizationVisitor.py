@@ -11,10 +11,10 @@ class OptimizationVisitor:
     def visitExpression(self, exp: ExpressionNode):
         print(coloredDef("EXP"), exp.value, exp.name)
 
-    def visitValue(self, value: ValueNode):
+    def visitLiteral(self, value: LiteralNode):
         print(coloredDef("VAL"), value.value, value.name)
 
-    def visitBop(self, value: ValueNode):
+    def visitBop(self, value: LiteralNode):
         pass
         # if len(value.children) == 2:
         #     for child in value.children:
@@ -68,9 +68,9 @@ class OptimizationVisitor:
         #
         # print(coloredDef("BOP"), value.value, value.name)
 
-    def visitUnaryOp(self, value: UnaryOpNode):
+    def visitUnaryOp(self, value: UnaryopNode):
         print(coloredDef("UOP"), value.value, value.name)
 
-    def visitRelationalOp(self, value: RelationalOpNode):
+    def visitRelationalOp(self, value: RelationalopNode):
         print(coloredDef("ROP"), value.value, value.name)
 

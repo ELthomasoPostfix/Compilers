@@ -39,15 +39,15 @@ class ASTreeListener(MyGrammarListener):
         self.enter(node)
 
     def enterRelationalop(self, ctx:MyGrammarParser.RelationalopContext):
-        node = RelationalOpNode(ctx.getText(), "ROP")
+        node = RelationalopNode(ctx.getText(), "ROP")
         self.enter(node)
 
-    def enterValue(self, ctx: MyGrammarParser.ValueContext):
-        node = ValueNode(ctx.getText(), "VALUE")
+    def enterLiteral(self, ctx:MyGrammarParser.LiteralContext):
+        node = LiteralNode(ctx.getText(), "LITERAL")
         self.enter(node)
 
     def enterUnaryop(self, ctx:MyGrammarParser.UnaryopContext):
-        node = UnaryOpNode(ctx.getText(), "UOP")
+        node = UnaryopNode(ctx.getText(), "UOP")
         self.enter(node)
 
     def exitEveryRule(self, ctx: ParserRuleContext):

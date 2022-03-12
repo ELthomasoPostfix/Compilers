@@ -1,8 +1,10 @@
 #
 # Generate node boilerplate code from the specified .g4 file.
-# We recognize a grammar variable if and only if the following line contains a semicolon (':').
-# The name of the variable in the .g4 file should not be followed by any other character, including spaces and comments,
-# because the entire line, excluding \n or the like, is considered the variable name.
+# We recognize grammar variables as those strings of alpha characters
+# that are followed first by a combination of spaces (' '), tabs ('\t')
+# and a single optional newline ('\n') and then by a semicolon (':').
+#   e.g.  varName\t \t\n \t\t:
+#      or varName2:
 #
 
 def findColonPrefixes(filePath: str):

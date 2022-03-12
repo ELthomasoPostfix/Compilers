@@ -18,19 +18,25 @@ block
 
 statement
     : expression ';'
+    | var_decl ';'
+    | var_assig ';'
+    | 'printf' LPAREN (literal | lval) RPAREN  // TODO un-hack
     ;
 
+// An expression must be reducible to some c_typed value.
 expression
     : LPAREN expression RPAREN
-    | unaryop* value
+    | lval (INCR | DECR) | (INCR | DECR) lval
+    | unaryop* (literal | lval)
     | expression (STAR | DIV | MOD) expression
     | expression (PLUS | MIN) expression
     | expression relationalop expression
+    | lval
+    | literal
     ;
 
 unaryop
-    : (INCR | DECR)
-    | (PLUS | MIN)
+    : (PLUS | MIN)
     // TODO: BITWISE 'NOT' & 'AND'
     | (STAR | REF)
     ;
@@ -42,13 +48,35 @@ relationalop
     | (AND | OR)
     ;
 
-value
+literal
     : INT
     | FLOAT
     ;
 
-var
-    : VAR
+lval
+    : ID
+    ;
+
+c_type
+    : qualifier?          // prefix const
+    ( T_INT
+    | T_FLOAT
+    | T_CHAR
+    ) qualifier?          // postfix const
+     (STAR qualifier?)?   // ptr, possibly const
+    ;
+
+qualifier
+    : Q_CONST
+    ;
+
+var_decl
+    : c_type ID
+    | c_type ID ASSIG expression
+    ;
+
+var_assig
+    : ID ASSIG expression
     ;
 
 
@@ -56,7 +84,7 @@ var
 //              LEXER RULES              //
 ///////////////////////////////////////////
 
-WS:        [ \r\t\n]+ -> skip
+WS:         [ \r\t\n]+ -> skip
     ;
 INCR:       '++'
     ;
@@ -96,13 +124,15 @@ NEQ:        '!='
     ;
 ASSIG:      '='
     ;
+Q_CONST:    'const'
+    ;
 T_CHAR:     'char'
     ;
 T_FLOAT:    'float'
     ;
 T_INT:      'int'
     ;
-VAR:         [a-zA-Z_]+ [a-zA-Z0-9_]*
+ID:         [a-zA-Z_]+[a-zA-Z0-9_]*
     ;
 fragment NAT:   [0-9]+
     ;

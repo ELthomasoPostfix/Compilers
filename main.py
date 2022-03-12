@@ -19,8 +19,8 @@ class KeyPrinter(MyGrammarListener):
     def enterBlock(self, ctx:MyGrammarParser.BlockContext):
         print(f"Werner found a {coloredDef(ctx.getText())} (B)")
 
-    def enterValue(self, ctx):
-        print(f"Werner found a {coloredDef(ctx.getText())} (VAL)")
+    def enterLiteral(self, ctx:MyGrammarParser.LiteralContext):
+        print(f"Werner found a {coloredDef(ctx.getText())} (LIT)")
 
 
 

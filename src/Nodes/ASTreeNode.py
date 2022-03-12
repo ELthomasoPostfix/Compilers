@@ -2,9 +2,14 @@ from src.ASTree.Element import ASTreeVisitor
 from src.ASTree.ASTree import ASTree
 
 
-class ExpressionNode(ASTree):
+class CfileNode(ASTree):
     def accept(self, visitor: ASTreeVisitor):
-        visitor.visitExpression(self)
+        visitor.visitCfile(self)
+
+
+class BlockNode(ASTree):
+    def accept(self, visitor: ASTreeVisitor):
+        visitor.visitBlock(self)
 
 
 class StatementNode(ASTree):
@@ -12,16 +17,31 @@ class StatementNode(ASTree):
         visitor.visitStatement(self)
 
 
-class ValueNode(ASTree):
+class ExpressionNode(ASTree):
     def accept(self, visitor: ASTreeVisitor):
-        visitor.visitValue(self)
+        visitor.visitExpression(self)
 
 
-class UnaryOpNode(ASTree):
+class UnaryopNode(ASTree):
     def accept(self, visitor: ASTreeVisitor):
-        visitor.visitUnaryOp(self)
+        visitor.visitUnaryop(self)
 
 
-class RelationalOpNode(ASTree):
+class RelationalopNode(ASTree):
     def accept(self, visitor: ASTreeVisitor):
-        visitor.visitrelationalOp(self)
+        visitor.visitRelationalop(self)
+
+
+class LiteralNode(ASTree):
+    def accept(self, visitor: ASTreeVisitor):
+        visitor.visitLiteral(self)
+
+
+class LvalNode(ASTree):
+    def accept(self, visitor: ASTreeVisitor):
+        visitor.visitLval(self)
+
+
+class QualifierNode(ASTree):
+    def accept(self, visitor: ASTreeVisitor):
+        visitor.visitQualifier(self)
