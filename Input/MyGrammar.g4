@@ -8,9 +8,19 @@
 
 grammar MyGrammar;
 
-statement: expression ';';
+cfile
+    : block EOF
+    ;
 
-expression  // TODO make a bop var so the expression var can be ignored in the AST????
+block
+    : statement*
+    ;
+
+statement
+    : expression ';'
+    ;
+
+expression
     : LPAREN expression RPAREN
     | unaryop* value
     | expression (STAR | DIV | MOD) expression
@@ -37,7 +47,8 @@ value
     | FLOAT
     ;
 
-var  : VAR
+var
+    : VAR
     ;
 
 
@@ -45,8 +56,7 @@ var  : VAR
 //              LEXER RULES              //
 ///////////////////////////////////////////
 
-WS :        [ \r\t\n]+ -> skip ;
-VAR:         [a-zA-Z_]+ [a-zA-Z0-9_]*
+WS:        [ \r\t\n]+ -> skip
     ;
 INCR:       '++'
     ;
@@ -91,6 +101,8 @@ T_CHAR:     'char'
 T_FLOAT:    'float'
     ;
 T_INT:      'int'
+    ;
+VAR:         [a-zA-Z_]+ [a-zA-Z0-9_]*
     ;
 fragment NAT:   [0-9]+
     ;

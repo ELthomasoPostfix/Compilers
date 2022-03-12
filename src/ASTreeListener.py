@@ -22,6 +22,14 @@ class ASTreeListener(MyGrammarListener):
         self.trace.pop(-1)
         self.current = None if len(self.trace) == 0 else self.trace[-1]
 
+    def enterCfile(self, ctx:MyGrammarParser.CfileContext):
+        node = (None, "CF")
+        self.enter(node)
+
+    def enterBlock(self, ctx:MyGrammarParser.BlockContext):
+        node = StatementNode(None, "B")
+        self.enter(node)
+
     def enterStatement(self, ctx:MyGrammarParser.StatementContext):
         node = StatementNode(None, "STAT")
         self.enter(node)
