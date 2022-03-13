@@ -23,7 +23,7 @@ statement
     | 'printf' LPAREN (literal | lval) RPAREN  // TODO un-hack
     ;
 
-// An expression must be reducible to some c_typed value.
+// An expression must be reducible to some c_typed value (rval?).
 expression
     : LPAREN expression RPAREN
     | lval (INCR | DECR) | (INCR | DECR) lval
@@ -63,7 +63,7 @@ c_type
     | T_FLOAT
     | T_CHAR
     ) qualifier?          // postfix const
-     (STAR qualifier?)?   // ptr, possibly const
+     (STAR+ qualifier?)?   // ptr, possibly const
     ;
 
 qualifier

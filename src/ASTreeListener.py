@@ -17,38 +17,45 @@ class ASTreeListener(MyGrammarListener):
         self.current = node
         self.trace.append(node)
 
-
     def exit(self):
         self.trace.pop(-1)
         self.current = None if len(self.trace) == 0 else self.trace[-1]
 
-    def enterCfile(self, ctx:MyGrammarParser.CfileContext):
-        node = (None, "CF")
-        self.enter(node)
-
-    def enterBlock(self, ctx:MyGrammarParser.BlockContext):
-        node = StatementNode(None, "B")
-        self.enter(node)
-
-    def enterStatement(self, ctx:MyGrammarParser.StatementContext):
-        node = StatementNode(None, "STAT")
-        self.enter(node)
-
-    def enterExpression(self, ctx:MyGrammarParser.ExpressionContext):
-        node = ExpressionNode(None, "EXPR")
-        self.enter(node)
-
-    def enterRelationalop(self, ctx:MyGrammarParser.RelationalopContext):
-        node = RelationalopNode(ctx.getText(), "ROP")
-        self.enter(node)
-
-    def enterLiteral(self, ctx:MyGrammarParser.LiteralContext):
-        node = LiteralNode(ctx.getText(), "LITERAL")
-        self.enter(node)
-
-    def enterUnaryop(self, ctx:MyGrammarParser.UnaryopContext):
-        node = UnaryopNode(ctx.getText(), "UOP")
-        self.enter(node)
-
     def exitEveryRule(self, ctx: ParserRuleContext):
         self.exit()
+
+    def enterCfile(self, ctx: MyGrammarParser.CfileContext):
+        self.enter(CfileNode(ctx.getText(), "Cf"))
+
+    def enterBlock(self, ctx: MyGrammarParser.BlockContext):
+        self.enter(BlockNode(ctx.getText(), "Bl"))
+
+    def enterStatement(self, ctx: MyGrammarParser.StatementContext):
+        self.enter(StatementNode(ctx.getText(), "St"))
+
+    def enterExpression(self, ctx: MyGrammarParser.ExpressionContext):
+        self.enter(ExpressionNode(ctx.getText(), "Ex"))
+
+    def enterUnaryop(self, ctx: MyGrammarParser.UnaryopContext):
+        self.enter(UnaryopNode(ctx.getText(), "Un"))
+
+    def enterRelationalop(self, ctx: MyGrammarParser.RelationalopContext):
+        self.enter(RelationalopNode(ctx.getText(), "Re"))
+
+    def enterLiteral(self, ctx: MyGrammarParser.LiteralContext):
+        self.enter(LiteralNode(ctx.getText(), "Li"))
+
+    def enterLval(self, ctx: MyGrammarParser.LvalContext):
+        self.enter(LvalNode(ctx.getText(), "Lv"))
+
+    def enterC_type(self, ctx: MyGrammarParser.C_typeContext):
+        self.enter(C_typeNode(ctx.getText(), "C_"))
+
+    def enterQualifier(self, ctx: MyGrammarParser.QualifierContext):
+        self.enter(QualifierNode(ctx.getText(), "Qu"))
+
+    def enterVar_decl(self, ctx: MyGrammarParser.Var_declContext):
+        self.enter(Var_declNode(ctx.getText(), "Va"))
+
+    def enterVar_assig(self, ctx: MyGrammarParser.Var_assigContext):
+        self.enter(Var_assigNode(ctx.getText(), "Va"))

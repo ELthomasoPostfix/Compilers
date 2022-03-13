@@ -7,13 +7,15 @@
 #      or varName2:
 #
 
+NODE = "Node"
+
 def findColonPrefixes(filePath: str):
     with open(filePath, "r") as f:
         grammarVars = []
         lines = f.readlines()
         from re import match
 
-        regex = "([a-z][a-zA-Z]*)[ \t]*\n?[ \t]*:"
+        regex = "([a-z_][a-zA-Z_]*)[ \t]*\n?[ \t]*:"
         for idx in range(len(lines) - 1):
             line = lines[idx] + lines[idx+1]
             matched = match(regex, line)
@@ -26,7 +28,7 @@ def findColonPrefixes(filePath: str):
 def writeNodeForwardDeclarations(grammarVars, indent: str):
     of.write("###############\n# Node forward declarations (ASTreeVisitor.py)\n###############\n")
     for grammarVar in grammarVars:
-        of.writelines([f"class {grammarVar}Node:\n{indent}pass\n"])
+        of.writelines([f"class {grammarVar}{NODE}:\n{indent}pass\n"])
 
 
 def writeVisitorForwardDeclaration(grammarVars, indent: str):
@@ -39,7 +41,38 @@ def writeVisitorForwardDeclaration(grammarVars, indent: str):
 def writeNodeDefinitions(grammarVars, indent: str):
     of.write("###############\n# Class definitions (ASTreeNode.py)\n###############\n")
     for grammarVar in grammarVars:
-        of.writelines([f"class {grammarVar}Node(ASTree):\n{indent}def accept(self, visitor: ASTreeVisitor):\n{indent*2}visitor.visit{grammarVar}(self)\n\n\n"])
+        of.writelines([f"class {grammarVar}{NODE}(ASTree):\n{indent}def accept(self, visitor: ASTreeVisitor):\n{indent*2}visitor.visit{grammarVar}(self)\n\n\n"])
+
+
+def writeListenerDefinition(grammarVars, indent: str, writeText: bool):
+    of.write("###############\n# Listener definition (ASTreeListener.py)\n###############\n")
+    of.writelines([
+        "class ASTreeListener(MyGrammarListener):\n",
+            f"{indent}def __init__(self, root):\n",
+                f"{indent*2}self.root: ASTree = root\n",
+                f"{indent*2}self.current: ASTree = self.root\n",
+                f"{indent*2}self.trace: [ASTree] = []\n",
+        "\n",
+        f"{indent}def enter(self, node):\n",
+        f"{indent*2}self.current.children.append(node)\n",
+        "\n",
+        f"{indent*2}self.current = node\n",
+        f"{indent*2}self.trace.append(node)\n",
+        "\n",
+        f"{indent}def exit(self):\n",
+        f"{indent*2}self.trace.pop(-1)\n",
+        f"{indent*2}self.current = None if len(self.trace) == 0 else self.trace[-1]\n",
+        "\n",
+        f"{indent}def exitEveryRule(self, ctx: ParserRuleContext):\n",
+        f"{indent*2}self.exit()\n",
+        "\n"
+    ])
+    for grammarVar in grammarVars:
+        of.writelines([
+            f"{indent}def enter{grammarVar}(self, ctx: MyGrammarParser.{grammarVar}Context):\n",
+            f"{indent*2}self.enter({grammarVar}{NODE}({'ctx.getText()' if writeText else 'None'}, \"{grammarVar[:2]}\"))\n",
+            "\n"
+        ])
 
 
 if __name__ == '__main__':
@@ -58,4 +91,6 @@ if __name__ == '__main__':
         of.writelines(["\n\n\n"])
 
         writeNodeDefinitions(grammarVars, indent)
+        of.writelines(["\n\n\n"])
 
+        writeListenerDefinition(grammarVars, indent, True)
