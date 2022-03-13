@@ -1,1 +1,6 @@
-ab = 123;
+(1+2)*3+4;
+(3*(2+(1)));
+float var;
+int var2 = 2;
+var = var2;
+float floatz;

@@ -27,7 +27,7 @@ statement
 expression
     : LPAREN expression RPAREN
     | lval (INCR | DECR) | (INCR | DECR) lval
-    | unaryop* (literal | lval)
+    | unaryop+ (literal | lval)
     | expression (STAR | DIV | MOD) expression
     | expression (PLUS | MIN) expression
     | expression relationalop expression
@@ -63,7 +63,7 @@ c_type
     | T_FLOAT
     | T_CHAR
     ) qualifier?          // postfix const
-     (STAR+ qualifier?)?   // ptr, possibly const
+     (STAR+ qualifier?)?  // ptr, possibly const
     ;
 
 qualifier
@@ -86,6 +86,8 @@ var_assig
 
 WS:         [ \r\t\n]+ -> skip
     ;
+
+
 INCR:       '++'
     ;
 DECR:       '--'
@@ -124,14 +126,20 @@ NEQ:        '!='
     ;
 ASSIG:      '='
     ;
+
+
 Q_CONST:    'const'
     ;
+
+
 T_CHAR:     'char'
     ;
 T_FLOAT:    'float'
     ;
 T_INT:      'int'
     ;
+
+
 ID:         [a-zA-Z_]+[a-zA-Z0-9_]*
     ;
 fragment NAT:   [0-9]+

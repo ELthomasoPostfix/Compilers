@@ -1,6 +1,3 @@
-###############
-# Node forward declarations (ASTreeVisitor.py)
-###############
 class CfileNode:
     pass
 class BlockNode:
@@ -28,9 +25,6 @@ class Var_assigNode:
 
 
 
-###############
-# Visitor forward declaration (ASTreeVisitor.py)
-###############
 class ASTreeVisitor:
     def visitCfile(self, value: CfileNode):
         pass
@@ -67,3 +61,4 @@ class ASTreeVisitor:
 
     def visitVar_assig(self, value: Var_assigNode):
         pass
+

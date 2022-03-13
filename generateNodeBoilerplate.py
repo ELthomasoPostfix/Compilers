@@ -6,8 +6,10 @@
 #   e.g.  varName\t \t\n \t\t:
 #      or varName2:
 #
+import os.path
 
 NODE = "Node"
+
 
 def findColonPrefixes(filePath: str):
     with open(filePath, "r") as f:
@@ -25,28 +27,33 @@ def findColonPrefixes(filePath: str):
         return grammarVars
 
 
-def writeNodeForwardDeclarations(grammarVars, indent: str):
-    of.write("###############\n# Node forward declarations (ASTreeVisitor.py)\n###############\n")
+def readImports(ofile):
+    imports = []
+    for line in ofile.readlines():
+        if "import " in line or "from " in line:
+            imports.append(line)
+    return imports
+
+
+def writeNodeForwardDeclarations(ofile, grammarVars, indent: str):
     for grammarVar in grammarVars:
-        of.writelines([f"class {grammarVar}{NODE}:\n{indent}pass\n"])
+        ofile.writelines([f"class {grammarVar}{NODE}:\n{indent}pass\n"])
 
 
-def writeVisitorForwardDeclaration(grammarVars, indent: str):
-    of.write("###############\n# Visitor forward declaration (ASTreeVisitor.py)\n###############\n")
-    of.write("class ASTreeVisitor:\n")
+def writeVisitorForwardDeclaration(ofile, grammarVars, indent: str):
+    ofile.write("class ASTreeVisitor:\n")
     for grammarVar in grammarVars:
-        of.writelines([f"{indent}def visit{grammarVar}(self, value: {grammarVar}Node):\n{indent*2}pass\n\n"])
+        ofile.writelines([f"{indent}def visit{grammarVar}(self, value: {grammarVar}Node):\n{indent*2}pass\n\n"])
 
 
-def writeNodeDefinitions(grammarVars, indent: str):
-    of.write("###############\n# Class definitions (ASTreeNode.py)\n###############\n")
+def writeNodeDefinitions(ofile, grammarVars, indent: str):
     for grammarVar in grammarVars:
-        of.writelines([f"class {grammarVar}{NODE}(ASTree):\n{indent}def accept(self, visitor: ASTreeVisitor):\n{indent*2}visitor.visit{grammarVar}(self)\n\n\n"])
+        ofile.writelines([f"class {grammarVar}{NODE}(ASTree):\n{indent}def accept(self, visitor: ASTreeVisitor):\n{indent*2}visitor.visit{grammarVar}(self)\n\n\n"])
 
 
-def writeListenerDefinition(grammarVars, indent: str, writeText: bool):
-    of.write("###############\n# Listener definition (ASTreeListener.py)\n###############\n")
-    of.writelines([
+def writeListenerDefinition(ofile, grammarVars, indent: str, writeText: bool):
+    ofile.write("###############\n# Listener definition (ASTreeListener.py)\n###############\n")
+    ofile.writelines([
         "class ASTreeListener(MyGrammarListener):\n",
             f"{indent}def __init__(self, root):\n",
                 f"{indent*2}self.root: ASTree = root\n",
@@ -68,7 +75,7 @@ def writeListenerDefinition(grammarVars, indent: str, writeText: bool):
         "\n"
     ])
     for grammarVar in grammarVars:
-        of.writelines([
+        ofile.writelines([
             f"{indent}def enter{grammarVar}(self, ctx: MyGrammarParser.{grammarVar}Context):\n",
             f"{indent*2}self.enter({grammarVar}{NODE}({'ctx.getText()' if writeText else 'None'}, \"{grammarVar[:2]}\"))\n",
             "\n"
@@ -83,14 +90,27 @@ if __name__ == '__main__':
     for idx, grammarVar in enumerate(grammarVars):
         grammarVars[idx] = grammarVar[0].upper() + grammarVar[1:]
 
-    with open(f"{dstDir}/nodeBoilerplate.txt", 'w') as of:
-        writeNodeForwardDeclarations(grammarVars, indent)
-        of.writelines(["\n\n\n"])
+    if os.path.exists("src/Nodes/ASTreeNode.py"):
+        with open(f"src/Nodes/ASTreeNode.py", 'r+') as ASTreeNode:
+            imports = readImports(ASTreeNode)
+            ASTreeNode.seek(0)
+            ASTreeNode.truncate()
 
-        writeVisitorForwardDeclaration(grammarVars, indent)
-        of.writelines(["\n\n\n"])
+            ASTreeNode.writelines(imports)
+            ASTreeNode.writelines(["\n\n\n"])
 
-        writeNodeDefinitions(grammarVars, indent)
-        of.writelines(["\n\n\n"])
+            writeNodeDefinitions(ASTreeNode, grammarVars, indent)
+            ASTreeNode.writelines(["\n\n\n"])
 
-        writeListenerDefinition(grammarVars, indent, True)
+    if os.path.exists("src/Visitor/ASTreeVisitor.py"):
+        with open(f"src/Visitor/ASTreeVisitor.py", 'r+') as ASTreeVisitor:
+            ASTreeVisitor.seek(0)
+            ASTreeVisitor.truncate()
+
+            writeNodeForwardDeclarations(ASTreeVisitor, grammarVars, indent)
+            ASTreeVisitor.writelines(["\n\n\n"])
+
+            writeVisitorForwardDeclaration(ASTreeVisitor, grammarVars, indent)
+
+    with open(f"{dstDir}/nodeBoilerplate.txt", 'w') as ASTreeListener:
+        writeListenerDefinition(ASTreeListener, grammarVars, indent, True)

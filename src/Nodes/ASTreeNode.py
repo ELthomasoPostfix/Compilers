@@ -2,9 +2,7 @@ from src.ASTree.Element import ASTreeVisitor
 from src.ASTree.ASTree import ASTree
 
 
-###############
-# Class definitions (ASTreeNode.py)
-###############
+
 class CfileNode(ASTree):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitCfile(self)
@@ -63,3 +61,8 @@ class Var_declNode(ASTree):
 class Var_assigNode(ASTree):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitVar_assig(self)
+
+
+
+
+
