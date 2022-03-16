@@ -6,7 +6,11 @@ class StatementNode:
     pass
 class ExpressionNode:
     pass
+class UnaryexpressionNode:
+    pass
 class UnaryopNode:
+    pass
+class BinaryopNode:
     pass
 class RelationalopNode:
     pass
@@ -38,7 +42,13 @@ class ASTreeVisitor:
     def visitExpression(self, value: ExpressionNode):
         pass
 
+    def visitUnaryexpression(self, value: UnaryexpressionNode):
+        pass
+
     def visitUnaryop(self, value: UnaryopNode):
+        pass
+
+    def visitBinaryop(self, value: BinaryopNode):
         pass
 
     def visitRelationalop(self, value: RelationalopNode):

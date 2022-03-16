@@ -22,8 +22,7 @@ class ASTree(Element):
         traverse = self.preorderTraverse([], 0)
         counter = 1
         for i in range(len(traverse)):
-            file.write('\t' + "ID" + str(counter) + " [label=" + '"' + str(traverse[i][0].name) + " | " +
-                       str(traverse[i][0].value) + '"' + "]" + '\n')
+            file.write('\t' + "ID" + str(counter) + " [label=" + '"' + str(traverse[i][0].__repr__()) + '"' + "]" + '\n')
             counter += 1
         file.write('\n')
         counter = 0

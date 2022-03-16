@@ -26,19 +26,27 @@ statement
 // An expression must be reducible to some c_typed value (rval?).
 expression
     : LPAREN expression RPAREN
-    | lval (INCR | DECR) | (INCR | DECR) lval
-    | unaryop+ (literal | lval)
-    | expression (STAR | DIV | MOD) expression
-    | expression (PLUS | MIN) expression
+    | unaryexpression
+    | expression binaryop expression
     | expression relationalop expression
     | lval
     | literal
+    ;
+
+unaryexpression
+    : lval (INCR | DECR) | (INCR | DECR) lval
+    | unaryop+ (literal | lval)
     ;
 
 unaryop
     : (PLUS | MIN)
     // TODO: BITWISE 'NOT' & 'AND'
     | (STAR | REF)
+    ;
+
+binaryop
+    : (STAR | DIV | MOD)
+    | (PLUS | MIN)
     ;
 
 relationalop

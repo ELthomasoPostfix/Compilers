@@ -41,8 +41,8 @@ def main():
     walker.walk(listener, tree)
     listener.root.toDot("beginTree.dot")
 
-    OListener = OptimizationVisitor()
-    listener.root.children[0].children[0].accept(OListener)
+    OVisitor = OptimizationVisitor()
+    listener.root.children[0].children[0].children[0].children[0].accept(OVisitor)
 
     listener.root.toDot("endTree.dot")
 
