@@ -88,6 +88,9 @@ class QualifierNode(ASTree):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitQualifier(self)
 
+    def __repr__(self):
+        return self.value
+
 
 class Var_declNode(ASTree):
     def accept(self, visitor: ASTreeVisitor):

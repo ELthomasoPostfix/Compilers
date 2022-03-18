@@ -1,0 +1,3 @@
+int i;
+int* ip = &i;
+const int const * const const_int = &i;

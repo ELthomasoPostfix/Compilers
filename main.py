@@ -1,3 +1,5 @@
+import sys
+
 from antlr4 import *
 
 from src.CompilersUtils import coloredDef
@@ -27,7 +29,7 @@ class KeyPrinter(MyGrammarListener):
 
 
 def main():
-    input_stream = FileStream("Input/test.txt")
+    input_stream = FileStream(sys.argv[1])
     lexer: MyGrammarLexer = MyGrammarLexer(input_stream)
     stream = CommonTokenStream(lexer)
     parser: MyGrammarParser = MyGrammarParser(stream)

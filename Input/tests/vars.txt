@@ -1,0 +1,8 @@
+int i;
+int i = 2;
+float f_full = 2.22;
+float f_pre = 2.;
+float f_post = .22;
+i = f;
+char pp;
+const int i = 1;
