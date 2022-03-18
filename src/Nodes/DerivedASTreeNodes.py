@@ -66,3 +66,93 @@ class ModNode(BinaryopNode):
     def __repr__(self):
         return '%'
 
+
+class EqNode(BinaryopNode):
+    def accept(self, visitor: ASTreeVisitor):
+        visitor.visitBinaryop(self)
+
+    def evaluateLiterals(self, literals: list):
+        mod = literals[0]
+        del literals[0]
+        for item in literals:
+            mod = mod == item
+        return mod
+
+    def __repr__(self):
+        return '=='
+
+
+class NeqNode(BinaryopNode):
+    def accept(self, visitor: ASTreeVisitor):
+        visitor.visitBinaryop(self)
+
+    def evaluateLiterals(self, literals: list):
+        mod = literals[0]
+        del literals[0]
+        for item in literals:
+            mod = mod != item
+        return mod
+
+    def __repr__(self):
+        return '!='
+
+
+class GtNode(BinaryopNode):
+    def accept(self, visitor: ASTreeVisitor):
+        visitor.visitBinaryop(self)
+
+    def evaluateLiterals(self, literals: list):
+        mod = literals[0]
+        del literals[0]
+        for item in literals:
+            mod = mod != item
+        return mod
+
+    def __repr__(self):
+        return '>'
+
+
+class GeqNode(BinaryopNode):
+    def accept(self, visitor: ASTreeVisitor):
+        visitor.visitBinaryop(self)
+
+    def evaluateLiterals(self, literals: list):
+        mod = literals[0]
+        del literals[0]
+        for item in literals:
+            mod = mod != item
+        return mod
+
+    def __repr__(self):
+        return '>='
+
+
+class LtNode(BinaryopNode):
+    def accept(self, visitor: ASTreeVisitor):
+        visitor.visitBinaryop(self)
+
+    def evaluateLiterals(self, literals: list):
+        mod = literals[0]
+        del literals[0]
+        for item in literals:
+            mod = mod != item
+        return mod
+
+    def __repr__(self):
+        return '<'
+
+
+class LeqNode(BinaryopNode):
+    def accept(self, visitor: ASTreeVisitor):
+        visitor.visitBinaryop(self)
+
+    def evaluateLiterals(self, literals: list):
+        mod = literals[0]
+        del literals[0]
+        for item in literals:
+            mod = mod != item
+        return mod
+
+    def __repr__(self):
+        return '<='
+

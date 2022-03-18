@@ -31,18 +31,14 @@ expression
     | expression (PLUS | MIN) expression                    # addexp
     | expression ((LT | LTE) | (GT | GTE)) expression       # relationalexp
     | expression (EQ | NEQ) expression                      # equalityexp
-    | valueexpression                                       # valueexp
+    | lval                                                  # lvalexp
+    | literal                                               # literalexp
     ;
 
 unaryexpression
     : lval (INCR | DECR)
     | (INCR | DECR) lval
     | unaryop+ (literal | lval)
-    ;
-
-valueexpression
-    : lval
-    | literal
     ;
 
 unaryop
