@@ -11,6 +11,7 @@ class ASTree(Element):
     def replaceSelf(self, replacement):
         if self in self.parent.children:
             self.parent.children[self.parent.children.index(self)] = replacement
+            replacement.parent = self.parent
             replacement.children = self.children
 
     def preorderTraverse(self, progress, layer):

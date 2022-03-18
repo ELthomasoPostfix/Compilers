@@ -1,3 +1,6 @@
+from src.ASTree import ASTree
+
+
 class CfileNode:
     pass
 class BlockNode:
@@ -32,6 +35,10 @@ class BinaryopNode:
 
 
 class ASTreeVisitor:
+    def visitChildren(self, node: ASTree):
+        for c in node.children:
+            c.accept(self)
+
     def visitCfile(self, value: CfileNode):
         pass
 

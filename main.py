@@ -34,15 +34,14 @@ def main():
     tree = parser.cfile()
 
     printer = KeyPrinter()
-    listener = ASTreeListener(
-        ASTree(name="root", value=None))  # TODO make the root of the CST var 'tree' the ASTree root instead
+    listener = ASTreeListener()  # TODO make the root of the CST var 'tree' the ASTree root instead
     walker = ParseTreeWalker()
     walker.walk(printer, tree)
     walker.walk(listener, tree)
     listener.root.toDot("beginTree.dot")
 
     OVisitor = OptimizationVisitor()
-    listener.root.children[0].children[0].children[0].children[0].accept(OVisitor)
+    listener.root.accept(OVisitor)
 
     listener.root.toDot("endTree.dot")
 
