@@ -42,6 +42,7 @@ class OptimizationVisitor(ASTreeVisitor):
     def visitUnaryOp(self, value: UnaryopNode):
         print(coloredDef("UOP"), value.value, value.name)
 
+
     def visitRelationalOp(self, value: RelationalopNode):
         print(coloredDef("ROP"), value.value, value.name)
 

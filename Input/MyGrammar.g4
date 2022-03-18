@@ -20,7 +20,7 @@ statement
     : expression ';'
     | var_decl ';'
     | var_assig ';'
-    | 'printf' LPAREN (literal | lval) RPAREN  // TODO un-hack
+    | 'printf' LPAREN (literal | var) RPAREN  // TODO un-hack
     ;
 
 // An expression must be reducible to some c_typed value (rval?).
@@ -31,20 +31,24 @@ expression
     | expression (PLUS | MIN) expression                    # addexp
     | expression ((LT | LTE) | (GT | GTE)) expression       # relationalexp
     | expression (EQ | NEQ) expression                      # equalityexp
-    | lval                                                  # lvalexp
+    | expression AND expression                             # andexp
+    | expression OR expression                              # orexp
+    | var                                                   # varexp
     | literal                                               # literalexp
     ;
 
 unaryexpression
-    : lval (INCR | DECR)
-    | (INCR | DECR) lval
-    | unaryop+ (literal | lval)
+    : var (INCR | DECR)
+    | (INCR | DECR) var
+    | unaryop+ (literal | var)
     ;
 
 unaryop
     : (PLUS | MIN)
     // TODO: BITWISE 'NOT' & 'AND'
-    | (STAR | REF)
+    | NOT
+    | STAR
+    | REF
     ;
 
 literal
@@ -52,7 +56,7 @@ literal
     | FLOAT
     ;
 
-lval
+var
     : ID
     ;
 
@@ -70,11 +74,11 @@ qualifier
     ;
 
 var_decl
-    : c_type ID (ASSIG expression)?
+    : c_type var (ASSIG expression)?
     ;
 
 var_assig
-    : ID ASSIG expression
+    : var ASSIG expression
     ;
 
 
@@ -89,6 +93,8 @@ WS:         [ \r\t\n]+ -> skip
 INCR:       '++'
     ;
 DECR:       '--'
+    ;
+NOT:        '!'
     ;
 LPAREN:     '('
     ;

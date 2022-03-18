@@ -121,3 +121,27 @@ class LteNode(BinaryopNode):
     def __repr__(self):
         return '<='
 
+
+class AndNode(BinaryopNode):
+    def accept(self, visitor: ASTreeVisitor):
+        visitor.visitBinaryop(self)
+
+    def evaluate(self, left: LiteralNode, right: LiteralNode):
+        return left.getValue() and right.getValue()     # TODO coerce operand to bool type
+
+
+    def __repr__(self):
+        return '&&'
+
+
+class OrNode(BinaryopNode):
+    def accept(self, visitor: ASTreeVisitor):
+        visitor.visitBinaryop(self)
+
+    def evaluate(self, left: LiteralNode, right: LiteralNode):
+        return left.getValue() or right.getValue()     # TODO coerce operand to bool type
+
+
+    def __repr__(self):
+        return '||'
+

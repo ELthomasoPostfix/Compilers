@@ -33,6 +33,9 @@ class LiteralNode(ASTree):
     def getValue(self):
         pass
 
+    def __repr__(self):
+        return self.getValue()
+
 
 class BinaryopNode(ASTree):
     def accept(self, visitor: ASTreeVisitor):
@@ -56,20 +59,29 @@ class UnaryopNode(ASTree):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitUnaryop(self)
 
+    def __repr__(self):
+        return self.value
+
 
 class RelationalopNode(ASTree):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitRelationalop(self)
 
 
-class LvalNode(ASTree):
+class VarNode(ASTree):
     def accept(self, visitor: ASTreeVisitor):
-        visitor.visitLval(self)
+        visitor.visitVar(self)
+
+    def __repr__(self):
+        return self.value
 
 
 class C_typeNode(ASTree):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitC_type(self)
+
+    def __repr__(self):
+        return self.value
 
 
 class QualifierNode(ASTree):

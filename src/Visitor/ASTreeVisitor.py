@@ -69,7 +69,7 @@ class ASTreeVisitor:
     def visitLiteral(self, value: LiteralNode):
         pass
 
-    def visitLval(self, value: LvalNode):
+    def visitVar(self, value: LvalNode):
         pass
 
     def visitC_type(self, value: C_typeNode):

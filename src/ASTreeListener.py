@@ -77,9 +77,6 @@ class ASTreeListener(MyGrammarListener):
         elif self.isTerminalType(ctx.getChild(1), MyGrammarParser.NEQ):
             self.addCurrentChild(NeqNode(ctx.getText(), "NEQ"))
 
-    def enterParenthesisexp(self, ctx:MyGrammarParser.ParenthesisexpContext):
-        pass
-
     def enterRelationalexp(self, ctx:MyGrammarParser.RelationalexpContext):
         if self.isTerminalType(ctx.getChild(1), MyGrammarParser.LT):
             self.addCurrentChild(LtNode(ctx.getText(), "LT"))
@@ -89,11 +86,6 @@ class ASTreeListener(MyGrammarListener):
             self.addCurrentChild(GtNode(ctx.getText(), "GT"))
         elif self.isTerminalType(ctx.getChild(1), MyGrammarParser.GTE):
             self.addCurrentChild(GteNode(ctx.getText(), "GTE"))
-
-
-    def enterUnaryexp(self, ctx:MyGrammarParser.UnaryexpContext):
-        pass
-
 
     def enterUnaryop(self, ctx: MyGrammarParser.UnaryopContext):
         # TODO collapse a series of unary operators (or do this in optimisation?)
@@ -105,8 +97,8 @@ class ASTreeListener(MyGrammarListener):
         elif self.isTerminalType(ctx.getChild(0), MyGrammarParser.FLOAT):
             self.addCurrentChild(FloatNode(ctx.getText(), "Fl"))
 
-    def enterLval(self, ctx: MyGrammarParser.LvalContext):
-        self.addCurrentChild(LvalNode(ctx.getText(), "Lv"))
+    def enterVar(self, ctx: MyGrammarParser.VarContext):
+        self.addCurrentChild(VarNode(ctx.getText(), "Va"))
 
     def enterC_type(self, ctx: MyGrammarParser.C_typeContext):
         self.addCurrentChild(C_typeNode(ctx.getText(), "C_"))
@@ -119,7 +111,6 @@ class ASTreeListener(MyGrammarListener):
 
     def enterVar_assig(self, ctx: MyGrammarParser.Var_assigContext):
         self.addCurrentChild(Var_assigNode(ctx.getText(), "Va"))
-
 
 
     def isTerminalType(self, node: ParserRuleContext, terminalID: int):
