@@ -102,11 +102,11 @@ class GtNode(BinaryopNode):
         visitor.visitBinaryop(self)
 
     def evaluateLiterals(self, literals: list):
-        mod = literals[0]
+        great = literals[0]
         del literals[0]
         for item in literals:
-            mod = mod != item
-        return mod
+            great = great > item
+        return great
 
     def __repr__(self):
         return '>'
@@ -117,11 +117,11 @@ class GeqNode(BinaryopNode):
         visitor.visitBinaryop(self)
 
     def evaluateLiterals(self, literals: list):
-        mod = literals[0]
+        greateq = literals[0]
         del literals[0]
         for item in literals:
-            mod = mod != item
-        return mod
+            greateq = greateq >= item
+        return greateq
 
     def __repr__(self):
         return '>='
@@ -132,11 +132,11 @@ class LtNode(BinaryopNode):
         visitor.visitBinaryop(self)
 
     def evaluateLiterals(self, literals: list):
-        mod = literals[0]
+        less = literals[0]
         del literals[0]
         for item in literals:
-            mod = mod != item
-        return mod
+            less = less < item
+        return less
 
     def __repr__(self):
         return '<'
@@ -147,11 +147,11 @@ class LeqNode(BinaryopNode):
         visitor.visitBinaryop(self)
 
     def evaluateLiterals(self, literals: list):
-        mod = literals[0]
+        lesseq = literals[0]
         del literals[0]
         for item in literals:
-            mod = mod != item
-        return mod
+            lesseq = lesseq <= item
+        return lesseq
 
     def __repr__(self):
         return '<='

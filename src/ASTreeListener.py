@@ -62,7 +62,7 @@ class ASTreeListener(MyGrammarListener):
         # TODO collapse a series of unary operators (or do this in optimisation?)
         self.enter(UnaryopNode(ctx.getText(), "Un"))
 
-    def enterBinaryop(self, ctx: MyGrammarParser.BinaryopContext):
+    def enterBinaryop(self, ctx):
         if self.isTerminalType(ctx.children[0], MyGrammarParser.PLUS):
             self.substituteTraceBottom(SumNode(ctx.getText(), "Sum"))
         elif self.isTerminalType(ctx.children[0], MyGrammarParser.MIN):
