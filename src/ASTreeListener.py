@@ -16,6 +16,7 @@ class ASTreeListener(MyGrammarListener):
 
     def enter(self, node):
         self.current.children.append(node)
+        node.parent = self.current
 
         self.current = node
         self.trace.append(node)
@@ -75,6 +76,7 @@ class ASTreeListener(MyGrammarListener):
         else:
             self.substituteTraceBottom(BinaryopNode(ctx.getText(), "Bi"))
         self.skip()
+        self.trace[-1].parent = self.trace[-2]
 
     def enterRelationalop(self, ctx: MyGrammarParser.RelationalopContext):
         self.enter(RelationalopNode(ctx.getText(), "Re"))

@@ -2,10 +2,16 @@ from src.ASTree.Element import Element
 
 
 class ASTree(Element):
-    def __init__(self, value, name):
+    def __init__(self, value, name, parent=None):
         self.value = value  # TODO  delete this, should be in derived classes
-        self.children = []
+        self.children: [ASTree] = []
         self.name = name
+        self.parent: ASTree = parent
+
+    def replaceSelf(self, replacement):
+        if self in self.parent.children:
+            self.parent.children[self.parent.children.index(self)] = replacement
+            replacement.children = self.children
 
     def preorderTraverse(self, progress, layer):
         progress.append([self, layer])

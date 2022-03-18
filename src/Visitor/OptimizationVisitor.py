@@ -12,60 +12,24 @@ class OptimizationVisitor(ASTreeVisitor):
 
     def visitLiteral(self, value: LiteralNode):
         print(coloredDef("VAL"), value.value, value.name)
+    def visitBinaryop(self, value: BinaryopNode):
+        if len(value.children) == 2:
+            for child in value.children:
+                if isinstance(child, BinaryopNode):
+                    child.parent = value
+                    self.visitBinaryop(child)
+            if isinstance(value.children[0], LiteralNode) and isinstance(value.children[1], LiteralNode):
+                child1 = int(value.children[0].value)
+                child2 = int(value.children[1].value)
+                val = value.evaluateLiterals([child1, child2])
+                # value.name = "Li"
+                # value.value = val
+                value.children = []
+                value.replaceSelf(LiteralNode(val, "Li", value.parent))
 
-    def visitBop(self, value: LiteralNode):
-        pass
-        # if len(value.children) == 2:
-        #     for child in value.children:
-        #         if isinstance(child, BopNode):
-        #             self.visitBop(child)
-        #
-        #     if value.children[0].name == 'VALUE' and value.children[1].name == 'VALUE':
-        #         pass
-        #
-        #     val1 = value.children[0].value
-        #     val2 = value.children[1].value
-        #     value.children.clear()
-        #
-        #     value.name = 'VALUE'
-        #
-        #     # TODO: VERY UGLY !!! CHANGE
-        #     if value.value == '+':
-        #         value.value = int(val1) + int(val2)
-        #     elif value.value == '-':
-        #         value.value = int(val1) - int(val2)
-        #     elif value.value == '*':
-        #         value.value = int(val1) * int(val2)
-        #     elif value.value == '/':
-        #         value.value = int(val1) / int(val2)
-        #     elif value.value == '<':
-        #         value.value = int(val1) < int(val2)
-        #     elif value.value == '>':
-        #         value.value = int(val1) > int(val2)
-        #     elif value.value == '%':
-        #         value.value = int(val1) % int(val2)
-        #     elif value.value == '==':
-        #         value.value = int(val1) == int(val2)
-        #     elif value.value == '&&':
-        #         value.value = int(val1) and int(val2)
-        #     elif value.value == '||':
-        #         value.value = int(val1) or int(val2)
-        #     elif value.value == '>=':
-        #         value.value = int(val1) >= int(val2)
-        #     elif value.value == '<=':
-        #         value.value = int(val1) <= int(val2)
-        #     elif value.value == '!=':
-        #         value.value = int(val1) != int(val2)
-        #     else:
-        #         value.value = None
-        #
-        #     print(coloredDef("NEW"), value.value, value.name)
-        #
-        #     # else:
-        #     #     for child in value.children:
-        #     #         self.visitBop(child)
-        #
-        # print(coloredDef("BOP"), value.value, value.name)
+
+
+
 
     def visitUnaryOp(self, value: UnaryopNode):
         print(coloredDef("UOP"), value.value, value.name)

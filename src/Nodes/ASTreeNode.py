@@ -37,6 +37,8 @@ class BinaryopNode(ASTree):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitBinaryop(self)
 
+    def evaluateLiterals(self, literals: list):
+        pass
 
 class RelationalopNode(ASTree):
     def accept(self, visitor: ASTreeVisitor):
