@@ -112,7 +112,7 @@ class GtNode(BinaryopNode):
         return '>'
 
 
-class GeqNode(BinaryopNode):
+class GteNode(BinaryopNode):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitBinaryop(self)
 
@@ -142,7 +142,7 @@ class LtNode(BinaryopNode):
         return '<'
 
 
-class LeqNode(BinaryopNode):
+class LteNode(BinaryopNode):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitBinaryop(self)
 

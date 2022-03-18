@@ -23,22 +23,24 @@ class ExpressionNode(ASTree):
         visitor.visitExpression(self)
 
 
+class BinaryopNode(ASTree):
+    def accept(self, visitor: ASTreeVisitor):
+        visitor.visitBinaryop(self)
+
 class UnaryexpressionNode(ASTree):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitUnaryexpression(self)
+
+
+class ValueexpressionNode(ASTree):
+    def accept(self, visitor: ASTreeVisitor):
+        visitor.visitValueexpression(self)
 
 
 class UnaryopNode(ASTree):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitUnaryop(self)
 
-
-class BinaryopNode(ASTree):
-    def accept(self, visitor: ASTreeVisitor):
-        visitor.visitBinaryop(self)
-
-    def evaluateLiterals(self, literals: list):
-        pass
 
 class RelationalopNode(ASTree):
     def accept(self, visitor: ASTreeVisitor):

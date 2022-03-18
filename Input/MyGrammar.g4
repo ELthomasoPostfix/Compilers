@@ -47,10 +47,6 @@ unaryop
     | (STAR | REF)
     ;
 
-relationalop
-    :
-    ;
-
 literal
     : INT
     | FLOAT

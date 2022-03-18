@@ -12,31 +12,26 @@ class ASTreeListener(MyGrammarListener):
         self.root: ASTree = root
         self.current: ASTree = self.root
         self.trace: [ASTree] = []
-        self.skipDepths = []
+        self.pushDepths = []
+        self.cstDepth = 0
 
     def enter(self, node):
         self.current.children.append(node)
         node.parent = self.current
 
         self.current = node
+        self.pushDepths.append(self.cstDepth)
         self.trace.append(node)
 
-    def shouldSkip(self):
-        return len(self.skipDepths) > 0 and len(self.trace) == self.skipDepths[-1]
-
-    def exit(self):
-        if self.shouldSkip():   # Prevent exit from executing on skipped nodes
-            print("skip", self.skipDepths[-1])
-            self.skipDepths.pop(-1)
-        else:
-            self.trace.pop(-1)
-            self.current = None if len(self.trace) == 0 else self.trace[-1]
-
-    def skip(self):
-        self.skipDepths.append(len(self.trace))
+    def enterEveryRule(self, ctx:ParserRuleContext):
+        self.cstDepth += 1
 
     def exitEveryRule(self, ctx: ParserRuleContext):
-        self.exit()
+        if self.cstDepth == self.pushDepths[-1]:
+            self.pushDepths.pop(-1)
+            self.trace.pop(-1)
+            self.current = self.trace[-1] if len(self.trace) > 0 else None
+        self.cstDepth -= 1
 
     def enterCfile(self, ctx: MyGrammarParser.CfileContext):
         self.enter(CfileNode(ctx.getText(), "Cf"))
@@ -50,36 +45,57 @@ class ASTreeListener(MyGrammarListener):
     def enterExpression(self, ctx: MyGrammarParser.ExpressionContext):
         if isinstance(ctx.children[0], MyGrammarParser.LiteralContext) or \
                 self.isTerminalType(ctx.children[0], MyGrammarParser.LPAREN):
-            self.skip()
             return
         else:
             self.enter(ExpressionNode(ctx.getText(), "Ex"))
 
+
+
     def enterUnaryexpression(self, ctx: MyGrammarParser.UnaryexpressionContext):
         self.enter(UnaryexpressionNode(ctx.getText(), "Un"))
+
+    def enterAddexp(self, ctx:MyGrammarParser.AddexpContext):
+        if self.isTerminalType(ctx.getChild(1), MyGrammarParser.PLUS):
+            self.enter(SumNode(ctx.getText(), "SUM"))
+        elif self.isTerminalType(ctx.getChild(1), MyGrammarParser.MIN):
+            self.enter(MinNode(ctx.getText(), "MIN"))
+
+    def enterMultiplicationexp(self, ctx:MyGrammarParser.MultiplicationexpContext):
+        if self.isTerminalType(ctx.getChild(1), MyGrammarParser.STAR):
+            self.enter(MulNode(ctx.getText(), "MUL"))
+        elif self.isTerminalType(ctx.getChild(1), MyGrammarParser.DIV):
+            self.enter(DivNode(ctx.getText(), "DIV"))
+        elif self.isTerminalType(ctx.getChild(1), MyGrammarParser.MOD):
+            self.enter(ModNode(ctx.getText(), "MOD"))
+
+
+    def enterEqualityexp(self, ctx:MyGrammarParser.EqualityexpContext):
+        if self.isTerminalType(ctx.getChild(1), MyGrammarParser.EQ):
+            self.enter(EqNode(ctx.getText(), "EQ"))
+        elif self.isTerminalType(ctx.getChild(1), MyGrammarParser.NEQ):
+            self.enter(NeqNode(ctx.getText(), "NEQ"))
+
+    def enterParenthesisexp(self, ctx:MyGrammarParser.ParenthesisexpContext):
+        pass
+
+    def enterRelationalexp(self, ctx:MyGrammarParser.RelationalexpContext):
+        if self.isTerminalType(ctx.getChild(1), MyGrammarParser.LT):
+            self.enter(LtNode(ctx.getText(), "LT"))
+        elif self.isTerminalType(ctx.getChild(1), MyGrammarParser.LTE):
+            self.enter(LteNode(ctx.getText(), "LTE"))
+        elif self.isTerminalType(ctx.getChild(1), MyGrammarParser.GT):
+            self.enter(GtNode(ctx.getText(), "GT"))
+        elif self.isTerminalType(ctx.getChild(1), MyGrammarParser.GTE):
+            self.enter(GteNode(ctx.getText(), "GTE"))
+
+
+    def enterUnaryexp(self, ctx:MyGrammarParser.UnaryexpContext):
+        pass
+
 
     def enterUnaryop(self, ctx: MyGrammarParser.UnaryopContext):
         # TODO collapse a series of unary operators (or do this in optimisation?)
         self.enter(UnaryopNode(ctx.getText(), "Un"))
-
-    def enterBinaryop(self, ctx):
-        if self.isTerminalType(ctx.children[0], MyGrammarParser.PLUS):
-            self.substituteTraceBottom(SumNode(ctx.getText(), "Sum"))
-        elif self.isTerminalType(ctx.children[0], MyGrammarParser.MIN):
-            self.substituteTraceBottom(MinNode(ctx.getText(), "Min"))
-        elif self.isTerminalType(ctx.children[0], MyGrammarParser.STAR):
-            self.substituteTraceBottom(MulNode(ctx.getText(), "Mul"))
-        elif self.isTerminalType(ctx.children[0], MyGrammarParser.DIV):
-            self.substituteTraceBottom(DivNode(ctx.getText(), "Div"))
-        elif self.isTerminalType(ctx.children[0], MyGrammarParser.MOD):
-            self.substituteTraceBottom(ModNode(ctx.getText(), "Mod"))
-        else:
-            self.substituteTraceBottom(BinaryopNode(ctx.getText(), "Bi"))
-        self.skip()
-        self.trace[-1].parent = self.trace[-2]
-
-    def enterRelationalop(self, ctx: MyGrammarParser.RelationalopContext):
-        self.enter(RelationalopNode(ctx.getText(), "Re"))
 
     def enterLiteral(self, ctx: MyGrammarParser.LiteralContext):
         self.enter(LiteralNode(ctx.getText(), "Li"))
@@ -104,13 +120,3 @@ class ASTreeListener(MyGrammarListener):
     def isTerminalType(self, node: ParserRuleContext, terminalID: int):
         return isinstance(node, TerminalNodeImpl) and node.symbol.type == terminalID
 
-    def substituteTraceBottom(self, substitute: ASTree):
-        bottom: ASTree = self.trace[-1]
-        substitute.children.extend(bottom.children)
-        bottom.children.clear()
-
-        bottomParent = self.trace[-2]
-        bottomParent.children[bottomParent.children.index(bottom)] = substitute
-
-        self.trace[-1] = substitute
-        self.current = substitute
