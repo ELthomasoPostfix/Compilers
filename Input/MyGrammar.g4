@@ -25,17 +25,24 @@ statement
 
 // An expression must be reducible to some c_typed value (rval?).
 expression
-    : LPAREN expression RPAREN
-    | unaryexpression
-    | expression binaryop expression
-    | expression relationalop expression
-    | lval
-    | literal
+    : LPAREN expression RPAREN                              # parenthesisexp
+    | unaryexpression                                       # unaryexp
+    | expression (STAR | DIV | MOD) expression              # multiplicationexp
+    | expression (PLUS | MIN) expression                    # addexp
+    | expression ((LT | LTE) | (GT | GTE)) expression       # relationalexp
+    | expression (EQ | NEQ) expression                      # equalityexp
+    | valueexpression                                       # valueexp
     ;
 
 unaryexpression
-    : lval (INCR | DECR) | (INCR | DECR) lval
+    : lval (INCR | DECR)
+    | (INCR | DECR) lval
     | unaryop+ (literal | lval)
+    ;
+
+valueexpression
+    : lval
+    | literal
     ;
 
 unaryop
@@ -44,16 +51,8 @@ unaryop
     | (STAR | REF)
     ;
 
-binaryop
-    : (STAR | DIV | MOD)
-    | (PLUS | MIN)
-    ;
-
 relationalop
-    : (LT | LTE)
-    | (GT | GTE)
-    | (EQ | NEQ)
-    | (AND | OR)
+    :
     ;
 
 literal
@@ -79,8 +78,7 @@ qualifier
     ;
 
 var_decl
-    : c_type ID
-    | c_type ID ASSIG expression
+    : c_type ID (ASSIG expression)?
     ;
 
 var_assig
