@@ -3,7 +3,6 @@ from antlr4.tree.Tree import TerminalNodeImpl
 
 from src.generated.MyGrammarListener import MyGrammarListener
 from src.generated.MyGrammarParser import MyGrammarParser
-from src.Nodes.ASTreeNode import *
 from src.Nodes.DerivedASTreeNodes import *
 
 
@@ -11,7 +10,6 @@ class ASTreeListener(MyGrammarListener):
     def __init__(self, root):
         self.root: ASTree = root
         self.current: ASTree = self.root
-        self.trace: [ASTree] = []
         self.pushDepths = []
         self.cstDepth = 0
 
@@ -21,7 +19,6 @@ class ASTreeListener(MyGrammarListener):
 
         self.current = node
         self.pushDepths.append(self.cstDepth)
-        self.trace.append(node)
 
     def enterEveryRule(self, ctx:ParserRuleContext):
         self.cstDepth += 1
@@ -29,8 +26,7 @@ class ASTreeListener(MyGrammarListener):
     def exitEveryRule(self, ctx: ParserRuleContext):
         if self.cstDepth == self.pushDepths[-1]:
             self.pushDepths.pop(-1)
-            self.trace.pop(-1)
-            self.current = self.trace[-1] if len(self.trace) > 0 else None
+            self.current = self.current.parent
         self.cstDepth -= 1
 
     def enterCfile(self, ctx: MyGrammarParser.CfileContext):
