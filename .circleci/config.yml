@@ -27,7 +27,9 @@ jobs:
       - run: sudo apt update
       - run: sudo apt install default-jre
       # Run tests
-      - run: ./run.sh
+      - run: ./run.sh Input/tests/operators.txt
+      - run: ./run.sh Input/tests/ptrs.txt
+      - run: ./run.sh Input/tests/vars.txt
 
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
