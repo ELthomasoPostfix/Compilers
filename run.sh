@@ -1,7 +1,31 @@
 DESTINATION=src/generated
+REQ_ARGS=1
+h_flag=false
 
-if [ "$#" != 1 ];
+
+while getopts 'h' flag; do
+  case "${flag}" in
+    h) h_flag=true ;;
+    *) ;;
+  esac
+done
+
+if [ "$h_flag" = true ]
+then
+  echo "Compile the specified file(s).
+   positional arguments:
+     1: To compile file containing C code
+   possible flags:
+    -h :  display help and exit without compiling"
+  exit 0
+fi
+
+
+
+
+if [ "$#" != ${REQ_ARGS} ];
  then
+    echo Incorrect positional argument count: expected \'${REQ_ARGS}\' but got \'"$#"\';
     exit 1;
 fi
 
