@@ -2,3 +2,4 @@ int i;
 int* ip = &i;
 const int const * const const_int = &i;
 const int const ** const * const ptr;
+const unsigned const long const long const int const * const ** const *** lli;

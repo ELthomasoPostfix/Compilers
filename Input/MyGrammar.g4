@@ -61,16 +61,19 @@ var
     ;
 
 c_type
-    : qualifier?          // prefix const
+    : qualifier*          // prefix const
     ( T_INT
     | T_FLOAT
     | T_CHAR
     ) qualifier?          // postfix const
-     (STAR+ qualifier?)?  // ptr, possibly const
+     (STAR+ qualifier?)*  // ptr, possibly const
     ;
 
-qualifier
+qualifier       // TODO  Figure out how these specifiers/qualifiers should be structured into the grammar
     : Q_CONST
+    | Q_UNSIGNED
+    | Q_LONG
+    | Q_SHORT
     ;
 
 var_decl
@@ -134,9 +137,17 @@ ASSIG:      '='
 
 Q_CONST:    'const'
     ;
+Q_UNSIGNED: 'unsigned'
+    ;
+Q_LONG:     'long'
+    ;
+Q_SHORT:    'short'
+    ;
 
 
 T_CHAR:     'char'
+    ;
+T_DOUBLE:   'double'
     ;
 T_FLOAT:    'float'
     ;

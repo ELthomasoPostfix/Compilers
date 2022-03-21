@@ -39,6 +39,12 @@ class OptimizationVisitor(ASTreeVisitor):
                 value.parent = []
                 del value
 
+    def visitUnaryexpression(self, value: UnaryexpressionNode):
+        #for cidx in range(len(value.children)-1, 0):
+        #    if value.children[cidx]
+        pass
+
+
     def visitUnaryOp(self, value: UnaryopNode):
         print(coloredDef("UOP"), value.value, value.name)
 
