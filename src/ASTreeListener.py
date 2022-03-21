@@ -5,6 +5,7 @@ from src.generated.MyGrammarListener import MyGrammarListener
 from src.generated.MyGrammarParser import MyGrammarParser
 from src.Nodes.OperatorNodes import *
 from src.Nodes.LiteralNodes import *
+from src.CompilersUtils import first
 
 
 class ASTreeListener(MyGrammarListener):
@@ -101,7 +102,8 @@ class ASTreeListener(MyGrammarListener):
         self.addCurrentChild(VarNode(ctx.getText(), "Va"))
 
     def enterC_type(self, ctx: MyGrammarParser.C_typeContext):
-        self.addCurrentChild(C_typeNode(ctx.getText(), "C_"))
+        c_type = first(ctx.children, (lambda c_type_ctx: isinstance(c_type_ctx, TerminalNodeImpl)))
+        self.addCurrentChild(C_typeNode(c_type.getText(), "C_"))
 
     def enterQualifier(self, ctx: MyGrammarParser.QualifierContext):
         self.addCurrentChild(QualifierNode(ctx.getText(), "Qu"))
