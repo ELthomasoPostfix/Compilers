@@ -16,7 +16,7 @@ then
    positional arguments:
      1: To compile file containing C code
    possible flags:
-    -h :  display help and exit without compiling"
+    -h :  Show this help message"
   exit 0
 fi
 

@@ -16,7 +16,7 @@ if [ "$h_flag" = true ]
 then
   echo "Ensures the directories needed by the compiler exist.
    possible flags:
-    -h :  display help and exit without ensuring directory existence
+    -h :  Show this help message
     -d :  specify a destination directory, the default is '${DESTINATION_DIR}'
     -o :  specify an output directory, the default is '${OUTPUT_DIR}'"
   exit 0
