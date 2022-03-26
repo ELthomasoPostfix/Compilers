@@ -6,6 +6,9 @@ class SumNode(BinaryopNode):
         visitor.visitBinaryop(self)
 
     def evaluate(self, left: LiteralNode, right: LiteralNode):
+        a = left.getValue()
+        b = right.getValue()
+        c = a + b
         return left.getValue() + right.getValue()
 
     def __repr__(self):

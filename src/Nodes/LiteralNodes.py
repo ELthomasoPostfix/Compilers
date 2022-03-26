@@ -54,9 +54,6 @@ class CharNode(LiteralNode):
         return self.getValue()
 
 
-
-
-
 def coerce(operand: LiteralNode, rank: int):
     if rank == 2:
         return CharNode(operand.value, "Ch")
