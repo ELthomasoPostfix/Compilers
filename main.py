@@ -13,16 +13,16 @@ from src.Visitor.OptimizationVisitor import OptimizationVisitor
 
 class KeyPrinter(MyGrammarListener):
     def enterExpression(self, ctx:MyGrammarParser.ExpressionContext):
-        print(f"Werner found a {coloredDef(ctx.getText())} (EXP)")
+        print(f"Compiler found a {coloredDef(ctx.getText())} (EXP)")
 
     def enterCfile(self, ctx:MyGrammarParser.CfileContext):
-        print(f"Werner found a {coloredDef(ctx.getText())} (CF)")
+        print(f"Compiler found a {coloredDef(ctx.getText())} (CF)")
 
     def enterBlock(self, ctx:MyGrammarParser.BlockContext):
-        print(f"Werner found a {coloredDef(ctx.getText())} (B)")
+        print(f"Compiler found a {coloredDef(ctx.getText())} (B)")
 
     def enterLiteral(self, ctx:MyGrammarParser.LiteralContext):
-        print(f"Werner found a {coloredDef(ctx.getText())} (LIT)")
+        print(f"Compiler found a {coloredDef(ctx.getText())} (LIT)")
 
 
 
