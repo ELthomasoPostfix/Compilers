@@ -17,11 +17,46 @@ block
     ;
 
 statement
-    : expression SEMICOLON
+    : expressionstatement
+    | compoundstatement
+    | labelstatement
+    | selectionStatement
+    | iterationstatement
+    | jumpStatement
     | var_decl   SEMICOLON
     | var_assig  SEMICOLON
     | 'printf' LPAREN (expression) RPAREN  // TODO un-hack
     ;
+
+expressionstatement
+    : expression SEMICOLON
+    ;
+
+compoundstatement
+    : LBRACE (statement)* RBRACE
+    ;
+
+labelstatement
+    : identifier COLON statement
+    // | CASE constantexpression COLON statement       // TODO  introduce constantexpression for switch to allow cases
+    | DEFAULT COLON statement
+    ;
+
+selectionStatement
+    :   IF LPAREN expression RPAREN statement (ELSE statement)?
+    ;
+
+iterationstatement
+    :   WHILE LPAREN expression RPAREN statement
+    |   DO statement WHILE LPAREN expression RPAREN SEMICOLON
+    |   FOR LPAREN forCondition RPAREN statement
+    ;
+
+jumpStatement
+    : ((CONTINUE | BREAK) | RETURN expression?) SEMICOLON
+    ;
+
+
 
 // An expression must be reducible to some typed value (rval?).
 expression
@@ -49,6 +84,18 @@ unaryop
     | NOT
     | STAR
     | REF
+    ;
+
+forCondition
+	:   (fordeclaration | expression?) SEMICOLON forexpression? SEMICOLON forexpression?
+	;
+
+fordeclaration
+    : var_decl
+    ;
+
+forexpression
+    : expression
     ;
 
 var_decl
@@ -101,6 +148,7 @@ pointer
 literal
     : INT
     | FLOAT
+    | CHAR
     ;
 
 identifier
@@ -114,6 +162,8 @@ identifier
 WS:         [ \r\t\n]+ -> skip
     ;
 SEMICOLON:  ';'
+    ;
+COLON:      ':'
     ;
 
 INCR:       '++'
@@ -164,6 +214,10 @@ NEQ:        '!='
     ;
 ASSIG:      '='
     ;
+SINGLE_QUOTE:   '\''
+    ;
+DOUBLE_QUOTE:   '"'
+    ;
 
 
 Q_CONST:    'const'
@@ -177,6 +231,30 @@ S_UNSIGNED: 'unsigned'
 S_LONG:     'long'
     ;
 S_SHORT:    'short'
+    ;
+
+
+IF:         'if'
+    ;
+ELSE:       'else'
+    ;
+WHILE:      'while'
+    ;
+DO:         'do'
+    ;
+FOR:        'for'
+    ;
+BREAK:      'break'
+    ;
+CONTINUE:   'continue'
+    ;
+SWITCH:     'switch'
+    ;
+DEFAULT:    'default'
+    ;
+
+
+RETURN:     'return'
     ;
 
 
@@ -199,6 +277,8 @@ fragment NAT:   [0-9]+
 INT:        NAT
     ;
 FLOAT:      (NAT ('.' NAT?)?) | (NAT? '.' NAT)
+    ;
+CHAR:       SINGLE_QUOTE SINGLE_QUOTE
     ;
 
 ///////////////////////////////////////////
