@@ -1,3 +1,4 @@
+import sys
 from src.ASTree.Element import Element
 
 
@@ -9,10 +10,42 @@ class ASTree(Element):
         self.parent: ASTree = parent
 
     def replaceSelf(self, replacement):
+        """
+        Replace the caller by the replacement argument in the AST. In other words,
+        replace the caller by the replacement argument in all parent-caller and caller-child relationships.
+        After the operation is concluded, the caller retains none of its parent and children relations.
+        :param replacement: The replacement of the caller in the AST. Passing None will essentially
+        clip the caller and all its children from the caller's parent AST.
+        """
         if self in self.parent.children:
             self.parent.children[self.parent.children.index(self)] = replacement
-            replacement.parent = self.parent
-            replacement.children = self.children
+
+            if replacement is not None:
+                replacement.parent = self.parent
+                replacement.children = self.children
+
+            self.parent = None
+            self.children.clear()
+
+    def addChild(self, child, idx: int = sys.maxsize):
+        """
+        Create a parent child relationship between the child argument and the caller, inserting the
+        child at the specified index. Note that if the idx argument is larger than the children list
+        size, the child will be appended instead. Negative idx arguments are accepted.
+        :param child: The new child of the caller
+        :param idx: Insert child at this index
+        """
+        self.children.insert(idx, child)
+        child.parent = self
+
+    def getChild(self, idx: int):
+        """
+        Get the child at the specified index. If index out of range,
+        None is returned instead.
+        :param idx: The index of the requested child
+        :return: The requested child if index in range, else None
+        """
+        return self.children[idx] if idx < len(self.children) else None
 
     def preorderTraverse(self, progress, layer):
         progress.append([self, layer])

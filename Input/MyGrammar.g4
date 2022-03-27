@@ -17,13 +17,13 @@ block
     ;
 
 statement
-    : expression ';'
-    | var_decl ';'
-    | var_assig ';'
-    | 'printf' LPAREN (literal | var) RPAREN  // TODO un-hack
+    : expression SEMICOLON
+    | var_decl   SEMICOLON
+    | var_assig  SEMICOLON
+    | 'printf' LPAREN (expression) RPAREN  // TODO un-hack
     ;
 
-// An expression must be reducible to some c_typed value (rval?).
+// An expression must be reducible to some typed value (rval?).
 expression
     : LPAREN expression RPAREN                              # parenthesisexp
     | unaryexpression                                       # unaryexp
@@ -33,14 +33,14 @@ expression
     | expression (EQ | NEQ) expression                      # equalityexp
     | expression AND expression                             # andexp
     | expression OR expression                              # orexp
-    | var                                                   # varexp
+    | identifier                                            # identifierexp
     | literal                                               # literalexp
     ;
 
 unaryexpression
-    : var (INCR | DECR)
-    | (INCR | DECR) var
-    | unaryop+ (literal | var)
+    : identifier (INCR | DECR)
+    | (INCR | DECR) identifier
+    | unaryop+ (literal | identifier)
     ;
 
 unaryop
@@ -51,39 +51,61 @@ unaryop
     | REF
     ;
 
+var_decl
+    : typedeclaration declarator (ASSIG expression)?
+    ;
+
+var_assig
+    : identifier ASSIG expression
+    ;
+
+declarator
+    : identifier
+    | LPAREN declarator RPAREN
+    | (pointer qualifiers?)+ declarator
+    | declarator LBRACE expression RBRACE
+    ;
+
+typedeclaration
+    : (typequalifier | typespecifier)* typespecifier typequalifier?
+    ;
+
+qualifiers
+    : qualifier+
+    ;
+
+qualifier
+    : typequalifier
+    ;
+
+typequalifier
+    : Q_CONST
+    ;
+
+typespecifier
+    : (T_VOID
+    |  T_CHAR
+    |  S_SHORT
+    |  T_INT
+    |  S_LONG
+    |  T_FLOAT
+    |  T_DOUBLE
+    |  S_SIGNED
+    |  S_UNSIGNED)
+    ;
+
+pointer
+    : STAR
+    ;
+
 literal
     : INT
     | FLOAT
     ;
 
-var
+identifier
     : ID
     ;
-
-c_type
-    : qualifier*          // prefix const
-    ( T_INT
-    | T_FLOAT
-    | T_CHAR
-    ) qualifier?          // postfix const
-     (STAR+ qualifier?)*  // ptr, possibly const
-    ;
-
-qualifier       // TODO  Figure out how these specifiers/qualifiers should be structured into the grammar
-    : Q_CONST
-    | Q_UNSIGNED
-    | Q_LONG
-    | Q_SHORT
-    ;
-
-var_decl
-    : c_type var (ASSIG expression)?
-    ;
-
-var_assig
-    : var ASSIG expression
-    ;
-
 
 ///////////////////////////////////////////
 //              LEXER RULES              //
@@ -91,7 +113,8 @@ var_assig
 
 WS:         [ \r\t\n]+ -> skip
     ;
-
+SEMICOLON:  ';'
+    ;
 
 INCR:       '++'
     ;
@@ -102,6 +125,14 @@ NOT:        '!'
 LPAREN:     '('
     ;
 RPAREN:     ')'
+    ;
+LBRACKET:   '['
+    ;
+RBRACKET:   ']'
+    ;
+LBRACE:     '{'
+    ;
+RBRACE:     '}'
     ;
 STAR:       '*'        //Multiplication or Pointer
     ;
@@ -137,14 +168,20 @@ ASSIG:      '='
 
 Q_CONST:    'const'
     ;
-Q_UNSIGNED: 'unsigned'
+
+
+S_SIGNED:    'signed'
     ;
-Q_LONG:     'long'
+S_UNSIGNED: 'unsigned'
     ;
-Q_SHORT:    'short'
+S_LONG:     'long'
+    ;
+S_SHORT:    'short'
     ;
 
 
+T_VOID:      'void'
+    ;
 T_CHAR:     'char'
     ;
 T_DOUBLE:   'double'
