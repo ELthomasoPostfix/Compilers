@@ -2,6 +2,10 @@ from src.ASTree.Element import ASTreeVisitor
 from src.ASTree.ASTree import ASTree
 
 
+class IterationstatementNode(ASTree):
+    def accept(self, visitor: ASTreeVisitor):
+        visitor.visitIterationstatement(self)
+
 
 class CfileNode(ASTree):
     def accept(self, visitor: ASTreeVisitor):

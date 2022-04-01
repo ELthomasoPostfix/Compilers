@@ -51,17 +51,27 @@ def writeNodeForwardDeclarations(ofile, grammarVars, indent: str):
     ofile.write(f"class ASTree:\n")
     ofile.write(f"{indent}def __init__(self):\n")
     ofile.write(f"{indent*2}self.children = None\n")
+
+    ofile.write("\n\n")
+
     for grammarVar in grammarVars:
         ofile.writelines([f"class {grammarVar}{NODE}:\n{indent}pass\n"])
 
 
 def writeVisitorForwardDeclaration(ofile, grammarVars, indent: str):
     ofile.write("class ASTreeVisitor:\n")
+
     ofile.write(f"{indent}def visitChildren(self, node: ASTree):\n")
     ofile.write(f"{indent*2}for c in node.children:\n")
     ofile.write(f"{indent*3}c.accept(self)\n\n")
+
+    ofile.write(f"{indent}def visitBinaryop(self, node: ASTree):\n")
+    ofile.write(f"{indent*2}pass\n\n")
+
+    ofile.write("\n\n")
+
     for grammarVar in grammarVars:
-        ofile.writelines([f"{indent}def visit{grammarVar}(self, value: {grammarVar}Node):\n{indent*2}pass\n\n"])
+        ofile.writelines([f"{indent}def visit{grammarVar}(self, node: {grammarVar}Node):\n{indent*2}pass\n\n"])
 
 
 def writeNodeDefinitions(ofile, grammarVars, indent: str):
@@ -132,8 +142,6 @@ if __name__ == '__main__':
     except Exception as e:
         print(e)
         exit(0)
-
-
 
     if fc.checkFlag("help"):
         print("The following files may be affected:")

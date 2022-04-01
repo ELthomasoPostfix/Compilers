@@ -47,9 +47,9 @@ selectionStatement
     ;
 
 iterationstatement
-    :   WHILE LPAREN expression RPAREN statement
-    |   DO statement WHILE LPAREN expression RPAREN SEMICOLON
-    |   FOR LPAREN forCondition RPAREN statement
+    :   WHILE LPAREN expression RPAREN statement                # whilestatement
+    |   DO statement WHILE LPAREN expression RPAREN SEMICOLON   # dowhilestatement
+    |   FOR LPAREN forCondition RPAREN statement                # forstatement
     ;
 
 jumpStatement

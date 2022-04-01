@@ -1,6 +1,8 @@
 class ASTree:
     def __init__(self):
         self.children = None
+
+
 class CfileNode:
     pass
 class BlockNode:
@@ -61,81 +63,86 @@ class ASTreeVisitor:
         for c in node.children:
             c.accept(self)
 
-    def visitCfile(self, value: CfileNode):
+    def visitBinaryop(self, node: ASTree):
         pass
 
-    def visitBlock(self, value: BlockNode):
+
+
+    def visitCfile(self, node: CfileNode):
         pass
 
-    def visitStatement(self, value: StatementNode):
+    def visitBlock(self, node: BlockNode):
         pass
 
-    def visitExpressionstatement(self, value: ExpressionstatementNode):
+    def visitStatement(self, node: StatementNode):
         pass
 
-    def visitCompoundstatement(self, value: CompoundstatementNode):
+    def visitExpressionstatement(self, node: ExpressionstatementNode):
         pass
 
-    def visitLabelstatement(self, value: LabelstatementNode):
+    def visitCompoundstatement(self, node: CompoundstatementNode):
         pass
 
-    def visitSelectionStatement(self, value: SelectionStatementNode):
+    def visitLabelstatement(self, node: LabelstatementNode):
         pass
 
-    def visitIterationstatement(self, value: IterationstatementNode):
+    def visitSelectionStatement(self, node: SelectionStatementNode):
         pass
 
-    def visitJumpStatement(self, value: JumpStatementNode):
+    def visitIterationstatement(self, node: IterationstatementNode):
         pass
 
-    def visitExpression(self, value: ExpressionNode):
+    def visitJumpStatement(self, node: JumpStatementNode):
         pass
 
-    def visitUnaryexpression(self, value: UnaryexpressionNode):
+    def visitExpression(self, node: ExpressionNode):
         pass
 
-    def visitUnaryop(self, value: UnaryopNode):
+    def visitUnaryexpression(self, node: UnaryexpressionNode):
         pass
 
-    def visitForCondition(self, value: ForConditionNode):
+    def visitUnaryop(self, node: UnaryopNode):
         pass
 
-    def visitFordeclaration(self, value: FordeclarationNode):
+    def visitForCondition(self, node: ForConditionNode):
         pass
 
-    def visitForexpression(self, value: ForexpressionNode):
+    def visitFordeclaration(self, node: FordeclarationNode):
         pass
 
-    def visitVar_decl(self, value: Var_declNode):
+    def visitForexpression(self, node: ForexpressionNode):
         pass
 
-    def visitVar_assig(self, value: Var_assigNode):
+    def visitVar_decl(self, node: Var_declNode):
         pass
 
-    def visitDeclarator(self, value: DeclaratorNode):
+    def visitVar_assig(self, node: Var_assigNode):
         pass
 
-    def visitTypedeclaration(self, value: TypedeclarationNode):
+    def visitDeclarator(self, node: DeclaratorNode):
         pass
 
-    def visitQualifiers(self, value: QualifiersNode):
+    def visitTypedeclaration(self, node: TypedeclarationNode):
         pass
 
-    def visitQualifier(self, value: QualifierNode):
+    def visitQualifiers(self, node: QualifiersNode):
         pass
 
-    def visitTypequalifier(self, value: TypequalifierNode):
+    def visitQualifier(self, node: QualifierNode):
         pass
 
-    def visitTypespecifier(self, value: TypespecifierNode):
+    def visitTypequalifier(self, node: TypequalifierNode):
         pass
 
-    def visitPointer(self, value: PointerNode):
+    def visitTypespecifier(self, node: TypespecifierNode):
         pass
 
-    def visitLiteral(self, value: LiteralNode):
+    def visitPointer(self, node: PointerNode):
         pass
 
-    def visitIdentifier(self, value: IdentifierNode):
+    def visitLiteral(self, node: LiteralNode):
+        pass
+
+    def visitIdentifier(self, node: IdentifierNode):
         pass
 
