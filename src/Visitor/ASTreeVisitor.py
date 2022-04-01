@@ -7,11 +7,29 @@ class BlockNode:
     pass
 class StatementNode:
     pass
+class ExpressionstatementNode:
+    pass
+class CompoundstatementNode:
+    pass
+class LabelstatementNode:
+    pass
+class SelectionStatementNode:
+    pass
+class IterationstatementNode:
+    pass
+class JumpStatementNode:
+    pass
 class ExpressionNode:
     pass
 class UnaryexpressionNode:
     pass
 class UnaryopNode:
+    pass
+class ForConditionNode:
+    pass
+class FordeclarationNode:
+    pass
+class ForexpressionNode:
     pass
 class Var_declNode:
     pass
@@ -52,6 +70,24 @@ class ASTreeVisitor:
     def visitStatement(self, value: StatementNode):
         pass
 
+    def visitExpressionstatement(self, value: ExpressionstatementNode):
+        pass
+
+    def visitCompoundstatement(self, value: CompoundstatementNode):
+        pass
+
+    def visitLabelstatement(self, value: LabelstatementNode):
+        pass
+
+    def visitSelectionStatement(self, value: SelectionStatementNode):
+        pass
+
+    def visitIterationstatement(self, value: IterationstatementNode):
+        pass
+
+    def visitJumpStatement(self, value: JumpStatementNode):
+        pass
+
     def visitExpression(self, value: ExpressionNode):
         pass
 
@@ -59,6 +95,15 @@ class ASTreeVisitor:
         pass
 
     def visitUnaryop(self, value: UnaryopNode):
+        pass
+
+    def visitForCondition(self, value: ForConditionNode):
+        pass
+
+    def visitFordeclaration(self, value: FordeclarationNode):
+        pass
+
+    def visitForexpression(self, value: ForexpressionNode):
         pass
 
     def visitVar_decl(self, value: Var_declNode):
@@ -92,8 +137,5 @@ class ASTreeVisitor:
         pass
 
     def visitIdentifier(self, value: IdentifierNode):
-        pass
-
-    def visitBinaryop(self, self1):
         pass
 

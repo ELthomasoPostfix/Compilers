@@ -258,7 +258,7 @@ RETURN:     'return'
     ;
 
 
-T_VOID:      'void'
+T_VOID:     'void'
     ;
 T_CHAR:     'char'
     ;

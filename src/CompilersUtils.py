@@ -28,17 +28,30 @@ class Map:
 class FlagContainer:
     """
     A class that makes use of the sys package to check for the presence of
-    registered flags amongst the arguments passed to the program, through
-    sys.argv.
+    registered flags amongst the arguments passed to the python script.
     """
     def __init__(self):
         self.flags: Dict[str: Set[str]] = {}
         self.explanations: Dict[str: str] = {}
 
     def reset(self):
+        """
+        Clear the registered flag types and explanations.
+        """
         self.flags.clear()
+        self.explanations.clear()
 
     def registerFlagType(self, flagType: str, flags: Set[str] = None):
+        """
+        Register the flag type and the passed flags to it.
+        If the flag type was already registered, then its flags are
+        overwritten.
+        Only registers flags with the '-' or '--' prefix, others are ignored.
+        e.g. registerFlags("help", {'-h', '--help', 'help'})
+            which registers '-h' and '--help', but not 'help'
+        :param flagType: The alias for the to register flags
+        :param flags: The flags to register under :flagType:
+        """
         if flags is None:
             flags = {}
         if flagType not in self.flags.keys():
@@ -48,16 +61,44 @@ class FlagContainer:
                 self.flags[flagType] = flags
 
     def registerFlags(self, flagType: str, flags: Set[str]):
+        """
+        Register the passed flags to a flag type. An exception of type Exception is raised if
+        the specified flag type is not yet registered.
+        :param flagType: Under which flag type to register the flags
+        :param flags: The flags to register under :flagType:
+        """
+        flags = {flag for flag in flags if len(flag) >= 2 and (flag[0] == '-' or flag[:2] == '--')}
         if flagType in self.flags.keys():
             self.flags[flagType].update(flags)
         else:
-            self.registerFlagType(flagType, flags)
+            raise Exception(f"Invalid flag type: cannot register flags {flags} under non-existent flag type '{flagType}'")
 
     def registerExplanation(self, flagType: str, explanation: str):
-        self.explanations[flagType] = explanation
+        if flagType in self.flags.keys():
+            self.explanations[flagType] = explanation
+        else:
+            raise Exception(f"Invalid flag type: cannot register explanation under non-existent flag type '{flagType}'")
 
     def getExplanation(self, flagType: str):
+        """
+        Retrieve the registered explanation of the registered flag type.
+        :param flagType: Flag type for which to retrieve explanation
+        :return: explanation in string format
+        """
         return self.explanations[flagType]
 
     def checkFlag(self, flagType: str):
+        """
+        Check whether the registered flag type is present within the script arguments.
+        :param flagType: The type of flag to check
+        :return: Whether the flag type is found within the script arguments. Defaults to False if type is not registered
+        """
         return flagType in self.flags.keys() and self.flags[flagType].intersection(sys.argv)
+
+    @staticmethod
+    def argc():
+        """
+        Get the argument count.
+        :return: Argument count
+        """
+        return len(sys.argv)

@@ -100,9 +100,9 @@ def writeListenerDefinition(ofile, grammarVars, indent: str, writeText: bool):
         ])
 
 
-
-
 if __name__ == '__main__':
+
+
 
     grammarFile = "Input/MyGrammar.g4"
     nodesFile = "src/Nodes/ASTreeNode.py"
@@ -110,18 +110,28 @@ if __name__ == '__main__':
     boilerplateFile = "Output/nodeBoilerplate.txt"
     fc = FlagContainer()
 
-    fc.registerFlagType("help", {"-h", "--help"})
-    fc.registerExplanation("help", "Display this help message")
-    fc.registerFlagType("all", {"-a", "--all"})
-    fc.registerExplanation("all", "Generate all files")
-    fc.registerFlagType("nodes", {"-n", "--nodes"})
-    fc.registerExplanation("nodes", f"Generate Node class definitions (output file: {nodesFile})")
-    fc.registerFlagType("visitor", {"-v", "--visitor"})
-    fc.registerExplanation("visitor", f"Generate Node class forward declarations and visitor class declaration (output file: {visitorFile})")
-    fc.registerFlagType("boilerplate", {"-b", "--boilerplate"})
-    fc.registerExplanation("boilerplate", f"Generate Listener class boilerplate (output file: {boilerplateFile})")
-    fc.registerFlagType("force", {"-F", "--force"})
-    fc.registerExplanation("force", "A safety flag that may be required in combination with other flags to ensure critical files are not accidentally overwritten")
+    try:
+
+        fc.registerFlagType("help", {"-h", "--help"})
+        fc.registerExplanation("help", "Display this help message")
+
+        if FlagContainer.argc() == 1:
+            print("No arguments passed, try calling with the following flags for help:", fc.flags["help"])
+            exit(0)
+
+        fc.registerFlagType("all", {"-a", "--all"})
+        fc.registerExplanation("all", "Generate all files")
+        fc.registerFlagType("nodes", {"-n", "--nodes"})
+        fc.registerExplanation("nodes", f"Generate Node class definitions (output file: {nodesFile})")
+        fc.registerFlagType("visitor", {"-v", "--visitor"})
+        fc.registerExplanation("visitor", f"Generate Node class forward declarations and visitor class declaration (output file: {visitorFile})")
+        fc.registerFlagType("boilerplate", {"-b", "--boilerplate"})
+        fc.registerExplanation("boilerplate", f"Generate Listener class boilerplate (output file: {boilerplateFile})")
+        fc.registerFlagType("force", {"-F", "--force"})
+        fc.registerExplanation("force", "A safety flag that may be required in combination with other flags to ensure critical files are not accidentally overwritten")
+    except Exception as e:
+        print(e)
+        exit(0)
 
 
 
