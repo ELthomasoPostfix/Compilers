@@ -8,3 +8,11 @@ class WhileNode(IterationstatementNode):
 
     def __repr__(self):
         return "while"
+
+
+class DoWhileNode(IterationstatementNode):
+    def accept(self, visitor: ASTreeVisitor):
+        visitor.visitIterationstatement(self)
+
+    def __repr__(self):
+        return "Do while"

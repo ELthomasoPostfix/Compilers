@@ -2,10 +2,6 @@ from src.ASTree.Element import ASTreeVisitor
 from src.ASTree.ASTree import ASTree
 
 
-class IterationstatementNode(ASTree):
-    def accept(self, visitor: ASTreeVisitor):
-        visitor.visitIterationstatement(self)
-
 
 class CfileNode(ASTree):
     def accept(self, visitor: ASTreeVisitor):
@@ -20,6 +16,19 @@ class BlockNode(ASTree):
 class StatementNode(ASTree):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitStatement(self)
+
+
+class IterationstatementNode(ASTree):
+    def accept(self, visitor: ASTreeVisitor):
+        visitor.visitIterationstatement(self)
+
+
+class NullstatementNode(ASTree):
+    def accept(self, visitor: ASTreeVisitor):
+        visitor.visitStatement(self)
+
+    def __repr__(self):
+        return self.name
 
 
 class ExpressionNode(ASTree):

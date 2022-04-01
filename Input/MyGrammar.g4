@@ -20,9 +20,10 @@ statement
     : expressionstatement
     | compoundstatement
     | labelstatement
-    | selectionStatement
+    | selectionstatement
     | iterationstatement
-    | jumpStatement
+    | jumpstatement
+    | nullstatement
     | var_decl   SEMICOLON
     | var_assig  SEMICOLON
     | 'printf' LPAREN (expression) RPAREN  // TODO un-hack
@@ -42,7 +43,7 @@ labelstatement
     | DEFAULT COLON statement
     ;
 
-selectionStatement
+selectionstatement
     :   IF LPAREN expression RPAREN statement (ELSE statement)?
     ;
 
@@ -52,10 +53,13 @@ iterationstatement
     |   FOR LPAREN forCondition RPAREN statement                # forstatement
     ;
 
-jumpStatement
+jumpstatement
     : ((CONTINUE | BREAK) | RETURN expression?) SEMICOLON
     ;
 
+nullstatement
+    : SEMICOLON
+    ;
 
 
 // An expression must be reducible to some typed value (rval?).
@@ -87,11 +91,12 @@ unaryop
     ;
 
 forCondition
-	:   (fordeclaration | expression?) SEMICOLON forexpression? SEMICOLON forexpression?
+	:   forinitclause? SEMICOLON forexpression? SEMICOLON forexpression?
 	;
 
-fordeclaration
+forinitclause
     : var_decl
+    | expression
     ;
 
 forexpression
@@ -159,8 +164,13 @@ identifier
 //              LEXER RULES              //
 ///////////////////////////////////////////
 
-WS:         [ \r\t\n]+ -> skip
+WS:                 [ \r\t\n]+ -> skip
     ;
+LINE_COMMENT:       '//' ~[\r\n]* -> skip
+    ;
+MULTI_LINE_COMMENT: '/*' .*? '*/' -> skip
+    ;
+
 SEMICOLON:  ';'
     ;
 COLON:      ':'

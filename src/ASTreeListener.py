@@ -1,6 +1,7 @@
 from antlr4 import ParserRuleContext
 from antlr4.tree.Tree import TerminalNodeImpl
 
+from src.Nodes.IterationNodes import WhileNode, DoWhileNode
 from src.Nodes.LiteralNodes import *
 from src.Nodes.OperatorNodes import *
 from src.generated.MyGrammarListener import MyGrammarListener
@@ -15,7 +16,13 @@ class ASTreeListener(MyGrammarListener):
         self.pushDepths = []
         self.cstDepth = 0
 
+
     def addCurrentChild(self, node):
+        """
+        Add node as a child to self.current,
+        This function should only be called once per overwritten enterRule() method.
+        :param node: The node to add as a child
+        """
         if self.current is None:
             self.root = node
         else:
@@ -38,6 +45,24 @@ class ASTreeListener(MyGrammarListener):
 
     def enterBlock(self, ctx: MyGrammarParser.BlockContext):
         self.addCurrentChild(BlockNode(ctx.getText(), "Bl"))
+
+    def enterWhilestatement(self, ctx:MyGrammarParser.WhilestatementContext):
+        self.addCurrentChild(WhileNode(ctx.getText(), "While"))
+
+    def exitWhilestatement(self, ctx:MyGrammarParser.WhilestatementContext):
+        if len(self.current.children) == 1:
+            self.current.addChild(NullstatementNode(ctx.getText(), "no-op"))
+
+    def enterDowhilestatement(self, ctx:MyGrammarParser.DowhilestatementContext):
+        self.addCurrentChild(DoWhileNode(ctx.getText(), "Do While"))
+
+    def exitDowhilestatement(self, ctx:MyGrammarParser.DowhilestatementContext):
+        if len(self.current.children) == 1:
+            self.current.addChild(NullstatementNode(ctx.getText(), "no-op"), 0)
+
+    def exitForexpression(self, ctx:MyGrammarParser.ForexpressionContext):
+        i = ctx.parentCtx.children.index(ctx)   # TODO   Add a WhileNode and attach the for loop condition, followed by the for loop body statements, followed by the for loop increment expression
+        pass
 
     def enterExpression(self, ctx: MyGrammarParser.ExpressionContext):
         if isinstance(ctx.children[0], MyGrammarParser.LiteralContext) or \

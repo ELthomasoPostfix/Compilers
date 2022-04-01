@@ -15,11 +15,13 @@ class CompoundstatementNode:
     pass
 class LabelstatementNode:
     pass
-class SelectionStatementNode:
+class SelectionstatementNode:
     pass
 class IterationstatementNode:
     pass
-class JumpStatementNode:
+class JumpstatementNode:
+    pass
+class NullstatementNode:
     pass
 class ExpressionNode:
     pass
@@ -29,7 +31,7 @@ class UnaryopNode:
     pass
 class ForConditionNode:
     pass
-class FordeclarationNode:
+class ForinitclauseNode:
     pass
 class ForexpressionNode:
     pass
@@ -86,13 +88,16 @@ class ASTreeVisitor:
     def visitLabelstatement(self, node: LabelstatementNode):
         pass
 
-    def visitSelectionStatement(self, node: SelectionStatementNode):
+    def visitSelectionstatement(self, node: SelectionstatementNode):
         pass
 
     def visitIterationstatement(self, node: IterationstatementNode):
         pass
 
-    def visitJumpStatement(self, node: JumpStatementNode):
+    def visitJumpstatement(self, node: JumpstatementNode):
+        pass
+
+    def visitNullstatement(self, node: NullstatementNode):
         pass
 
     def visitExpression(self, node: ExpressionNode):
@@ -107,7 +112,7 @@ class ASTreeVisitor:
     def visitForCondition(self, node: ForConditionNode):
         pass
 
-    def visitFordeclaration(self, node: FordeclarationNode):
+    def visitForinitclause(self, node: ForinitclauseNode):
         pass
 
     def visitForexpression(self, node: ForexpressionNode):
