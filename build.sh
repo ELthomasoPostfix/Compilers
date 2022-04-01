@@ -25,7 +25,8 @@ then
 # Do pre-generation cleanup
 elif [ "$c_flag" = true ]
 then
-  rm src/generated/*
+    rm $DESTINATION/* &&
+        echo "Cleaned ${DESTINATION}/"
 fi
 cd $GRAMMAR_LOC || { echo "ERROR: Could not find grammar location, $GRAMMAR_LOC"; exit 1; }
 echo "Calling ANTLR ..."
