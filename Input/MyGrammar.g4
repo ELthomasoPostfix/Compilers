@@ -34,7 +34,7 @@ expressionstatement
     ;
 
 compoundstatement
-    : LBRACE (statement)* RBRACE
+    : LBRACE (statement)* RBRACE        // TODO   '(statements)*' > 'block' ???
     ;
 
 labelstatement

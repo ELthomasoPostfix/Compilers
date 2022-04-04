@@ -31,6 +31,9 @@ class ASTreeListener(MyGrammarListener):
         self.current = node
         self.pushDepths.append(self.cstDepth)
 
+    def createNoopNode(self, value):
+        return NullstatementNode(value, "no-op")
+
     def enterEveryRule(self, ctx:ParserRuleContext):
         self.cstDepth += 1
 
@@ -51,24 +54,48 @@ class ASTreeListener(MyGrammarListener):
 
     def exitWhilestatement(self, ctx:MyGrammarParser.WhilestatementContext):
         if len(self.current.children) == 1:
-            self.current.addChild(NullstatementNode(ctx.getText(), "no-op"))
+            self.current.addChild(self.createNoopNode(ctx.getText()))
 
     def enterDowhilestatement(self, ctx:MyGrammarParser.DowhilestatementContext):
         self.addCurrentChild(DoWhileNode(ctx.getText(), "Do While"))
 
     def exitDowhilestatement(self, ctx:MyGrammarParser.DowhilestatementContext):
         if len(self.current.children) == 1:
-            self.current.addChild(NullstatementNode(ctx.getText(), "no-op"), 0)
+            self.current.addChild(self.createNoopNode(ctx.getText()), 0)
 
-    def exitForexpression(self, ctx:MyGrammarParser.ForexpressionContext):
-        i = ctx.parentCtx.children.index(ctx)   # TODO   Add a WhileNode and attach the for loop condition, followed by the for loop body statements, followed by the for loop increment expression
-        pass
+    def exitForstatement(self, ctx:MyGrammarParser.ForstatementContext):
+        if not isinstance(self.current, WhileNode):
+            return
+        forClause = ctx.children[2]
+        insertIndexes = []
+        for idx, child in enumerate(forClause.children):
+            if not isinstance(child, TerminalNodeImpl):
+                continue
+            if idx > 0 and isinstance(forClause.getChild(idx - 1), TerminalNodeImpl):
+                insertIndexes.append(0)
+            if idx == len(forClause.children) - 1:
+                insertIndexes.append(1)
+
+        for idx in insertIndexes:
+            self.current.addChild(self.createNoopNode(None), idx)
+
+        # Push up init clause
+        if not self.isTerminalType(forClause.getChild(0), MyGrammarParser.SEMICOLON):
+            declarationStatement = self.current.getChild(0)
+            self.current.children.remove(declarationStatement)
+            self.current.parent.addChild(declarationStatement, len(self.current.parent.children) - 1)
+
+        # Move iteration expression to the back of the while body
+        iterationExpr = self.current.children[1]
+        self.current.children.remove(iterationExpr)
+        self.current.children.append(iterationExpr)
+
+    def enterForstatement(self, ctx:MyGrammarParser.ForstatementContext):
+        self.addCurrentChild(WhileNode(ctx.getText(), "While"))
 
     def enterExpression(self, ctx: MyGrammarParser.ExpressionContext):
-        if isinstance(ctx.children[0], MyGrammarParser.LiteralContext) or \
-                self.isTerminalType(ctx.children[0], MyGrammarParser.LPAREN):
-            return
-        else:
+        if not (isinstance(ctx.children[0], MyGrammarParser.LiteralContext) or
+                self.isTerminalType(ctx.children[0], MyGrammarParser.LPAREN)):
             self.addCurrentChild(ExpressionNode(ctx.getText(), "Ex"))
 
     def enterAddexp(self, ctx:MyGrammarParser.AddexpContext):
