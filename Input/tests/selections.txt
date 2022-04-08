@@ -1,0 +1,8 @@
+if (1) ;
+else if (a == 1);
+else if (1 == -1);
+else;
+
+if (Jeff == WernerHOTDOG) { }
+
+int i;

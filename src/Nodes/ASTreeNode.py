@@ -23,6 +23,11 @@ class IterationstatementNode(ASTree):
         visitor.visitIterationstatement(self)
 
 
+class SelectionstatementNode(ASTree):
+    def accept(self, visitor: ASTreeVisitor):
+        visitor.visitSelectionstatement(self)
+
+
 class NullstatementNode(ASTree):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitStatement(self)

@@ -2,6 +2,7 @@ from antlr4 import ParserRuleContext
 from antlr4.tree.Tree import TerminalNodeImpl
 
 from src.Nodes.IterationNodes import WhileNode, DoWhileNode
+from src.Nodes.SelectionNodes import IfNode, ElseNode
 from src.Nodes.LiteralNodes import *
 from src.Nodes.OperatorNodes import *
 from src.generated.MyGrammarListener import MyGrammarListener
@@ -49,6 +50,16 @@ class ASTreeListener(MyGrammarListener):
     def enterBlock(self, ctx: MyGrammarParser.BlockContext):
         self.addCurrentChild(BlockNode(ctx.getText(), "Bl"))
 
+    def enterIfstatement(self, ctx:MyGrammarParser.IfstatementContext):
+        self.addCurrentChild(IfNode(ctx.getText(), "If"))
+
+    def exitIfstatement(self, ctx:MyGrammarParser.IfstatementContext):
+        if not isinstance(self.current.children[-1], ElseNode):
+            self.current.addChild(self.createNoopNode(ctx.getText()))
+
+    def enterSelectionelse(self, ctx:MyGrammarParser.SelectionelseContext):
+        self.addCurrentChild(ElseNode(ctx.getText(), "Else"))
+
     def enterWhilestatement(self, ctx:MyGrammarParser.WhilestatementContext):
         self.addCurrentChild(WhileNode(ctx.getText(), "While"))
 
@@ -92,6 +103,13 @@ class ASTreeListener(MyGrammarListener):
 
     def enterForstatement(self, ctx:MyGrammarParser.ForstatementContext):
         self.addCurrentChild(WhileNode(ctx.getText(), "While"))
+
+    def enterNullstatement(self, ctx:MyGrammarParser.NullstatementContext):
+        self.addCurrentChild(self.createNoopNode(ctx.getText()))
+
+    def enterCompoundstatement(self, ctx:MyGrammarParser.CompoundstatementContext):
+        if len(ctx.children) == 2:
+            self.addCurrentChild(self.createNoopNode(ctx.getText()))
 
     def enterExpression(self, ctx: MyGrammarParser.ExpressionContext):
         if not (isinstance(ctx.children[0], MyGrammarParser.LiteralContext) or

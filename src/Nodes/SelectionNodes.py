@@ -1,18 +1,18 @@
 from src.Visitor.ASTreeVisitor import ASTreeVisitor
-from src.Nodes.ASTreeNode import IterationstatementNode
+from src.Nodes.ASTreeNode import SelectionstatementNode
 
 
-class WhileNode(IterationstatementNode):
+class IfNode(SelectionstatementNode):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitIterationstatement(self)
 
     def __repr__(self):
-        return "while"
+        return "if"
 
 
-class DoWhileNode(IterationstatementNode):
+class ElseNode(SelectionstatementNode):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitIterationstatement(self)
 
     def __repr__(self):
-        return "do while"
+        return "else"

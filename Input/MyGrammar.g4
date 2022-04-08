@@ -44,7 +44,11 @@ labelstatement
     ;
 
 selectionstatement
-    :   IF LPAREN expression RPAREN statement (ELSE statement)?
+    :   IF LPAREN expression RPAREN statement selectionelse?     # ifstatement
+    ;
+
+selectionelse
+    : (ELSE statement)
     ;
 
 iterationstatement
