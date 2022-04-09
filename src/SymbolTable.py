@@ -94,3 +94,7 @@ class SymbolTable(dict):
         if lookup is not None:
             raise Exception(f"Redeclaration of identifier: {identifier}, {str(lookup)} to {str(value)}")
         super().__setitem__(identifier, value)
+
+    @property
+    def enclosingScope(self):
+        return self._enclosingScope

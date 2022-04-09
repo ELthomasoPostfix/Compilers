@@ -3,10 +3,29 @@ from src.Visitor.ASTreeVisitor import ASTreeVisitor
 from src.Nodes.ASTreeNode import *
 
 
-class OptimizationVisitor(ASTreeVisitor):
-    def __init__(self, globalSymbolTable: SymbolTable, typeList: TypeList):
+class SymbolVisitor(ASTreeVisitor):
+    def __init__(self, globalSymbolTable: SymbolTable):
         self.currentSymbolTable = globalSymbolTable
-        self.typeList = typeList
+
+    #
+    # HELPER METHODS
+    #
+
+    def createScope(self):
+        self.currentSymbolTable = SymbolTable(self.currentSymbolTable, self.currentSymbolTable.typeList)
+    
+    def closeScope(self):
+        self.currentSymbolTable = self.currentSymbolTable.enclosingScope
+
+    def enterNewSubScope(self, node: ASTree):
+        """For :node: and its children, work in the context of a new sub scope."""
+        self.createScope()
+        self.visitChildren(node)
+        self.closeScope()
+
+    #
+    #   IGNORE SYNTACTIC SUGAR
+    #
 
     def visitCfile(self, node: CfileNode):
         self.visitChildren(node)
@@ -20,6 +39,23 @@ class OptimizationVisitor(ASTreeVisitor):
     def visitExpression(self, node: ExpressionNode):
         self.visitChildren(node)
 
+    def visitBinaryop(self, node: ASTree):
+        self.visitChildren(node)
+
+    #
+    #   SUB SCOPE CREATION
+    #
+
+    def visitSelectionstatement(self, node: SelectionstatementNode):
+        self.enterNewSubScope(node)
+
+    def visitIterationstatement(self, node: IterationstatementNode):
+        self.enterNewSubScope(node)
+
+    #
+    #   SYMBOL DECLARATIONS
+    #
+
     def visitVar_decl(self, node: Var_declNode):
         identifier = None
         access = ReadWriteAccess()
@@ -27,13 +63,21 @@ class OptimizationVisitor(ASTreeVisitor):
 
         for child in node.getChild(1).children:
             if isinstance(child, IdentifierNode):
-                identifier = child.name
+                identifier = child.value
                 break
 
         for typeInfo in node.getChild(0).children:
             if isinstance(typeInfo, TypequalifierNode):
                 access = ReadAccess()
             else:
-                typeName += typeInfo.name
+                typeName += typeInfo.value
 
-            self.currentSymbolTable[identifier] = [self.typeList[typeName], access]
+        self.currentSymbolTable[identifier] = [self.currentSymbolTable.typeList[typeName], access]
+
+    #
+    #   SYMBOL UTILISATION
+    #
+
+    def visitIdentifier(self, node: IdentifierNode):
+        if self.currentSymbolTable[node.value] is None:
+            raise Exception(f"Unknown symbol: '{node.__repr__()}'")

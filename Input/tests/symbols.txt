@@ -1,0 +1,3 @@
+int i;
+const int ci;
+const char const * const cc;
