@@ -9,6 +9,7 @@ from src.generated.MyGrammarListener import MyGrammarListener
 from src.ASTree.ASTree import ASTree
 from src.ASTreeListener import ASTreeListener
 from src.Visitor.OptimizationVisitor import OptimizationVisitor
+from src.Visitor.LLVMVisitor import LLVMVisitor
 
 
 class KeyPrinter(MyGrammarListener):
@@ -43,7 +44,9 @@ def main():
     listener.root.toDot("beginTree.dot")
 
     OVisitor = OptimizationVisitor()
+    llvmVisitor = LLVMVisitor()
     listener.root.accept(OVisitor)
+    listener.root.accept(llvmVisitor)
 
     listener.root.toDot("endTree.dot")
 

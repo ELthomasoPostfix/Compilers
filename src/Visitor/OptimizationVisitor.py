@@ -2,7 +2,6 @@ from src.Nodes.LiteralNodes import promote, coerce
 from src.Visitor.ASTreeVisitor import ASTreeVisitor
 from src.Nodes.ASTreeNode import *
 from src.CompilersUtils import coloredDef
-import ast
 
 
 class OptimizationVisitor(ASTreeVisitor):
