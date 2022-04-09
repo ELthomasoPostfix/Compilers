@@ -1,5 +1,5 @@
 from src.SymbolTable import SymbolTable, ReadAccess, ReadWriteAccess, TypeList
-from src.Visitor.ASTreeVisitor import ASTreeVisitor
+from src.Visitor.ASTreeVisitor import ASTreeVisitor, CompoundstatementNode
 from src.Nodes.ASTreeNode import *
 
 
@@ -36,6 +36,9 @@ class SymbolVisitor(ASTreeVisitor):
     def visitStatement(self, node: StatementNode):
         self.visitChildren(node)
 
+    def visitVar_assig(self, node: Var_assigNode):
+        self.visitChildren(node)
+
     def visitExpression(self, node: ExpressionNode):
         self.visitChildren(node)
 
@@ -45,6 +48,9 @@ class SymbolVisitor(ASTreeVisitor):
     #
     #   SUB SCOPE CREATION
     #
+
+    def visitCompoundstatement(self, node: CompoundstatementNode):
+        self.enterNewSubScope(node)
 
     def visitSelectionstatement(self, node: SelectionstatementNode):
         self.enterNewSubScope(node)

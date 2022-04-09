@@ -13,6 +13,11 @@ class BlockNode(ASTree):
         visitor.visitBlock(self)
 
 
+class CompoundstatementNode(ASTree):
+    def accept(self, visitor: ASTreeVisitor):
+        visitor.visitCompoundstatement(self)
+
+
 class StatementNode(ASTree):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitStatement(self)

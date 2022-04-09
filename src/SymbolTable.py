@@ -71,7 +71,7 @@ class SymbolTable(dict):
     a reference to the symbol table of its enclosing scope, which is
     None for the global symbol table.
     As this class inherits from the dict builtin type, the [] operator
-    should be used in reading and registering symbols.
+    should be similarly used in reading and registering symbols.
     """
     def __init__(self, enclosingScope, typeList):
         super().__init__()
