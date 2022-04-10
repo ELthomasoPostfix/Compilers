@@ -56,13 +56,14 @@ class ASTree(Element):
                 progress.append([child, layer + 1])
         return progress
 
-    def toDot(self, fileName):
+    def toDot(self, fileName, detailed: bool = False):
+        f = "__repr__" if detailed else "__str__"
         file = open("Output/" + fileName, "w")
         file.write("digraph AST {" + '\n')
         traverse = self.preorderTraverse([], 0)
         counter = 1
         for i in range(len(traverse)):
-            file.write('\t' + "ID" + str(counter) + " [label=" + '"' + str(traverse[i][0].__repr__()) + '"' + "]" + '\n')
+            file.write('\t' + "ID" + str(counter) + " [label=" + '"' + str(getattr(traverse[i][0], f)()) + '"' + "]" + '\n')
             counter += 1
         file.write('\n')
         counter = 0
@@ -80,4 +81,18 @@ class ASTree(Element):
         file.write("}")
 
     def __repr__(self):
+        """
+        Return the single ASTree node represented in string format.
+        This method should return a detailed representation, read
+        minimal representation plus meta info, of the ASTree node.
+        :return: detailed string representation
+        """
+        return self.__str__()
+
+    def __str__(self):
+        """
+        Return the single ASTree node represented in string format.
+        This method should return a minimal representation of the ASTree node.
+        :return: minimal string representation
+        """
         return type(self).__name__

@@ -1,5 +1,5 @@
 from abc import ABCMeta
-from typing import List
+from typing import List, Union
 
 
 class Accessibility(int):
@@ -35,7 +35,7 @@ class TypeList:
         self.typeList = initList
         self.reverseMapping: dict = {typ: idx for idx, typ in enumerate(self.typeList)}
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: Union[int, str]):
         """
         Retrieve either the type name corresponding to the passed index or the index corresponding
         to the passed type name.
@@ -65,6 +65,18 @@ class TypeList:
         return self.typeList.__repr__()
 
 
+class Record:
+    def __init__(self, typeIdx: int, access: Accessibility):
+        self.typeIndex = typeIdx
+        self.access = access
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return str([self.typeIndex, self.access])
+
+
 class SymbolTable(dict):
     """
     An implementation of a symbol table. Each symbol table contains
@@ -87,13 +99,13 @@ class SymbolTable(dict):
             return self._enclosingScope[identifier]
         return None
 
-    def __setitem__(self, identifier: str, value: List):
+    def __setitem__(self, key: str, value: Record):
         """Register the identifier and its information in the symbol table.
         Raises an exception of type Exception if :identifier: is already registered."""
-        lookup = self[identifier]
+        lookup = self[key]
         if lookup is not None:
-            raise Exception(f"Redeclaration of identifier: {identifier}, {str(lookup)} to {str(value)}")
-        super().__setitem__(identifier, value)
+            raise Exception(f"Redeclaration of identifier: {key}, {str(lookup)} to {str(value)}")
+        super().__setitem__(key, value)
 
     @property
     def enclosingScope(self):

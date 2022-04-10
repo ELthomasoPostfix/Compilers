@@ -1,6 +1,41 @@
 from src.ASTree.Element import ASTreeVisitor
 from src.ASTree.ASTree import ASTree
+from src.SymbolTable import Record, SymbolTable
+from abc import ABCMeta
 
+
+class TypedNode(ASTree):
+    __metaclass__ = ABCMeta
+
+    """An abstract base class for nodes that are registered into the symbol table."""
+    def __init__(self, value, name, parent=None):
+        super().__init__(value, name, parent)
+        self.record: Record = None
+
+    def __repr__(self):
+        return self.__str__() + "\\n" + str(self.record)
+
+    def __str__(self):
+        return super().__str__()
+
+
+class ScopedNode(ASTree):
+    __metaclass__ = ABCMeta
+
+    """
+    An abstract base class for nodes that are require a reference to a symbol table,
+    as they introduce a new scope.
+    """
+
+    def __init__(self, value, name, parent=None):
+        super().__init__(value, name, parent)
+        self.symbolTable: SymbolTable = None
+
+    def __repr__(self):
+        return self.__str__() + f"\\nhasST: {self.symbolTable is not None}"
+
+    def __str__(self):
+        return super().__str__()
 
 
 class CfileNode(ASTree):
@@ -8,12 +43,12 @@ class CfileNode(ASTree):
         visitor.visitCfile(self)
 
 
-class BlockNode(ASTree):
+class BlockNode(ScopedNode):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitBlock(self)
 
 
-class CompoundstatementNode(ASTree):
+class CompoundstatementNode(ScopedNode):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitCompoundstatement(self)
 
@@ -23,12 +58,12 @@ class StatementNode(ASTree):
         visitor.visitStatement(self)
 
 
-class IterationstatementNode(ASTree):
+class IterationstatementNode(ScopedNode):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitIterationstatement(self)
 
 
-class SelectionstatementNode(ASTree):
+class SelectionstatementNode(ScopedNode):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitSelectionstatement(self)
 
@@ -126,12 +161,20 @@ class LiteralNode(ASTree):
         return self.getValue()
 
 
-class IdentifierNode(ASTree):
+class IdentifierNode(TypedNode):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitIdentifier(self)
 
-    def __repr__(self):
-        return self.value
+
+
+# TODO  make sure function inherits from TypedNode
+# TODO  make sure function inherits from TypedNode
+# TODO  make sure function inherits from TypedNode
+class FunctionNode(TypedNode):
+    pass
+# TODO  make sure function inherits from TypedNode
+# TODO  make sure function inherits from TypedNode
+# TODO  make sure function inherits from TypedNode
 
 
 class BinaryopNode(ASTree):

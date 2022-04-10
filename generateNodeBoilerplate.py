@@ -52,6 +52,13 @@ def writeNodeForwardDeclarations(ofile, grammarVars, indent: str):
     ofile.write(f"{indent}def __init__(self):\n")
     ofile.write(f"{indent*2}self.children = None\n")
 
+    ofile.write(f"class TypedNode(ASTree):\n")
+    ofile.write(f"{indent}__metaclass__ = ABCMeta\n")
+    ofile.write(f"{indent}\"\"\"An abstract super class for nodes that are registered into the symbol table.\"\"\"\n\n")
+    ofile.write(f"{indent}def __init__(self, value, name, parent=None):")
+    ofile.write(f"{indent*2}super().__init__(value, name, parent)")
+    ofile.write(f"{indent*2}self.record: Record = None")
+
     ofile.write("\n\n")
 
     for grammarVar in grammarVars:
@@ -157,14 +164,17 @@ if __name__ == '__main__':
             grammarVars[idx] = grammarVar[0].upper() + grammarVar[1:]
 
         if (fc.checkFlag("nodes") or fc.checkFlag("all")) and os.path.exists(nodesFile):
-            if fc.checkFlag("force"):
-                with open(nodesFile, 'r+') as ASTreeNode:
-                    reduceToImports(ASTreeNode)
+            if False:
+                if fc.checkFlag("force"):
+                    with open(nodesFile, 'r+') as ASTreeNode:
+                        reduceToImports(ASTreeNode)
 
-                    writeNodeDefinitions(ASTreeNode, grammarVars, indent)
-                    ASTreeNode.writelines(["\n\n\n"])
+                        writeNodeDefinitions(ASTreeNode, grammarVars, indent)
+                        ASTreeNode.writelines(["\n\n\n"])
+                else:
+                    print(f"Missing {fc.flags['force']} flag!")
             else:
-                print(f"Missing {fc.flags['force']} flag!")
+                print("ASTreeNode.py has too many manual modifications for autogeneration to be worth it rn.")
 
         if (fc.checkFlag("visitor") or fc.checkFlag("all")) and os.path.exists(visitorFile):
             with open(visitorFile, 'r+') as ASTreeVisitor:

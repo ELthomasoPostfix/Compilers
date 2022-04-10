@@ -6,11 +6,11 @@ while (1) {
 
 }
 
-int i = 12;
+int i1 = 12;
 
 do {
-  i + 17 / 3.2;
-} while (--i);
+  i1 + 17 / 3.2;
+} while (--i1);
 
 
 for(int i = 2; i < 12; i++) {

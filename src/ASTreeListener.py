@@ -5,7 +5,7 @@ from src.Nodes.IterationNodes import WhileNode, DoWhileNode
 from src.Nodes.SelectionNodes import IfNode, ElseNode
 from src.Nodes.LiteralNodes import *
 from src.Nodes.OperatorNodes import *
-from src.Visitor.ASTreeVisitor import CompoundstatementNode
+from src.Nodes.ASTreeNode import CompoundstatementNode
 from src.generated.MyGrammarListener import MyGrammarListener
 from src.generated.MyGrammarParser import MyGrammarParser
 
@@ -51,8 +51,10 @@ class ASTreeListener(MyGrammarListener):
     def enterBlock(self, ctx: MyGrammarParser.BlockContext):
         self.addCurrentChild(BlockNode(ctx.getText(), "Bl"))
 
-    def enterCompoundstatement(self, ctx: MyGrammarParser.CompoundstatementContext):
-        if isinstance(self.current, BlockNode):
+    def enterCompoundstatement(self, ctx:MyGrammarParser.CompoundstatementContext):
+        if len(ctx.children) == 2:
+            self.addCurrentChild(self.createNoopNode(ctx.getText()))
+        elif isinstance(self.current, BlockNode):
             self.addCurrentChild(CompoundstatementNode("", "Co"))
 
     def enterIfstatement(self, ctx:MyGrammarParser.IfstatementContext):
@@ -111,10 +113,6 @@ class ASTreeListener(MyGrammarListener):
 
     def enterNullstatement(self, ctx:MyGrammarParser.NullstatementContext):
         self.addCurrentChild(self.createNoopNode(ctx.getText()))
-
-    def enterCompoundstatement(self, ctx:MyGrammarParser.CompoundstatementContext):
-        if len(ctx.children) == 2:
-            self.addCurrentChild(self.createNoopNode(ctx.getText()))
 
     def enterExpression(self, ctx: MyGrammarParser.ExpressionContext):
         if not (isinstance(ctx.children[0], MyGrammarParser.LiteralContext) or
