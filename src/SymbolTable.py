@@ -3,7 +3,7 @@ from typing import List, Union
 
 
 class Accessibility(int):
-    """Abstract class representing accessibility for symbols in a symbol table."""
+    """Abstract base class representing accessibility for symbols in a symbol table."""
     __metaclass__ = ABCMeta
 
     def __eq__(self, other):
@@ -27,6 +27,8 @@ class ReadWriteAccess(Accessibility):
 
     def __repr__(self):
         return "rw"
+
+
 
 
 class TypeList:
@@ -65,16 +67,60 @@ class TypeList:
         return self.typeList.__repr__()
 
 
+
+
+class CType:   # TODO  and arrays ?????
+    """Abstract base class representing type information for symbols in a symbol table."""
+    __metaclass__ = ABCMeta
+
+    def __init__(self):
+        self._pointers: List[bool] = []
+
+    def addPointer(self, isConst: bool):
+        self._pointers.append(isConst)
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return "".join(["*" + ("const " if const else "") for const in self._pointers])
+
+
+class VariableCType(CType):
+    """A class representing type information for a variable."""
+    def __init__(self, typeIndex: int):
+        super().__init__()
+        self.typeIndex = typeIndex
+
+    def __str__(self):
+        return str(self.typeIndex) + " " + super().__str__()
+
+
+class FunctionCType(CType):
+    """A class representing type information for a function."""
+    def __init__(self, returnType: int, parameterTypes: List[int]):
+        super().__init__()
+        self.returnTypeIndex: int = returnType
+        self.paramTypeIndexes: List[int] = parameterTypes
+
+    def __str__(self):
+        return str(self.paramTypeIndexes) + " -> " + str(self.returnTypeIndex) + " " + super().__str__()
+
+
+
+
 class Record:
-    def __init__(self, typeIdx: int, access: Accessibility):
-        self.typeIndex = typeIdx
+    def __init__(self, cType: CType, access: Accessibility):
+        self.type: CType = cType
         self.access = access
 
     def __repr__(self):
         return self.__str__()
 
     def __str__(self):
-        return str([self.typeIndex, self.access])
+        return str([self.type, self.access])
+
+
 
 
 class SymbolTable(dict):

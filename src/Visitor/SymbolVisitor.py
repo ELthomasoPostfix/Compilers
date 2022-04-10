@@ -1,4 +1,4 @@
-from src.SymbolTable import SymbolTable, ReadAccess, ReadWriteAccess, Record
+from src.SymbolTable import SymbolTable, ReadAccess, ReadWriteAccess, Record, VariableCType, FunctionCType, CType
 from src.Visitor.ASTreeVisitor import ASTreeVisitor, CompoundstatementNode
 from src.Nodes.ASTreeNode import *
 
@@ -27,7 +27,7 @@ class SymbolVisitor(ASTreeVisitor):
         :param node: The node that generates a new scope, and so a new SymbolTable
         """
         self._createScope()
-        self.attachSymbolTable(node)
+        self._attachSymbolTable(node)
         self.visitChildren(node)
         self._closeScope()
 
@@ -65,6 +65,9 @@ class SymbolVisitor(ASTreeVisitor):
     def visitTypedeclaration(self, node: TypedeclarationNode):
         self.visitChildren(node)
 
+    def visitUnaryexpression(self, node: UnaryexpressionNode):
+        self.visitChildren(node)
+
     #
     #   SUB SCOPE CREATION
     #
@@ -87,14 +90,9 @@ class SymbolVisitor(ASTreeVisitor):
     #
 
     def visitVar_decl(self, node: Var_declNode):
-        identifier: str = ""
+        identifier: str = node.getChild(1).children[-1].value
         access = ReadWriteAccess()
         typeName = ""
-
-        for child in node.getChild(1).children:
-            if isinstance(child, IdentifierNode):
-                identifier = child.value
-                break
 
         for typeInfo in node.getChild(0).children:
             if isinstance(typeInfo, TypequalifierNode):
@@ -102,7 +100,12 @@ class SymbolVisitor(ASTreeVisitor):
             else:
                 typeName += typeInfo.value
 
-        self.currentSymbolTable[identifier] = Record(self.currentSymbolTable.typeList[typeName], access)
+        varType: CType = VariableCType(self.currentSymbolTable.typeList[typeName])
+        for child in node.getChild(1).children:
+            if isinstance(child, PointerNode):
+                varType.addPointer(len(child.children) == 1)
+
+        self.currentSymbolTable[identifier] = Record(varType, access)
         self.visitChildren(node)
 
     #
@@ -110,4 +113,4 @@ class SymbolVisitor(ASTreeVisitor):
     #
 
     def visitIdentifier(self, node: IdentifierNode):
-        self.attachRecord(node)
+        self._attachRecord(node)

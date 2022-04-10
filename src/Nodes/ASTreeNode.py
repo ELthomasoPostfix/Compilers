@@ -16,7 +16,7 @@ class TypedNode(ASTree):
         return self.__str__() + "\\n" + str(self.record)
 
     def __str__(self):
-        return super().__str__()
+        return self.value
 
 
 class ScopedNode(ASTree):
@@ -76,6 +76,7 @@ class NullstatementNode(ASTree):
         return self.name
 
 
+# TODO  Give an expression a type member: char c = 1.1 / 4.1 MUST result in compile error due to lack of implicit conversions???
 class ExpressionNode(ASTree):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitExpression(self)
