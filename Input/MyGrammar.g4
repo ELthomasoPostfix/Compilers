@@ -81,8 +81,8 @@ expression
     ;
 
 unaryexpression
-    : identifier (INCR | DECR)
-    | (INCR | DECR) identifier
+    : identifier (INCR | DECR)          // INCR and DECR unary operators con ONLY appear immediately beside a variable
+    | (INCR | DECR) identifier          // identifier, as we do not support structs and functions only return built-in types
     | unaryop+ (literal | identifier)
     ;
 
@@ -135,19 +135,19 @@ qualifier
     ;
 
 typequalifier
-    : Q_CONST
+    : QUALIFIER_CONST
     ;
 
 typespecifier
-    : (T_VOID
-    |  T_CHAR
-    |  S_SHORT
-    |  T_INT
-    |  S_LONG
-    |  T_FLOAT
-    |  T_DOUBLE
-    |  S_SIGNED
-    |  S_UNSIGNED)
+    : (TYPE_VOID
+    |  TYPE_CHAR
+    |  SPECIFIER_SHORT
+    |  TYPE_INT
+    |  SPECIFIER_LONG
+    |  TYPE_FLOAT
+    |  TYPE_DOUBLE
+    |  SPECIFIER_SIGNED
+    |  SPECIFIER_UNSIGNED)
     ;
 
 pointer
@@ -155,9 +155,10 @@ pointer
     ;
 
 literal
-    : INT
-    | FLOAT
-    | CHAR
+    : LITERAL_INT
+    | LITERAL_FLOAT
+    | LITERAL_CHAR
+    | LITERAL_STRING
     ;
 
 identifier
@@ -233,20 +234,23 @@ SINGLE_QUOTE:   '\''
 DOUBLE_QUOTE:   '"'
     ;
 
+// QUALIFIER KEYWORDS
 
-Q_CONST:    'const'
-    ;
-
-
-S_SIGNED:    'signed'
-    ;
-S_UNSIGNED: 'unsigned'
-    ;
-S_LONG:     'long'
-    ;
-S_SHORT:    'short'
+QUALIFIER_CONST:    'const'
     ;
 
+// TYPE SPECIFIER KEYWORDS
+
+SPECIFIER_SIGNED:    'signed'
+    ;
+SPECIFIER_UNSIGNED: 'unsigned'
+    ;
+SPECIFIER_LONG:     'long'
+    ;
+SPECIFIER_SHORT:    'short'
+    ;
+
+// CONTROL KEYWORDS
 
 IF:         'if'
     ;
@@ -271,28 +275,66 @@ DEFAULT:    'default'
 RETURN:     'return'
     ;
 
+// BUILT-IN TYPES
 
-T_VOID:     'void'
+TYPE_VOID:     'void'
     ;
-T_CHAR:     'char'
+TYPE_CHAR:     'char'
     ;
-T_DOUBLE:   'double'
+TYPE_DOUBLE:   'double'
     ;
-T_FLOAT:    'float'
+TYPE_FLOAT:    'float'
     ;
-T_INT:      'int'
+TYPE_INT:      'int'
     ;
 
+// LITERALS
 
 ID:         [a-zA-Z_]+[a-zA-Z0-9_]*
     ;
 fragment NAT:   [0-9]+
     ;
-INT:        NAT
+LITERAL_INT:        NAT
     ;
-FLOAT:      (NAT ('.' NAT?)?) | (NAT? '.' NAT)
-    ;
-CHAR:       SINGLE_QUOTE SINGLE_QUOTE
+LITERAL_FLOAT:      (NAT ('.' NAT?)?) | (NAT? '.' NAT)
     ;
 
+LITERAL_CHAR:   SINGLE_QUOTE CCHAR? SINGLE_QUOTE
+    ;
+LITERAL_STRING
+    :   DOUBLE_QUOTE SCharSequence? DOUBLE_QUOTE
+    ;
+fragment CCHAR
+    :       ~['\\\n]
+    |       ESCAPE_SEQUENCE
+    ;
+fragment ESCAPE_SEQUENCE
+    :   CHARACTER_ESCAPE_SEQUENCE
+    |   OCTYPE_ESCAPE_SEQUENCE
+    |   HEX_ESCAPE_SEQUENCE
+    ;
+fragment CHARACTER_ESCAPE_SEQUENCE
+    :   '\\' ['"?abfnrtv\\]
+    ;
+fragment OCTYPE_DIG
+    :   [0-7]
+    ;
+fragment OCTYPE_ESCAPE_SEQUENCE
+    :   '\\' OCTYPE_DIG OCTYPE_DIG? OCTYPE_DIG?
+    ;
+fragment HEX_DIG
+    :    [0-9a-fA-F]
+    ;
+fragment HEX_ESCAPE_SEQUENCE
+    :   '\\x' HEX_DIG HEX_DIG?
+    ;
+fragment SCharSequence
+    :   SChar+
+    ;
+fragment SChar
+    :   ~["\\\r\n]
+    |   ESCAPE_SEQUENCE
+    |   '\\\n'   // Added line
+    |   '\\\r\n' // Added line
+    ;
 ///////////////////////////////////////////

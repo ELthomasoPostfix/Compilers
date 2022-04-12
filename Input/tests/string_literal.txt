@@ -1,0 +1,17 @@
+// empty string
+
+"";
+
+// alphabet and symbols
+"aZ4%+-/^[({!#";
+
+// simple escape sequence
+"\'\"\?\\\a\b\f\n\r\t\v";
+
+// octal escape sequence
+
+"\000\0\16\707\777\235";
+
+// hex escape sequence
+
+"\xaf\x1F\xB9\x00\x1\x0";

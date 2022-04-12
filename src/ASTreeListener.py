@@ -189,10 +189,14 @@ class ASTreeListener(MyGrammarListener):
         self.addCurrentChild(TypedeclarationNode(ctx.getText(), "Td"))
 
     def enterLiteral(self, ctx: MyGrammarParser.LiteralContext):
-        if self.isTerminalType(ctx.getChild(0), MyGrammarParser.INT):
-            self.addCurrentChild(IntegerNode(ctx.getText(), "In"))
-        elif self.isTerminalType(ctx.getChild(0), MyGrammarParser.FLOAT):
-            self.addCurrentChild(FloatNode(ctx.getText(), "Fl"))
+        if self.isTerminalType(ctx.getChild(0), MyGrammarParser.LITERAL_INT):
+            self.addCurrentChild(IntegerNode(ctx.getText(), "Int"))
+        elif self.isTerminalType(ctx.getChild(0), MyGrammarParser.LITERAL_FLOAT):
+            self.addCurrentChild(FloatNode(ctx.getText(), "Float"))
+        elif self.isTerminalType(ctx.getChild(0), MyGrammarParser.LITERAL_CHAR):
+            self.addCurrentChild(CharNode(ctx.getText().strip("'"), "Char"))
+        elif self.isTerminalType(ctx.getChild(0), MyGrammarParser.LITERAL_STRING):
+            self.addCurrentChild(CharNode(ctx.getText().strip("'"), "Char"))
 
     def enterPointer(self, ctx: MyGrammarParser.PointerContext):
         self.addCurrentChild(PointerNode(ctx.getText(), "Pt"))

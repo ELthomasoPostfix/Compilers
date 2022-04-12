@@ -67,7 +67,6 @@ class TypeList:
         return self.typeList.__repr__()
 
 
-
 ## Abstract base class representing type information for symbols in a symbol table.
 #
 #
