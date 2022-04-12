@@ -21,8 +21,6 @@ def first(items: list, predicate: callable):
     return next((item for item in items if predicate(item)), None)
 
 
-class Map:
-    pass
 
 
 class FlagContainer:

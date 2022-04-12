@@ -1,7 +1,8 @@
 from src.ASTree.Element import ASTreeVisitor
 from src.ASTree.ASTree import ASTree
-from src.SymbolTable import Record, SymbolTable
-from abc import ABCMeta
+from src.Nodes.BuiltinInfo import BuiltinNames
+from src.SymbolTable import Record, SymbolTable, CType, VariableCType, TypeList
+from abc import ABCMeta, abstractmethod
 
 
 class TypedNode(ASTree):
@@ -81,10 +82,23 @@ class ExpressionNode(ASTree):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitExpression(self)
 
+    @abstractmethod
+    def inferType(self, typeList: TypeList) -> CType:   # TODO extrapolate to ExpressionNode inheritors: UnaryexpressionNode, BinaryopNode
+        return VariableCType(typeList[BuiltinNames.VOID]) # TODO  TypeList does not globally initialize
+        # TODO   with the builtin types yet, so an instance would have to be passed.
+        # TODO   Also, are the CType class derivatives and Literal class derivatives mutually exclusive???
 
-class UnaryexpressionNode(ASTree):
+
+## An recursive instance of an ExpressionNode.
+# Provides an interface to infer the CType type of the result of the unary expression through UnaryexpressionNode::inferType.
+#
+class UnaryexpressionNode(ExpressionNode):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitUnaryexpression(self)
+
+    ## Retrieve the CType type of the result of the binary unary expression.
+    def inferType(self, typeList: TypeList) -> CType:
+        pass # TODO  Handle the following cases: deref, addr-of, +, -
 
 
 class UnaryopNode(ASTree):
@@ -147,11 +161,23 @@ class TypespecifierNode(ASTree):
     def __repr__(self):
         return self.value
 
-
-class LiteralNode(ASTree):
+## An atomic instance of an ExpressionNode.
+# Provides an interface to infer the type of its concrete instantiations through LiteralNode::inferType.
+# Provides an interface needed for built-in type conversions, see LiteralNode::rank.
+#
+class LiteralNode(ExpressionNode):
+    """
+    An atomic instance of an ExpressionNode.
+    """
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitLiteral(self)
 
+    ## Retrieve the CType type of the concrete LiteralNode (built-in type).
+    @abstractmethod
+    def inferType(self, typeList: TypeList) -> CType:
+        pass
+
+    ## Retrieve the rank of the concrete LiteralNode (built-in type).
     def rank(self) -> int:
         pass
 
@@ -167,20 +193,39 @@ class IdentifierNode(TypedNode):
         visitor.visitIdentifier(self)
 
 
-
-# TODO  make sure function inherits from TypedNode
-# TODO  make sure function inherits from TypedNode
-# TODO  make sure function inherits from TypedNode
-class FunctionNode(TypedNode):
-    pass
 # TODO  make sure function inherits from TypedNode
 # TODO  make sure function inherits from TypedNode
 # TODO  make sure function inherits from TypedNode
 
+## An recursive instance of an ExpressionNode.
+# Provides an interface to infer the CType return type of the function call through FunctioncallNode::inferType.
+#
+class FunctioncallNode(ExpressionNode):  # TODO children: [IdentifierNode -> stores SymbolTable record (has type), arguments]
+    def accept(self, visitor: ASTreeVisitor):
+        #visitor.visitFunctioncall(self)
+        pass
 
-class BinaryopNode(ASTree):
+    ## Retrieve the CType return type of the function call.
+    def inferType(self, typeList: TypeList) -> CType:
+        return self.getChild(0).record.type
+# TODO  make sure function inherits from TypedNode
+# TODO  make sure function inherits from TypedNode
+# TODO  make sure function inherits from TypedNode
+
+
+## An recursive instance of an ExpressionNode.
+# Provides an interface to infer the CType type of the result of the binary expression through BinaryopNode::inferType.
+#
+class BinaryopNode(ExpressionNode):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitBinaryop(self)
+
+    ## Retrieve the CType type of the result of the binary expression.
+    def inferType(self, typeList: TypeList) -> CType:
+        lType = self.getChild(0).inferType(typeList)
+        rType = self.getChild(1).inferType(typeList)
+        # TODO return promote(lType, rType) # ???????
+        return VariableCType(typeList[BuiltinNames.VOID])
 
     def evaluate(self, left: LiteralNode, right: LiteralNode):
         pass

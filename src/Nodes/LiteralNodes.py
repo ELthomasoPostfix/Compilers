@@ -1,6 +1,7 @@
 from src.Nodes.ASTreeNode import LiteralNode
+from src.SymbolTable import TypeList, VariableCType, CType
 from src.Visitor import ASTreeVisitor
-from src.Nodes.PrimitiveRanks import PrimitiveRanks
+from src.Nodes.BuiltinInfo import BuiltinRanks, BuiltinNames
 
 
 def promote(left: LiteralNode, right: LiteralNode) -> [LiteralNode, LiteralNode]:
@@ -16,11 +17,14 @@ class IntegerNode(LiteralNode):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitLiteral(self)
 
+    def inferType(self, typeList: TypeList) -> CType:
+        return VariableCType(typeList[BuiltinNames.INT])
+
     def getValue(self):
         return int(self.value)
 
     def rank(self) -> int:
-        return PrimitiveRanks.INT
+        return BuiltinRanks.INT
 
     def __repr__(self):
         return str(self.getValue())
@@ -30,11 +34,14 @@ class FloatNode(LiteralNode):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitLiteral(self)
 
+    def inferType(self, typeList: TypeList) -> CType:
+        return VariableCType(typeList[BuiltinNames.FLOAT])
+
     def getValue(self):
         return float(self.value)
 
     def rank(self) -> int:
-        return PrimitiveRanks.FLOAT
+        return BuiltinRanks.FLOAT
 
     def __repr__(self):
         return str(self.getValue())
@@ -44,22 +51,25 @@ class CharNode(LiteralNode):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitLiteral(self)
 
+    def inferType(self, typeList: TypeList) -> CType:
+        return VariableCType(typeList[BuiltinNames.CHAR])
+
     def getValue(self):
         return str(self.value)
 
     def rank(self) -> int:
-        return PrimitiveRanks.CHAR
+        return BuiltinRanks.CHAR
 
     def __repr__(self):
         return self.getValue()
 
 
 def coerce(operand: LiteralNode, rank: int):
-    if rank == 2:
+    if rank == BuiltinRanks.CHAR:
         return CharNode(operand.value, "Ch")
-    elif rank == 4:
+    elif rank == BuiltinRanks.INT:
         return IntegerNode(operand.value, "In")
-    elif rank == 7:
+    elif rank == BuiltinRanks.FLOAT:
         return FloatNode(operand.value, "Fl")
     else:
         return None

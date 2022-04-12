@@ -148,3 +148,38 @@ class OrNode(BinaryopNode):
     def __repr__(self):
         return '||'
 
+
+class PositiveNode(UnaryopNode):
+    def accept(self, visitor: ASTreeVisitor):
+        visitor.visitUnaryop(self)
+
+
+    def __repr__(self):
+        return '+'
+
+
+class NegativeNode(UnaryopNode):
+    def accept(self, visitor: ASTreeVisitor):
+        visitor.visitUnaryop(self)
+
+
+    def __repr__(self):
+        return '-'
+
+
+class AddressOfNode(UnaryopNode):
+    def accept(self, visitor: ASTreeVisitor):
+        visitor.visitUnaryop(self)
+
+
+    def __repr__(self):
+        return '&'
+
+
+class DereferenceNode(UnaryopNode):
+    def accept(self, visitor: ASTreeVisitor):
+        visitor.visitUnaryop(self)
+
+
+    def __repr__(self):
+        return '*'

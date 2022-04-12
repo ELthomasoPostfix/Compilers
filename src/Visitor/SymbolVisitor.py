@@ -36,7 +36,7 @@ class SymbolVisitor(ASTreeVisitor):
 
     def _attachRecord(self, node: TypedNode):
         record: Record = self.currentSymbolTable[node.value]
-        if record is None:
+        if record is None:      # TODO  push this into a SemanticVisitor ???
             raise Exception(f"Unknown symbol: '{node.__repr__()}'")
         node.record = record
 

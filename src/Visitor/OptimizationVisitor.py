@@ -1,4 +1,5 @@
 from src.Nodes.LiteralNodes import promote, coerce
+from src.Nodes.OperatorNodes import NegativeNode, PositiveNode
 from src.Visitor.ASTreeVisitor import ASTreeVisitor
 from src.Nodes.ASTreeNode import *
 from src.CompilersUtils import coloredDef
@@ -43,7 +44,7 @@ class OptimizationVisitor(ASTreeVisitor):
 
     def visitUnaryexpression(self, value: UnaryexpressionNode):
         if len(value.children) == 2:
-            if isinstance(value.children[0], UnaryopNode) and (value.children[0].value == '-' or value.children[0].value == '+'):
+            if isinstance(value.children[0], NegativeNode) or isinstance(value.children[0], PositiveNode):
                 #################################################################################
                 # Value.children[0] is replaced by an integer node. So promote() can be called. #
                 # Ex. (- , UnaryOpNode) => (-1, IntegerNode)                                    #

@@ -68,7 +68,9 @@ class TypeList:
 
 
 
-
+## Abstract base class representing type information for symbols in a symbol table.
+#
+#
 class CType:   # TODO  and arrays ?????
     """Abstract base class representing type information for symbols in a symbol table."""
     __metaclass__ = ABCMeta

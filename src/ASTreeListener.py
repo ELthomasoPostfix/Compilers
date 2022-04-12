@@ -154,7 +154,14 @@ class ASTreeListener(MyGrammarListener):
         self.addCurrentChild(UnaryexpressionNode(ctx.getText(), "Un"))
 
     def enterUnaryop(self, ctx: MyGrammarParser.UnaryopContext):
-        self.addCurrentChild(UnaryopNode(ctx.getText(), "Un"))
+        if self.isTerminalType(ctx, MyGrammarParser.REF):
+            self.addCurrentChild(AddressOfNode(ctx.getText(), "Addr"))
+        elif self.isTerminalType(ctx, MyGrammarParser.STAR):
+            self.addCurrentChild(DereferenceNode(ctx.getText(), "Deref"))
+        elif self.isTerminalType(ctx, MyGrammarParser.PLUS):
+            self.addCurrentChild(PositiveNode(ctx.getText(), "Pos"))
+        elif self.isTerminalType(ctx, MyGrammarParser.MIN):
+            self.addCurrentChild(NegativeNode(ctx.getText(), "Neg"))
 
     def enterVar_decl(self, ctx: MyGrammarParser.Var_declContext):
         self.addCurrentChild(Var_declNode(ctx.getText(), "Vd"))
