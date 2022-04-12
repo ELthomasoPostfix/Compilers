@@ -152,15 +152,27 @@ class ASTreeListener(MyGrammarListener):
 
     def enterUnaryexpression(self, ctx: MyGrammarParser.UnaryexpressionContext):
         self.addCurrentChild(UnaryexpressionNode(ctx.getText(), "Un"))
+        if self.isTerminalType(ctx.getChild(0), MyGrammarParser.INCR):
+            self.current.addChild(IncrementNode(ctx.getText(), "Incr"))
+        elif self.isTerminalType(ctx.getChild(0), MyGrammarParser.DECR):
+            self.current.addChild(DecrementNode(ctx.getText(), "Decr"))
+
+    def exitUnaryexpression(self, ctx:MyGrammarParser.UnaryexpressionContext):
+        if self.isTerminalType(ctx.getChild(1), MyGrammarParser.INCR):
+            self.current.addChild(IncrementNode(ctx.getText(), "Incr"))
+        elif self.isTerminalType(ctx.getChild(1), MyGrammarParser.DECR):
+            self.current.addChild(DecrementNode(ctx.getText(), "Decr"))
 
     def enterUnaryop(self, ctx: MyGrammarParser.UnaryopContext):
-        if self.isTerminalType(ctx, MyGrammarParser.REF):
+        unaryop = ctx.getChild(0)
+        print(unaryop.symbol.text)
+        if self.isTerminalType(unaryop, MyGrammarParser.REF):
             self.addCurrentChild(AddressOfNode(ctx.getText(), "Addr"))
-        elif self.isTerminalType(ctx, MyGrammarParser.STAR):
+        elif self.isTerminalType(unaryop, MyGrammarParser.STAR):
             self.addCurrentChild(DereferenceNode(ctx.getText(), "Deref"))
-        elif self.isTerminalType(ctx, MyGrammarParser.PLUS):
+        elif self.isTerminalType(unaryop, MyGrammarParser.PLUS):
             self.addCurrentChild(PositiveNode(ctx.getText(), "Pos"))
-        elif self.isTerminalType(ctx, MyGrammarParser.MIN):
+        elif self.isTerminalType(unaryop, MyGrammarParser.MIN):
             self.addCurrentChild(NegativeNode(ctx.getText(), "Neg"))
 
     def enterVar_decl(self, ctx: MyGrammarParser.Var_declContext):

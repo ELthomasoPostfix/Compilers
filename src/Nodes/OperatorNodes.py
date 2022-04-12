@@ -183,3 +183,21 @@ class DereferenceNode(UnaryopNode):
 
     def __repr__(self):
         return '*'
+
+
+class IncrementNode(UnaryopNode):
+    def accept(self, visitor: ASTreeVisitor):
+        visitor.visitUnaryop(self)
+
+
+    def __repr__(self):
+        return '++'
+
+
+class DecrementNode(UnaryopNode):
+    def accept(self, visitor: ASTreeVisitor):
+        visitor.visitUnaryop(self)
+
+
+    def __repr__(self):
+        return '--'
