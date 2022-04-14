@@ -115,13 +115,18 @@ var_assig
     ;
 
 assignment
-    : ASSIG rvalue
+    : ASSIG expression
+    ;
+
+functiondeclaration
+    :
     ;
 
 
 // TODO  noptrdeclarator
 // TODO  noptrdeclarator
 // TODO  noptrdeclarator
+
 declarator
     : identifier
     | LPAREN declarator RPAREN
