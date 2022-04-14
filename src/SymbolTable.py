@@ -1,3 +1,4 @@
+from __future__ import annotations
 from abc import ABCMeta
 from typing import List, Union
 
@@ -77,8 +78,20 @@ class CType:   # TODO  and arrays ?????
     def __init__(self):
         self._pointers: List[bool] = []
 
-    def addPointer(self, isConst: bool):
+    ## Add a level of indirection to the CType, possibly marked const through the isConst parameter.
+    #
+    # It returns self to allow chaining the method.
+    def addPointer(self, isConst: bool) -> CType:
+        """
+        Add a level of indirection to the CType.
+        :param isConst: make level of indirection read-only
+        :return: self, to allow chaining the method
+        """
         self._pointers.append(isConst)
+        return self
+
+    def isPointerType(self):
+        return len(self._pointers) > 0
 
     def __repr__(self):
         return self.__str__()
@@ -92,12 +105,14 @@ class VariableCType(CType):
     def __init__(self, typeIndex: int):
         super().__init__()
         self.typeIndex = typeIndex
+        self.register = None
 
     def __str__(self):
         return str(self.typeIndex) + " " + super().__str__()
 
+# TODO   Add LiteralCType class, to be returned by LiteralNode classes????
 
-class FunctionCType(CType):
+class FunctionCType(CType):     # TODO:  Are param type needed here? Can't they be inferred from the AST? If not, then FunctionCType can be reduced to VariableType, so better rename VariableType or just move VariableType functionality up into CType
     """A class representing type information for a function."""
     def __init__(self, returnType: int, parameterTypes: List[int]):
         super().__init__()
@@ -137,7 +152,7 @@ class SymbolTable(dict):
         self._enclosingScope: SymbolTable = enclosingScope
         self.typeList = typeList
 
-    def __getitem__(self, identifier: str):
+    def __getitem__(self, identifier: str) -> Record:
         """Retrieve the symbol table information related to :identifier:.
          Returns None if :identifier: is not declared in the root SymbolTable."""
         if identifier in self:
