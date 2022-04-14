@@ -1,0 +1,16 @@
+int f();
+
+int f2(int i, char c, float* fp);
+
+char cf() { char c; return c; }
+
+char* cp() { char* c; return c; }
+
+char def(char* a) {
+  int bob;
+  float* fboi;
+  int nested_decl(char cc);
+
+  int res = f2(bob, cboi, cf()) + f();
+  *cp() = bob;
+}

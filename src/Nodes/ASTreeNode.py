@@ -119,6 +119,16 @@ class Var_declNode(ASTree):
         visitor.visitVar_decl(self)
 
 
+class FunctionDeclarationNode(ASTree):
+    def accept(self, visitor: ASTreeVisitor):
+        visitor.visitFunctiondeclaration(self)
+
+
+class FunctionDefinitionNode(ASTree):
+    def accept(self, visitor: ASTreeVisitor):
+        visitor.visitFunctiondefinition(self)
+
+
 class Var_assigNode(ASTree):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitVar_assig(self)
@@ -132,6 +142,12 @@ class DeclaratorNode(ASTree):
 class ArrayDeclaratorNode(DeclaratorNode):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitDeclarator(self)
+
+
+class FunctionDeclaratorNode(DeclaratorNode):
+    def accept(self, visitor: ASTreeVisitor):
+        visitor.visitDeclarator(self)
+
 
 class TypedeclarationNode(ASTree):
     def __init__(self, value, name, const: bool = False):

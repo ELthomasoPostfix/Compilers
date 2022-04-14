@@ -13,7 +13,7 @@ cfile
     ;
 
 block
-    : statement*
+    :(statement | (functiondefinition))*
     ;
 
 statement
@@ -25,6 +25,7 @@ statement
     | jumpstatement
     | nullstatement
     | var_decl   SEMICOLON
+    //| functiondeclaration SEMICOLON
     | var_assig  SEMICOLON
     | 'printf' LPAREN (expression) RPAREN  // TODO un-hack
     ;
@@ -70,6 +71,7 @@ nullstatement
 expression
     : LPAREN expression RPAREN                              # parenthesisexp
     | unaryexpression                                       # unaryexp
+    | expression LPAREN expressionlist? RPAREN              # functioncallexp
     | expression (STAR | DIV | MOD) expression              # multiplicationexp
     | expression (PLUS | MIN) expression                    # addexp
     | expression ((LT | LTE) | (GT | GTE)) expression       # relationalexp
@@ -110,31 +112,69 @@ var_decl
     : typedeclaration declarator assignment?
     ;
 
+// TODO  assigning to expression is very wide --> Many semantic checks
+//      ==> the problem lies with 'lvalue assignment' rule not taking into account
+//      any unary operations for the left hand side in an assignment, e.g.
+//      int* i;
+//      *i = &some_other_int;
+//      ==> incorporate '*' unary operator into lvalue somehow
 var_assig
-    : lvalue assignment
+    : (lvalue | expression) assignment
     ;
 
 assignment
     : ASSIG expression
     ;
 
+functiondefinition
+    : typedeclaration declarator compoundstatement
+    ;
+/*
+functiondefinition
+    : functiondeclaration compoundstatement
+    ;
+*/
+// TODO  could make use of noptrdeclarator if functiondeclarator moved into noptrdeclarator
 functiondeclaration
-    :
+    : //typedeclaration functiondeclarator
     ;
 
+expressionlist
+    : expression (COMMA expression)*
+    ;
 
-// TODO  noptrdeclarator
-// TODO  noptrdeclarator
-// TODO  noptrdeclarator
-
+// TODO  check https://devdocs.io/c/language/compatible_type#Type_groups
+//   Replacing xBRACE by xPAREN would result in function def?
 declarator
+    : pointersandqualifiers? noptrdeclarator
+    ;
+
+pointersandqualifiers
+    : (pointer qualifiers?)+
+    ;
+
+noptrdeclarator
     : identifier
     | LPAREN declarator RPAREN
-    | (pointer qualifiers?)+ declarator
-    | declarator LBRACKET expression RBRACKET       // TODO  check https://devdocs.io/c/language/compatible_type#Type_groups
-                                                //   Replacing xBRACE by xPAREN would result in function def?
+    | noptrdeclarator LBRACKET expression RBRACKET
+    | noptrdeclarator LPAREN parameterlist? RPAREN
     ;
 
+// TODO could be moved into noptrdeclarator
+/*
+functiondeclarator
+    : noptrdeclarator LPAREN parameterlist? RPAREN
+    ;
+*/
+
+parameterlist
+    : functionparameter (COMMA functionparameter)*
+    | TYPE_VOID
+    ;
+
+functionparameter
+    : typedeclaration declarator
+    ;
 
 typedeclaration
     : (typequalifier | typespecifier)* typespecifier typequalifier?
@@ -170,7 +210,7 @@ pointer
 
 lvalue
     // atomary lvalues
-    : identifier                            # lvalueidentifier      // includes function designator
+    : identifier (LPAREN expressionlist? RPAREN)?   # lvalueidentifier
     // lvalue operations
     | LITERAL_STRING                        # lvalueliteralstring
     | LPAREN lvalue RPAREN                  # lvalueparenthesis
@@ -209,6 +249,8 @@ MULTI_LINE_COMMENT: '/*' .*? '*/' -> skip
 SEMICOLON:  ';'
     ;
 COLON:      ':'
+    ;
+COMMA:      ','
     ;
 
 INCR:       '++'

@@ -29,8 +29,9 @@ class ASTree(Element):
                 replacement.parent = self.parent
 
                 # Make replacement adopt caller's children
-                oldChildren = replacement.children
-                replacement.children = self.children
+                from copy import copy
+                oldChildren = copy(replacement.children)
+                replacement.children = copy(self.children)
                 if replacement in replacement.children:     # preserve replacement's old children
                     rIdx = replacement.children.index(replacement)
                     replacement.children = replacement.children[:rIdx] + oldChildren +\

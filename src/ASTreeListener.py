@@ -59,7 +59,7 @@ class ASTreeListener(MyGrammarListener):
     def enterCompoundstatement(self, ctx:MyGrammarParser.CompoundstatementContext):
         if len(ctx.children) == 2:
             self.addCurrentChild(self.createNoopNode(ctx.getText()))
-        elif isinstance(self.current, BlockNode):
+        elif isinstance(self.current, BlockNode) or isinstance(self.current, FunctionDefinitionNode):
             self.addCurrentChild(CompoundstatementNode("", "Co"))
 
     def enterIfstatement(self, ctx:MyGrammarParser.IfstatementContext):
@@ -196,19 +196,40 @@ class ASTreeListener(MyGrammarListener):
     def enterVar_decl(self, ctx: MyGrammarParser.Var_declContext):
         self.addCurrentChild(Var_declNode(ctx.getText(), "Vd"))
 
+    def exitVar_decl(self, ctx:MyGrammarParser.Var_declContext):
+        if isinstance(self.current.getChild(1), FunctionDeclaratorNode):
+            self.replaceCurrent(FunctionDeclarationNode(ctx.getText(), "Func declaration"))
+
+    def enterFunctiondeclaration(self, ctx:MyGrammarParser.FunctiondeclarationContext):
+        self.addCurrentChild(FunctionDeclarationNode(ctx.getText(), "func_decl"))
+
+    def enterFunctiondefinition(self, ctx:MyGrammarParser.FunctiondefinitionContext):
+        self.addCurrentChild(FunctionDefinitionNode(ctx.getText(), "func_def"))
+
     def enterVar_assig(self, ctx: MyGrammarParser.Var_assigContext):
         self.addCurrentChild(Var_assigNode(ctx.getText(), "Va"))
 
     def enterDeclarator(self, ctx: MyGrammarParser.DeclaratorContext):
         if not isinstance(self.current, DeclaratorNode):
             self.addCurrentChild(DeclaratorNode(ctx.getText(), "Declarator"))
-        idx = ctx.parentCtx.children.index(ctx)
-        if idx < len(ctx.parentCtx.children) - 1 and\
-            self.isTerminalType(ctx.parentCtx.getChild(idx+1), MyGrammarParser.LBRACKET):
+
+    def enterNoptrdeclarator(self, ctx:MyGrammarParser.NoptrdeclaratorContext):
+        if not isinstance(self.current, DeclaratorNode):
+            self.addCurrentChild(DeclaratorNode(ctx.getText(), "Declarator"))
+        if self.isTerminalType(ctx.parentCtx.getChild(-1), MyGrammarParser.RBRACKET):
             self.replaceCurrent(ArrayDeclaratorNode(ctx.getText(), "Array Declarator"))
+        elif self.isTerminalType(ctx.parentCtx.getChild(-1), MyGrammarParser.RPAREN):
+            self.replaceCurrent(FunctionDeclaratorNode(ctx.getText(), "Func Declarator"))
+
+    def enterFunctionparameter(self, ctx:MyGrammarParser.FunctionparameterContext):
+        self.addCurrentChild(Var_declNode(ctx.getText(), "Func param"))
 
     def enterTypedeclaration(self, ctx:MyGrammarParser.TypedeclarationContext):
         self.addCurrentChild(TypedeclarationNode(ctx.getText(), "Td"))
+
+    def enterLvalueidentifier(self, ctx:MyGrammarParser.LvalueidentifierContext):
+        if self.isTerminalType(ctx.getChild(-1), MyGrammarParser.RPAREN):
+            self.addCurrentChild(FunctioncallNode(ctx.getText(), "Func call"))
 
     def enterLvalueliteralstring(self, ctx:MyGrammarParser.LvalueliteralstringContext):
         self.addCurrentChild(CharNode(ctx.getText(), "String"))

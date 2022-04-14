@@ -43,7 +43,23 @@ class Var_assigNode:
     pass
 class AssignmentNode:
     pass
+class FunctiondefinitionNode:
+    pass
+class FunctiondeclarationNode:
+    pass
+class ExpressionlistNode:
+    pass
 class DeclaratorNode:
+    pass
+class PointersandqualifiersNode:
+    pass
+class NoptrdeclaratorNode:
+    pass
+class FunctiondeclaratorNode:
+    pass
+class ParameterlistNode:
+    pass
+class FunctionparameterNode:
     pass
 class TypedeclarationNode:
     pass
@@ -136,7 +152,31 @@ class ASTreeVisitor:
     def visitAssignment(self, node: AssignmentNode):
         pass
 
+    def visitFunctiondefinition(self, node: FunctiondefinitionNode):
+        pass
+
+    def visitFunctiondeclaration(self, node: FunctiondeclarationNode):
+        pass
+
+    def visitExpressionlist(self, node: ExpressionlistNode):
+        pass
+
     def visitDeclarator(self, node: DeclaratorNode):
+        pass
+
+    def visitPointersandqualifiers(self, node: PointersandqualifiersNode):
+        pass
+
+    def visitNoptrdeclarator(self, node: NoptrdeclaratorNode):
+        pass
+
+    def visitFunctiondeclarator(self, node: FunctiondeclaratorNode):
+        pass
+
+    def visitParameterlist(self, node: ParameterlistNode):
+        pass
+
+    def visitFunctionparameter(self, node: FunctionparameterNode):
         pass
 
     def visitTypedeclaration(self, node: TypedeclarationNode):
