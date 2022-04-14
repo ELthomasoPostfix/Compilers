@@ -1,16 +1,18 @@
 DESTINATION=src/generated
 REQ_ARGS=1
-h_flag=false
+help_flag=false
+all_flag=false
 
 
-while getopts 'h' flag; do
+while getopts 'ha' flag; do
   case "${flag}" in
-    h) h_flag=true ;;
+    h) help_flag=true ;;
+    a) all_flag=true ;;
     *) ;;
   esac
 done
 
-if [ "$h_flag" = true ]
+if [ "$help_flag" = true ]
 then
   echo "Compile the specified file(s).
    positional arguments:
@@ -33,7 +35,7 @@ chmod +x ensure_destination.sh
 ./ensure_destination.sh -d $DESTINATION
 
 FILE_COUNT=$(find $DESTINATION -name "*Parser.py" | wc -l)
-if [ $FILE_COUNT -ne 1 ]
+if [ "$FILE_COUNT" -ne 1 ]
 then
   echo "ANTLR generated files not found"
   chmod +x build.sh
@@ -41,10 +43,19 @@ then
 fi
 
 FILE_COUNT=$(find $DESTINATION -name  "*Parser.py" | wc -l)
-if [ $FILE_COUNT -eq 1 ]
+if [ "$FILE_COUNT" -eq 1 ]
 then
-  echo "Calling main.py"
-  python3 main.py $1
+  if [ "$all_flag" = true ]
+  then
+    input_files="$(find Input/tests/ -name "*.txt")"
+    for file in $input_files; do
+      echo "Calling main.py ${file}"
+      python3 main.py "$file"
+    done
+  else
+    python3 main.py "$1"
+  fi
+
   exit 0
 fi
 

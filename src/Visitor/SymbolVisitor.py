@@ -1,3 +1,4 @@
+from src.CompilersUtils import first
 from src.SymbolTable import SymbolTable, ReadAccess, ReadWriteAccess, Record, VariableCType, FunctionCType, CType
 from src.Visitor.ASTreeVisitor import ASTreeVisitor, CompoundstatementNode
 from src.Nodes.ASTreeNode import *
@@ -37,7 +38,7 @@ class SymbolVisitor(ASTreeVisitor):
     def _attachRecord(self, node: TypedNode):
         record: Record = self.currentSymbolTable[node.value]
         if record is None:      # TODO  push this into a SemanticVisitor ???
-            raise Exception(f"Unknown symbol: '{node.__repr__()}'")
+            raise Exception(f"Unknown symbol: {node.__str__()}")
         node.record = record
 
     #
@@ -90,7 +91,7 @@ class SymbolVisitor(ASTreeVisitor):
     #
 
     def visitVar_decl(self, node: Var_declNode):
-        identifier: str = node.getChild(1).children[-1].value
+        identifier: str = first(node.getChild(1).children, lambda child: isinstance(child, IdentifierNode)).value
         access = ReadWriteAccess()
         typeName = ""
 

@@ -185,19 +185,46 @@ class DereferenceNode(UnaryopNode):
         return '*'
 
 
-class IncrementNode(UnaryopNode):
+class PrefixIncrementNode(UnaryopNode):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitUnaryop(self)
 
 
     def __repr__(self):
-        return '++'
+        return '++.'
 
 
-class DecrementNode(UnaryopNode):
+class PostfixIncrementNode(UnaryopNode):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitUnaryop(self)
 
 
     def __repr__(self):
-        return '--'
+        return '.++'
+
+
+class PrefixDecrementNode(UnaryopNode):
+    def accept(self, visitor: ASTreeVisitor):
+        visitor.visitUnaryop(self)
+
+
+    def __repr__(self):
+        return '--.'
+
+
+class PostfixDecrementNode(UnaryopNode):
+    def accept(self, visitor: ASTreeVisitor):
+        visitor.visitUnaryop(self)
+
+
+    def __repr__(self):
+        return '.--'
+
+
+class ArraySubscriptNode(BinaryopNode):
+    def accept(self, visitor: ASTreeVisitor):
+        visitor.visitBinaryop(self)
+
+
+    def __repr__(self):
+        return "[ ]"

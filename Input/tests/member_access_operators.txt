@@ -1,0 +1,4 @@
+int* ip1;
+int* ip2;
+*ip1 + &*ip2;
+*ip1++;

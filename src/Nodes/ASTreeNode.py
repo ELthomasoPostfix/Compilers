@@ -64,6 +64,11 @@ class IterationstatementNode(ScopedNode):
         visitor.visitIterationstatement(self)
 
 
+class JumpstatementNode(ScopedNode):
+    def accept(self, visitor: ASTreeVisitor):
+        visitor.visitJumpstatement(self)
+
+
 class SelectionstatementNode(ScopedNode):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitSelectionstatement(self)
@@ -123,6 +128,10 @@ class DeclaratorNode(ASTree):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitDeclarator(self)
 
+
+class ArrayDeclaratorNode(DeclaratorNode):
+    def accept(self, visitor: ASTreeVisitor):
+        visitor.visitDeclarator(self)
 
 class TypedeclarationNode(ASTree):
     def __init__(self, value, name, const: bool = False):

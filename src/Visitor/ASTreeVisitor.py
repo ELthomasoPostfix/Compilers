@@ -17,6 +17,8 @@ class LabelstatementNode:
     pass
 class SelectionstatementNode:
     pass
+class SelectionelseNode:
+    pass
 class IterationstatementNode:
     pass
 class JumpstatementNode:
@@ -39,6 +41,8 @@ class Var_declNode:
     pass
 class Var_assigNode:
     pass
+class AssignmentNode:
+    pass
 class DeclaratorNode:
     pass
 class TypedeclarationNode:
@@ -52,6 +56,8 @@ class TypequalifierNode:
 class TypespecifierNode:
     pass
 class PointerNode:
+    pass
+class RvalueNode:
     pass
 class LiteralNode:
     pass
@@ -91,6 +97,9 @@ class ASTreeVisitor:
     def visitSelectionstatement(self, node: SelectionstatementNode):
         pass
 
+    def visitSelectionelse(self, node: SelectionelseNode):
+        pass
+
     def visitIterationstatement(self, node: IterationstatementNode):
         pass
 
@@ -124,6 +133,9 @@ class ASTreeVisitor:
     def visitVar_assig(self, node: Var_assigNode):
         pass
 
+    def visitAssignment(self, node: AssignmentNode):
+        pass
+
     def visitDeclarator(self, node: DeclaratorNode):
         pass
 
@@ -143,6 +155,9 @@ class ASTreeVisitor:
         pass
 
     def visitPointer(self, node: PointerNode):
+        pass
+
+    def visitRvalue(self, node: RvalueNode):
         pass
 
     def visitLiteral(self, node: LiteralNode):

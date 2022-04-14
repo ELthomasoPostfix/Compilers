@@ -52,6 +52,8 @@ class CharNode(LiteralNode):
         visitor.visitLiteral(self)
 
     def inferType(self, typeList: TypeList) -> CType:
+        if len(self.value) > 1:
+            return VariableCType(typeList[BuiltinNames.CHAR]).addPointer(False)
         return VariableCType(typeList[BuiltinNames.CHAR])
 
     def getValue(self):

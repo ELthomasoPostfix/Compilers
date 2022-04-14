@@ -76,22 +76,21 @@ expression
     | expression (EQ | NEQ) expression                      # equalityexp
     | expression AND expression                             # andexp
     | expression OR expression                              # orexp
-    | identifier                                            # identifierexp
-    | literal                                               # literalexp
+    | rvalue                                                # rvalueexp
     ;
 
+// INCR and DECR unary operators con ONLY appear immediately beside a variable
+// identifier of a pointer type (pointer arithmetic)
 unaryexpression
-    : identifier (INCR | DECR)          // INCR and DECR unary operators con ONLY appear immediately beside a variable
-    | (INCR | DECR) identifier          // identifier, as we do not support structs and functions only return built-in types
-    | unaryop+ (literal | identifier)
+    : unaryop* lvalue (INCR | DECR)
+    | (INCR | DECR) unaryop* lvalue
+    | unaryop+ expression
     ;
 
 unaryop
     : (PLUS | MIN)
-    // TODO: BITWISE 'NOT' & 'AND'
-    | NOT
-    | STAR
-    | REF
+    |  NOT
+    | (STAR | REF)
     ;
 
 forCondition
@@ -108,19 +107,29 @@ forexpression
     ;
 
 var_decl
-    : typedeclaration declarator (ASSIG expression)?
+    : typedeclaration declarator assignment?
     ;
 
 var_assig
-    : identifier ASSIG expression
+    : lvalue assignment
     ;
 
+assignment
+    : ASSIG rvalue
+    ;
+
+
+// TODO  noptrdeclarator
+// TODO  noptrdeclarator
+// TODO  noptrdeclarator
 declarator
     : identifier
     | LPAREN declarator RPAREN
     | (pointer qualifiers?)+ declarator
-    | declarator LBRACE expression RBRACE
+    | declarator LBRACKET expression RBRACKET       // TODO  check https://devdocs.io/c/language/compatible_type#Type_groups
+                                                //   Replacing xBRACE by xPAREN would result in function def?
     ;
+
 
 typedeclaration
     : (typequalifier | typespecifier)* typespecifier typequalifier?
@@ -152,6 +161,22 @@ typespecifier
 
 pointer
     : STAR
+    ;
+
+lvalue
+    // atomary lvalues
+    : identifier                            # lvalueidentifier      // includes function designator
+    // lvalue operations
+    | LITERAL_STRING                        # lvalueliteralstring
+    | LPAREN lvalue RPAREN                  # lvalueparenthesis
+    | lvalue LBRACKET expression RBRACKET   # lvaluearraysubscript
+    ;
+
+rvalue
+    : literal
+    | lvalue       // TODO  should &/REF be part of unaryop?
+    // | REF functionidentifier
+    // functioncall
     ;
 
 literal

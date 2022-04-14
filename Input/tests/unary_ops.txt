@@ -1,8 +1,16 @@
+int ia[4];
+int idx = 2;
+ia[idx % ia[idx]];
+*ia[&*ia];
+
 int i;
+*i++;
+//*++i;     // ERROR: ++ operator results in literal and dereference (*) operator requires lvalue
+++*i;
 i++;
 ++i;
 --i;
 i--;
-+-+- -i;
++-&*+- -i;
 +**i;
 &*i;

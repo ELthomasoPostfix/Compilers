@@ -13,15 +13,13 @@ class OptimizationVisitor(ASTreeVisitor):
         self.visitChildren(value)
 
     def visitStatement(self, value: StatementNode):
-        print(coloredDef("STAT"), value.value, value.name)
         self.visitChildren(value)
 
     def visitExpression(self, exp: ExpressionNode):
-        print(coloredDef("EXP"), exp.value, exp.name)
         self.visitChildren(exp)
 
     def visitLiteral(self, value: LiteralNode):
-        print(coloredDef("VAL"), value.value, value.name)
+        pass
 
     def visitBinaryop(self, value: BinaryopNode):
         self.visitChildren(value)
@@ -65,5 +63,4 @@ class OptimizationVisitor(ASTreeVisitor):
                 del value
 
     def visitUnaryOp(self, value: UnaryopNode):
-        print(coloredDef("UOP"), value.value, value.name)
-
+        pass

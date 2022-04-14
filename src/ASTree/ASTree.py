@@ -14,15 +14,27 @@ class ASTree(Element):
         Replace the caller by the replacement argument in the AST. In other words,
         replace the caller by the replacement argument in all parent-caller and caller-child relationships.
         After the operation is concluded, the caller retains none of its parent and children relations.
+        Overwrites all the replacement's parent-replacement and replacement-child relations.
+        A notable exception to this overwriting is when the replacement is a child of the caller.
+        Then, the old children of the replacement are inserted into the replacement's position as a child.
         :param replacement: The replacement of the caller in the AST. Passing None will essentially
         clip the caller and all its children from the caller's parent AST.
         """
         if self in self.parent.children:
-            self.parent.children[self.parent.children.index(self)] = replacement
-
-            if replacement is not None:
+            if replacement is None:
+                self.parent.children.remove(self)
+            else:
+                # Change parent-caller relationship to parent-replacement relationship
+                self.parent.children[self.parent.children.index(self)] = replacement
                 replacement.parent = self.parent
+
+                # Make replacement adopt caller's children
+                oldChildren = replacement.children
                 replacement.children = self.children
+                if replacement in replacement.children:     # preserve replacement's old children
+                    rIdx = replacement.children.index(replacement)
+                    replacement.children = replacement.children[:rIdx] + oldChildren +\
+                                           replacement.children[rIdx+1:]
 
             self.parent = None
             self.children.clear()
