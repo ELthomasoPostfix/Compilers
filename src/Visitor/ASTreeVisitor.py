@@ -29,6 +29,8 @@ class ExpressionNode:
     pass
 class UnaryexpressionNode:
     pass
+class FunctioncallNode:
+    pass
 class UnaryopNode:
     pass
 class ForConditionNode:
@@ -131,6 +133,9 @@ class ASTreeVisitor:
         self.visitChildren(node)
 
     def visitUnaryexpression(self, node: UnaryexpressionNode):
+        self.visitChildren(node)
+
+    def visitFunctioncall(self, node: FunctioncallNode):
         self.visitChildren(node)
 
     def visitUnaryop(self, node: UnaryopNode):

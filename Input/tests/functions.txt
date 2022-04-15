@@ -8,6 +8,7 @@ char* cp() { char* c; return c; }
 
 char def(char* a) {
   int bob;
+  char cboi;
   float* fboi;
   int nested_decl(char cc);
 

@@ -1,6 +1,7 @@
 from antlr4 import ParserRuleContext
 from antlr4.tree.Tree import TerminalNodeImpl
 
+from src.Exceptions.exceptions import DeclarationException
 from src.Nodes.IterationNodes import WhileNode, DoWhileNode
 from src.Nodes.JumpNodes import ContinueNode, BreakNode, ReturnNode
 from src.Nodes.SelectionNodes import IfNode, ElseNode
@@ -199,6 +200,9 @@ class ASTreeListener(MyGrammarListener):
     def exitVar_decl(self, ctx:MyGrammarParser.Var_declContext):
         if isinstance(self.current.getChild(1), FunctionDeclaratorNode):
             self.replaceCurrent(FunctiondeclarationNode(ctx.getText(), "Func declaration"))
+            if len(self.current.children) == 3:
+                raise DeclarationException(f"Function declared like variable: {ctx.getChild(0).getText()} {ctx.getChild(1).getText()} = {ctx.getChild(2).getText()[1:]}")
+
         # Split off assignment as a separate statement
         elif len(self.current.children) == 3:
             assig = Var_assigNode("", "declaration assig")
@@ -208,8 +212,6 @@ class ASTreeListener(MyGrammarListener):
 
     def enterVar_assig(self, ctx: MyGrammarParser.Var_assigContext):
         self.addCurrentChild(Var_assigNode(ctx.getText(), "Va"))
-
-
 
     def enterFunctiondeclaration(self, ctx:MyGrammarParser.FunctiondeclarationContext):
         self.addCurrentChild(FunctiondeclarationNode(ctx.getText(), "func_decl"))

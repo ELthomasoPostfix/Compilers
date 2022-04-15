@@ -25,7 +25,6 @@ statement
     | jumpstatement
     | nullstatement
     | var_decl   SEMICOLON
-    //| functiondeclaration SEMICOLON
     | var_assig  SEMICOLON
     | 'printf' LPAREN (expression) RPAREN  // TODO un-hack
     ;
@@ -71,7 +70,7 @@ nullstatement
 expression
     : LPAREN expression RPAREN                              # parenthesisexp
     | unaryexpression                                       # unaryexp
-    | expression LPAREN expressionlist? RPAREN              # functioncallexp
+    | functioncall                                          # functioncallexp
     | expression (STAR | DIV | MOD) expression              # multiplicationexp
     | expression (PLUS | MIN) expression                    # addexp
     | expression ((LT | LTE) | (GT | GTE)) expression       # relationalexp
@@ -87,6 +86,10 @@ unaryexpression
     : unaryop* lvalue (INCR | DECR)
     | (INCR | DECR) unaryop* lvalue
     | unaryop+ expression
+    ;
+
+functioncall
+    : identifier LPAREN expressionlist? RPAREN
     ;
 
 unaryop

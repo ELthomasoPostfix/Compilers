@@ -6,7 +6,17 @@ from src.SymbolTable import Record, SymbolTable, CType, VariableCType, TypeList
 from abc import ABCMeta, abstractmethod
 
 
-class TypedNode(ASTree):
+
+class ExpressionNode(ASTree):
+    def accept(self, visitor: ASTreeVisitor):
+        visitor.visitExpression(self)
+
+    @abstractmethod
+    def inferType(self, typeList: TypeList) -> CType:
+        return VariableCType(typeList[BuiltinNames.VOID])
+
+
+class TypedNode(ExpressionNode):
     __metaclass__ = ABCMeta
 
     """An abstract base class for nodes that are registered into the symbol table."""
@@ -81,18 +91,6 @@ class NullstatementNode(ASTree):
 
     def __repr__(self):
         return self.name
-
-
-# TODO  Give an expression a type member: char c = 1.1 / 4.1 MUST result in compile error due to lack of implicit conversions???
-class ExpressionNode(ASTree):
-    def accept(self, visitor: ASTreeVisitor):
-        visitor.visitExpression(self)
-
-    @abstractmethod
-    def inferType(self, typeList: TypeList) -> CType:   # TODO extrapolate to ExpressionNode inheritors: UnaryexpressionNode, BinaryopNode
-        return VariableCType(typeList[BuiltinNames.VOID]) # TODO  TypeList does not globally initialize
-        # TODO   with the builtin types yet, so an instance would have to be passed.
-        # TODO   Also, are the CType class derivatives and Literal class derivatives mutually exclusive???
 
 
 ## An recursive instance of an ExpressionNode.
@@ -228,25 +226,19 @@ class LiteralNode(ExpressionNode):
         return self.getValue()
 
 
-
-# TODO  make sure function inherits from TypedNode
-# TODO  make sure function inherits from TypedNode
-# TODO  make sure function inherits from TypedNode
-
 ## An recursive instance of an ExpressionNode.
 # Provides an interface to infer the CType return type of the function call through FunctioncallNode::inferType.
 #
-class FunctioncallNode(ExpressionNode):  # TODO children: [IdentifierNode -> stores SymbolTable record (has type), arguments]
+class FunctioncallNode(ExpressionNode):
     def accept(self, visitor: ASTreeVisitor):
-        #visitor.visitFunctioncall(self)
-        pass
+        visitor.visitFunctioncall(self)
 
     ## Retrieve the CType return type of the function call.
     def inferType(self, typeList: TypeList) -> CType:
-        return self.getChild(0).record.type
-# TODO  make sure function inherits from TypedNode
-# TODO  make sure function inherits from TypedNode
-# TODO  make sure function inherits from TypedNode
+        return self.getIdentifierNode().record.type
+
+    def getIdentifierNode(self) -> IdentifierNode:
+        return self.getChild(0)
 
 
 ## An recursive instance of an ExpressionNode.

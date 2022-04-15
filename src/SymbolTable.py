@@ -2,6 +2,8 @@ from __future__ import annotations
 from abc import ABCMeta
 from typing import List, Union
 
+from src.Exceptions.exceptions import RedeclaredSymbolException
+
 
 class Accessibility(int):
     """Abstract base class representing accessibility for symbols in a symbol table."""
@@ -112,6 +114,7 @@ class VariableCType(CType):
 
 # TODO   Add LiteralCType class, to be returned by LiteralNode classes????
 
+
 class FunctionCType(CType):     # TODO:  Are param type needed here? Can't they be inferred from the AST? If not, then FunctionCType can be reduced to VariableType, so better rename VariableType or just move VariableType functionality up into CType
     """A class representing type information for a function."""
     def __init__(self, returnType: int):
@@ -166,7 +169,7 @@ class SymbolTable(dict):
         Raises an exception of type Exception if :identifier: is already registered."""
         lookup = self[key]
         if lookup is not None:
-            raise Exception(f"Redeclaration of identifier: {key}, {str(lookup)} to {str(value)}")
+            raise RedeclaredSymbolException(key, str(lookup), str(value))
         super().__setitem__(key, value)
 
     @property

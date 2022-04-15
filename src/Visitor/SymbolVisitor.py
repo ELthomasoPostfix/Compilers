@@ -1,6 +1,11 @@
+from __future__ import annotations
+
+from typing import Tuple, Callable
+
 from src.CompilersUtils import first
-from src.SymbolTable import SymbolTable, ReadAccess, ReadWriteAccess, Record, VariableCType, FunctionCType, CType
-from src.Visitor.ASTreeVisitor import ASTreeVisitor, CompoundstatementNode
+from src.Exceptions.exceptions import UndeclaredSymbolException
+from src.SymbolTable import SymbolTable, Record, Accessibility, ReadAccess,\
+    ReadWriteAccess, CType, VariableCType, FunctionCType
 from src.Nodes.ASTreeNode import *
 
 
@@ -20,12 +25,14 @@ class SymbolVisitor(ASTreeVisitor):
         """Make the enclosing SymbolTable the current one."""
         self.currentSymbolTable = self.currentSymbolTable.enclosingScope
 
-    def _enterNewSubScope(self, node: ScopedNode):
+    def _enterNewSubScope(self, node: ScopedNode, ):
         """
         For :node: and its children, work in the context of a new sub scope.
         It is implicitly assumed that the :node: argument is a ScopedNode,
         such that it requires a reference to the newly created SymbolTable.
+
         :param node: The node that generates a new scope, and so a new SymbolTable
+        :param callback: A function to call after symbol table creation and before the children are recursively visited
         """
         self._createScope()
         self._attachSymbolTable(node)
@@ -38,36 +45,59 @@ class SymbolVisitor(ASTreeVisitor):
     def _attachRecord(self, node: TypedNode):
         record: Record = self.currentSymbolTable[node.value]
         if record is None:      # TODO  push this into a SemanticVisitor ???
-            raise Exception(f"Unknown symbol: {node.__str__()}")
+            raise UndeclaredSymbolException(node.value)
         node.record = record
 
-    #
-    #   IGNORE SYNTACTIC SUGAR
-    #
+    def _determineCTypeInfo(self, node: TypedeclarationNode) -> Tuple[str, Accessibility]:
+        access: Accessibility = ReadWriteAccess()
+        typeName: str = ""
+        for typeInfo in node.children:
+            if isinstance(typeInfo, TypequalifierNode):
+                access = ReadAccess()
+            else:
+                typeName += typeInfo.value
 
-    def visitCfile(self, node: CfileNode):
-        self.visitChildren(node)
+        return typeName, access
 
-    def visitStatement(self, node: StatementNode):
-        self.visitChildren(node)
+    def _determineVariableCType(self, node: Var_declNode) -> Tuple[VariableCType, Accessibility]:
+        typeName, access = self._determineCTypeInfo(node.getChild(0))
 
-    def visitVar_assig(self, node: Var_assigNode):
-        self.visitChildren(node)
+        varType: VariableCType = VariableCType(self.currentSymbolTable.typeList[typeName])
+        self._addPointerTypeInfo(node.getChild(1), varType)
 
-    def visitExpression(self, node: ExpressionNode):
-        self.visitChildren(node)
+        return varType, access
 
-    def visitBinaryop(self, node: ASTree):
-        self.visitChildren(node)
+    def _addPointerTypeInfo(self, node: DeclaratorNode, type: CType) -> None:
+        for child in node.children:
+            if isinstance(child, PointerNode):
+                type.addPointer(len(child.children) == 1)
 
-    def visitDeclarator(self, node: DeclaratorNode):
-        self.visitChildren(node)
+    def _determineVariableRecord(self, node: Var_declNode) -> Tuple[str, Record]:
+        identifier: str = node.getIdentifierNode().value
+        varType, access = self._determineVariableCType(node)
 
-    def visitTypedeclaration(self, node: TypedeclarationNode):
-        self.visitChildren(node)
+        return identifier, Record(varType, access)
 
-    def visitUnaryexpression(self, node: UnaryexpressionNode):
-        self.visitChildren(node)
+    def _determineFunctionPartialRecord(self, node: FunctiondeclarationNode | FunctiondefinitionNode) -> Tuple[str, Record]:
+        identifier: str = node.getIdentifierNode().value
+        typeName, access = self._determineCTypeInfo(node.getChild(0))
+        access = ReadAccess()
+
+        varType: FunctionCType = FunctionCType(self.currentSymbolTable.typeList[typeName])
+        self._addPointerTypeInfo(node.getChild(1), varType)
+
+        return identifier, Record(varType, access)
+
+    def _determineFunctionSymbols(self, node: FunctiondeclarationNode | FunctiondefinitionNode) -> None:
+        identifier, record = self._determineFunctionPartialRecord(node)
+        self.currentSymbolTable[identifier] = record
+
+        self._enterNewSubScope(node)
+
+        for parameter in node.getChild(1).children:
+            if isinstance(parameter, Var_declNode):
+                record.type.paramTypes.append(parameter.getIdentifierNode().record.type)
+
 
     #
     #   SUB SCOPE CREATION
@@ -75,7 +105,6 @@ class SymbolVisitor(ASTreeVisitor):
 
     def visitBlock(self, node: BlockNode):
         self._enterNewSubScope(node)
-        self.visitChildren(node)
 
     def visitCompoundstatement(self, node: CompoundstatementNode):
         self._enterNewSubScope(node)
@@ -86,27 +115,21 @@ class SymbolVisitor(ASTreeVisitor):
     def visitIterationstatement(self, node: IterationstatementNode):
         self._enterNewSubScope(node)
 
+    def visitFunctiondefinition(self, node: FunctiondefinitionNode):
+        self._determineFunctionSymbols(node)
+
+    def visitFunctiondeclaration(self, node: FunctiondeclarationNode):
+        self._determineFunctionSymbols(node)
+
+
     #
     #   SYMBOL DECLARATIONS
     #
 
     def visitVar_decl(self, node: Var_declNode):
-        identifier: str = first(node.getChild(1).children, lambda child: isinstance(child, IdentifierNode)).value
-        access = ReadWriteAccess()
-        typeName = ""
+        identifier, record = self._determineVariableRecord(node)
+        self.currentSymbolTable[identifier] = record
 
-        for typeInfo in node.getChild(0).children:
-            if isinstance(typeInfo, TypequalifierNode):
-                access = ReadAccess()
-            else:
-                typeName += typeInfo.value
-
-        varType: CType = VariableCType(self.currentSymbolTable.typeList[typeName])
-        for child in node.getChild(1).children:
-            if isinstance(child, PointerNode):
-                varType.addPointer(len(child.children) == 1)
-
-        self.currentSymbolTable[identifier] = Record(varType, access)
         self.visitChildren(node)
 
     #
