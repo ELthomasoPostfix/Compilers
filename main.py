@@ -48,16 +48,15 @@ def main():
     listener.root.toDot("beginTree.dot", detailed=True)
 
     OVisitor = OptimizationVisitor()
-    llvmVisitor = LLVMVisitor()
     tl = TypeList([BuiltinNames.VOID, BuiltinNames.CHAR, BuiltinNames.INT, BuiltinNames.FLOAT])
     SVisitor = SymbolVisitor(SymbolTable(None, tl))
     listener.root.accept(OVisitor)
-    listener.root.accept(llvmVisitor)
+
     listener.root.accept(SVisitor)
 
-    ThomasVisitor = LLVMVisitor()
-    listener.root.accept(ThomasVisitor)
-    a = ThomasVisitor.instructions
+    llvmVisitor = LLVMVisitor()
+    listener.root.accept(llvmVisitor)
+    a = llvmVisitor.instructions
 
     file = open("Output/" + "Output.ll", "w")
     for string in a:
