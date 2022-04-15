@@ -41,7 +41,7 @@ class LLVMVisitor(ASTreeVisitor):
             if isinstance(node.parent.parent.children[2], IdentifierNode):
                 output_string += "%0 = " + "load i32, i32* %" + node.parent.parent.children[2].value
                 output_string += ", align 4" + '\n'
-                output_string += "store i32 %0, i32* %" + node.value + ", algin 4" + '\n'
+                output_string += "store i32 %0, i32* %" + node.value + ", align 4" + '\n'
                 self.instructions.append(output_string)
 
 
