@@ -55,6 +55,14 @@ def main():
     listener.root.accept(llvmVisitor)
     listener.root.accept(SVisitor)
 
+    ThomasVisitor = LLVMVisitor()
+    listener.root.accept(ThomasVisitor)
+    a = ThomasVisitor.instructions
+
+    file = open("Output/" + "Output.ll", "w")
+    for string in a:
+        file.write(string)
+
     listener.root.toDot("endTree.dot", detailed=True)
 
     print(tree.getText())

@@ -1,12 +1,2 @@
-int a;
-int Jeff;
-int WernerHOTDOG;
-
-if (1) ;
-else if (a == 1);
-else if (1 == -1);
-else;
-
-if (Jeff == WernerHOTDOG) { }
-
-int i;
+int a = 1 + 2 + 3;
+int b = 2 + 3 + 4;

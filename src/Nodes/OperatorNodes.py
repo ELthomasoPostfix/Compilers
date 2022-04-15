@@ -1,5 +1,5 @@
 from src.Nodes.ASTreeNode import *
-
+# from src.ErrorHandling.ErrorVisitor import
 
 class SumNode(BinaryopNode):
     def accept(self, visitor: ASTreeVisitor):

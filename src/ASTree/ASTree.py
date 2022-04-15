@@ -76,7 +76,8 @@ class ASTree(Element):
         traverse = self.preorderTraverse([], 0)
         counter = 1
         for i in range(len(traverse)):
-            file.write('\t' + "ID" + str(counter) + " [label=" + '"' + str(getattr(traverse[i][0], f)()) + '"' + "]" + '\n')
+            file.write(
+                '\t' + "ID" + str(counter) + " [label=" + '"' + str(getattr(traverse[i][0], f)()) + '"' + "]" + '\n')
             counter += 1
         file.write('\n')
         counter = 0
@@ -109,3 +110,6 @@ class ASTree(Element):
         :return: minimal string representation
         """
         return type(self).__name__
+
+    def toLLVM(self):
+        pass

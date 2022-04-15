@@ -52,13 +52,6 @@ def writeNodeForwardDeclarations(ofile, grammarVars, indent: str):
     ofile.write(f"{indent}def __init__(self):\n")
     ofile.write(f"{indent*2}self.children = None\n")
 
-    ofile.write(f"class TypedNode(ASTree):\n")
-    ofile.write(f"{indent}__metaclass__ = ABCMeta\n")
-    ofile.write(f"{indent}\"\"\"An abstract super class for nodes that are registered into the symbol table.\"\"\"\n\n")
-    ofile.write(f"{indent}def __init__(self, value, name, parent=None):")
-    ofile.write(f"{indent*2}super().__init__(value, name, parent)")
-    ofile.write(f"{indent*2}self.record: Record = None")
-
     ofile.write("\n\n")
 
     for grammarVar in grammarVars:
@@ -73,12 +66,12 @@ def writeVisitorForwardDeclaration(ofile, grammarVars, indent: str):
     ofile.write(f"{indent*3}c.accept(self)\n\n")
 
     ofile.write(f"{indent}def visitBinaryop(self, node: ASTree):\n")
-    ofile.write(f"{indent*2}pass\n\n")
+    ofile.write(f"{indent*2}self.visitChildren(node)\n\n")
 
     ofile.write("\n\n")
 
     for grammarVar in grammarVars:
-        ofile.writelines([f"{indent}def visit{grammarVar}(self, node: {grammarVar}Node):\n{indent*2}pass\n\n"])
+        ofile.writelines([f"{indent}def visit{grammarVar}(self, node: {grammarVar}Node):\n{indent*2}self.visitChildren(node)\n\n"])
 
 
 def writeNodeDefinitions(ofile, grammarVars, indent: str):
