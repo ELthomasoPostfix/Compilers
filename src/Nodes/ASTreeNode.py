@@ -1,5 +1,6 @@
 from src.ASTree.Element import ASTreeVisitor
 from src.ASTree.ASTree import ASTree
+from src.CompilersUtils import first
 from src.Nodes.BuiltinInfo import BuiltinNames
 from src.SymbolTable import Record, SymbolTable, CType, VariableCType, TypeList
 from abc import ABCMeta, abstractmethod
@@ -114,19 +115,33 @@ class UnaryopNode(ASTree):
         return self.value
 
 
+class IdentifierNode(TypedNode):
+    def accept(self, visitor: ASTreeVisitor):
+        visitor.visitIdentifier(self)
+
+
 class Var_declNode(ASTree):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitVar_decl(self)
 
+    def getIdentifierNode(self) -> IdentifierNode:
+        return first(self.getChild(1).children, lambda child: isinstance(child, IdentifierNode))
 
-class FunctionDeclarationNode(ASTree):
+
+class FunctiondeclarationNode(ScopedNode):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitFunctiondeclaration(self)
 
+    def getIdentifierNode(self) -> IdentifierNode:
+        return first(self.getChild(1).children, lambda child: isinstance(child, IdentifierNode))
 
-class FunctionDefinitionNode(ASTree):
+
+class FunctiondefinitionNode(ScopedNode):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitFunctiondefinition(self)
+
+    def getIdentifierNode(self) -> IdentifierNode:
+        return first(self.getChild(1).children, lambda child: isinstance(child, IdentifierNode))
 
 
 class Var_assigNode(ASTree):
@@ -212,10 +227,6 @@ class LiteralNode(ExpressionNode):
     def __repr__(self):
         return self.getValue()
 
-
-class IdentifierNode(TypedNode):
-    def accept(self, visitor: ASTreeVisitor):
-        visitor.visitIdentifier(self)
 
 
 # TODO  make sure function inherits from TypedNode

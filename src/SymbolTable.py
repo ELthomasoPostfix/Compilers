@@ -114,13 +114,13 @@ class VariableCType(CType):
 
 class FunctionCType(CType):     # TODO:  Are param type needed here? Can't they be inferred from the AST? If not, then FunctionCType can be reduced to VariableType, so better rename VariableType or just move VariableType functionality up into CType
     """A class representing type information for a function."""
-    def __init__(self, returnType: int, parameterTypes: List[int]):
+    def __init__(self, returnType: int):
         super().__init__()
         self.returnTypeIndex: int = returnType
-        self.paramTypeIndexes: List[int] = parameterTypes
+        self.paramTypes: List[CType] = []
 
     def __str__(self):
-        return str(self.paramTypeIndexes) + " -> " + str(self.returnTypeIndex) + " " + super().__str__()
+        return str(self.paramTypes) + " -> " + str(self.returnTypeIndex) + " " + super().__str__()
 
 
 

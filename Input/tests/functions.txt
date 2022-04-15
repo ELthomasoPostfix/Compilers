@@ -13,4 +13,5 @@ char def(char* a) {
 
   int res = f2(bob, cboi, cf()) + f();
   *cp() = bob;
+  int fff() = 2;
 }

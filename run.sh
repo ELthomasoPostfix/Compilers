@@ -1,5 +1,5 @@
-DESTINATION=src/generated
-REQ_ARGS=1
+DESTINATION=src/generated/
+DEFAULT_INPUT_DIR=Input/tests/
 help_flag=false
 all_flag=false
 
@@ -16,20 +16,17 @@ if [ "$help_flag" = true ]
 then
   echo "Compile the specified file(s).
    positional arguments:
-     1 :  To compile file containing C code
+          Treat all positional arguments as to compile files containing C code
    possible flags:
-    -h :  Show this help message"
+    -h :  Show this help message
+    -a :  Compile all files in the directory ${DEFAULT_INPUT_DIR}"
   exit 0
 fi
 
 
 
 
-if [ "$#" != ${REQ_ARGS} ];
- then
-    echo Incorrect positional argument count: expected ${REQ_ARGS} but got "$#";
-    exit 1;
-fi
+
 
 chmod +x ensure_destination.sh
 ./ensure_destination.sh -d $DESTINATION
@@ -47,13 +44,19 @@ if [ "$FILE_COUNT" -eq 1 ]
 then
   if [ "$all_flag" = true ]
   then
-    input_files="$(find Input/tests/ -name "*.txt")"
+    input_files="$(find $DEFAULT_INPUT_DIR -name "*.txt")"
+    echo "processing "$(echo $input_files | wc -w)" files"
     for file in $input_files; do
       echo "Calling main.py ${file}"
       python3 main.py "$file"
     done
   else
-    python3 main.py "$1"
+    echo "processing $# files"
+    pos_arg=$1
+    for pos_arg ; do
+      echo "Calling main.py ${pos_arg}"
+      python3 main.py "$pos_arg"
+    done
   fi
 
   exit 0

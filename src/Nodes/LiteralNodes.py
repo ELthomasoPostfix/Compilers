@@ -63,7 +63,7 @@ class CharNode(LiteralNode):
         return BuiltinRanks.CHAR
 
     def __repr__(self):
-        return self.getValue()
+        return "'" + self.getValue() + "'"
 
 
 def coerce(operand: LiteralNode, rank: int):

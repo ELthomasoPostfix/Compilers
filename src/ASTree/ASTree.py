@@ -17,8 +17,8 @@ class ASTree(Element):
         Overwrites all the replacement's parent-replacement and replacement-child relations.
         A notable exception to this overwriting is when the replacement is a child of the caller.
         Then, the old children of the replacement are inserted into the replacement's position as a child.
-        :param replacement: The replacement of the caller in the AST. Passing None will essentially
-        clip the caller and all its children from the caller's parent AST.
+
+        :param replacement: The replacement of the caller in the AST. Passing None will essentially clip the caller and all its children from the caller's parent AST.
         """
         if self in self.parent.children:
             if replacement is None:
@@ -39,6 +39,12 @@ class ASTree(Element):
 
             self.parent = None
             self.children.clear()
+
+    def detachSelf(self):
+        """Undo the caller-parent relationship. The caller is removed a child of the parent."""
+        self.parent.children.remove(self)
+        self.parent = None
+        return self
 
     def addChild(self, child, idx: int = sys.maxsize):
         """

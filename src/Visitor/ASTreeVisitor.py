@@ -45,6 +45,8 @@ class AssignmentNode:
     pass
 class FunctiondefinitionNode:
     pass
+class FunctiondefinitionNode:
+    pass
 class FunctiondeclarationNode:
     pass
 class ExpressionlistNode:
@@ -116,9 +118,6 @@ class ASTreeVisitor:
     def visitSelectionelse(self, node: SelectionelseNode):
         self.visitChildren(node)
 
-    def visitSelectionelse(self, node: SelectionelseNode):
-        pass
-
     def visitIterationstatement(self, node: IterationstatementNode):
         self.visitChildren(node)
 
@@ -153,34 +152,37 @@ class ASTreeVisitor:
         self.visitChildren(node)
 
     def visitAssignment(self, node: AssignmentNode):
-        pass
+        self.visitChildren(node)
 
     def visitFunctiondefinition(self, node: FunctiondefinitionNode):
-        pass
+        self.visitChildren(node)
+
+    def visitFunctiondefinition(self, node: FunctiondefinitionNode):
+        self.visitChildren(node)
 
     def visitFunctiondeclaration(self, node: FunctiondeclarationNode):
-        pass
+        self.visitChildren(node)
 
     def visitExpressionlist(self, node: ExpressionlistNode):
-        pass
+        self.visitChildren(node)
 
     def visitDeclarator(self, node: DeclaratorNode):
         self.visitChildren(node)
 
     def visitPointersandqualifiers(self, node: PointersandqualifiersNode):
-        pass
+        self.visitChildren(node)
 
     def visitNoptrdeclarator(self, node: NoptrdeclaratorNode):
-        pass
+        self.visitChildren(node)
 
     def visitFunctiondeclarator(self, node: FunctiondeclaratorNode):
-        pass
+        self.visitChildren(node)
 
     def visitParameterlist(self, node: ParameterlistNode):
-        pass
+        self.visitChildren(node)
 
     def visitFunctionparameter(self, node: FunctionparameterNode):
-        pass
+        self.visitChildren(node)
 
     def visitTypedeclaration(self, node: TypedeclarationNode):
         self.visitChildren(node)
@@ -201,7 +203,7 @@ class ASTreeVisitor:
         self.visitChildren(node)
 
     def visitRvalue(self, node: RvalueNode):
-        pass
+        self.visitChildren(node)
 
     def visitLiteral(self, node: LiteralNode):
         self.visitChildren(node)

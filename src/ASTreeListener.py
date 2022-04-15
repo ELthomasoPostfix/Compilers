@@ -20,7 +20,7 @@ class ASTreeListener(MyGrammarListener):
         self.cstDepth = 0
 
 
-    def addCurrentChild(self, node):
+    def addCurrentChild(self, node: ASTree):
         """
         Add node as a child to self.current,
         This function should only be called once per overwritten enterRule() method.
@@ -59,7 +59,7 @@ class ASTreeListener(MyGrammarListener):
     def enterCompoundstatement(self, ctx:MyGrammarParser.CompoundstatementContext):
         if len(ctx.children) == 2:
             self.addCurrentChild(self.createNoopNode(ctx.getText()))
-        elif isinstance(self.current, BlockNode) or isinstance(self.current, FunctionDefinitionNode):
+        elif isinstance(self.current, BlockNode) or isinstance(self.current, FunctiondefinitionNode):
             self.addCurrentChild(CompoundstatementNode("", "Co"))
 
     def enterIfstatement(self, ctx:MyGrammarParser.IfstatementContext):
@@ -198,16 +198,24 @@ class ASTreeListener(MyGrammarListener):
 
     def exitVar_decl(self, ctx:MyGrammarParser.Var_declContext):
         if isinstance(self.current.getChild(1), FunctionDeclaratorNode):
-            self.replaceCurrent(FunctionDeclarationNode(ctx.getText(), "Func declaration"))
-
-    def enterFunctiondeclaration(self, ctx:MyGrammarParser.FunctiondeclarationContext):
-        self.addCurrentChild(FunctionDeclarationNode(ctx.getText(), "func_decl"))
-
-    def enterFunctiondefinition(self, ctx:MyGrammarParser.FunctiondefinitionContext):
-        self.addCurrentChild(FunctionDefinitionNode(ctx.getText(), "func_def"))
+            self.replaceCurrent(FunctiondeclarationNode(ctx.getText(), "Func declaration"))
+        # Split off assignment as a separate statement
+        elif len(self.current.children) == 3:
+            assig = Var_assigNode("", "declaration assig")
+            assig.addChild(self.current.getIdentifierNode())
+            assig.addChild(self.current.children[2].detachSelf())
+            self.current.parent.addChild(assig)
 
     def enterVar_assig(self, ctx: MyGrammarParser.Var_assigContext):
         self.addCurrentChild(Var_assigNode(ctx.getText(), "Va"))
+
+
+
+    def enterFunctiondeclaration(self, ctx:MyGrammarParser.FunctiondeclarationContext):
+        self.addCurrentChild(FunctiondeclarationNode(ctx.getText(), "func_decl"))
+
+    def enterFunctiondefinition(self, ctx:MyGrammarParser.FunctiondefinitionContext):
+        self.addCurrentChild(FunctiondefinitionNode(ctx.getText(), "func_def"))
 
     def enterDeclarator(self, ctx: MyGrammarParser.DeclaratorContext):
         if not isinstance(self.current, DeclaratorNode):
