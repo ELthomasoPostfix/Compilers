@@ -1,0 +1,47 @@
+// basic pointer type declarations ////
+
+int* i;
+char* c;
+float* f;
+
+int**     pmany_i;
+char***   pmany_c;
+float**** pmany_f;
+
+
+// const type declarations ////
+
+int * const   c_i;
+float * const c_f;
+char * const  c_c;
+
+int * const const               cmany_i;
+float * const const const       cmany_f;
+char * const const const const  cmany_c;
+
+int * * const                        c_pmany_i;
+float * const * const const          c_pmany_f;
+char * const * const * const*const*  c_pmany_c;
+*/
+int * const const * const const             cmany_pmany_i;
+float * const const * const * * const       cmany_pmany_f;
+char * const const * const const *          cmany_pmany_c;
+
+
+// const type declarations ////
+
+const int*   cleft_type_i;
+const float* cleft_type_f;
+const char*  cleft_type_c;
+
+int const *   cright_type_i;
+float const * cright_type_f;
+char const *  cright_type_c;
+
+const int const *   cboth_type_i;
+const float const * cboth_type_f;
+const char const *  cboth_type_c;
+
+const const const int const const const const *   cmany_type_i;
+const const const float const const const const * cmany_type_f;
+const const const char const const const const *  cmany_type_c;*/

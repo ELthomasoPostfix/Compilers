@@ -1,11 +1,3 @@
-// PARSER RULES
-/* Always attempt to avoid reuse of a grammar variable as
- * the first symbol in a production body. Do not use
- *      exp -> exp op exp | value
- * but instead use
- *      exp -> value op exp | value
- */
-
 grammar MyGrammar;
 
 cfile
@@ -79,14 +71,6 @@ expression
     | expression AND expression                             # andexp
     | expression OR expression                              # orexp
     | rvalue                                                # rvalueexp
-    ;
-
-// INCR and DECR unary operators con ONLY appear immediately beside a variable
-// identifier of a pointer type (pointer arithmetic)
-unaryexpression
-    : unaryop* lvalue (INCR | DECR)
-    | (INCR | DECR) unaryop* lvalue
-    | unaryop+ expression
     ;
 
 unaryop

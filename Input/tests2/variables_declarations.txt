@@ -1,0 +1,24 @@
+// basic type declarations ////
+
+int i;
+char c;
+float f;
+
+
+// const type declarations ////
+
+const int   cleft_i;
+const float cleft_f;
+const char  cleft_c;
+
+int const   cright_i;
+float const cright_f;
+char const  cright_c;
+
+const int const     cboth_i;
+const float const   cboth_f;
+const char const    cboth_c;
+
+const const const int const const const const   cmany_i;
+const const const float const const const const cmany_f;
+const const const char const const const const  cmany_c;

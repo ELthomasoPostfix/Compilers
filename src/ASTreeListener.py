@@ -304,8 +304,9 @@ class ASTreeListener(MyGrammarListener):
             firstChild = self.current.getChild(0)
             if firstChild is None or not isinstance(firstChild, TypequalifierNode):
                 self.current.addChild(TypequalifierNode(ctx.getText(), "Tq"), 0)
-        elif isinstance(self.current.getChild(-1), PointerNode):
-            self.current.getChild(-1).addChild(TypequalifierNode(ctx.getText(), "Tq"))
+        elif isinstance(self.current, DeclaratorNode) and\
+                isinstance(self.current.getChild(-1), PointerNode):
+            self.current.getChild(-1).makeConst(TypequalifierNode(ctx.getText(), "Tq"))
         else:
             print("Invalid parent for TypequalifierNode")
 

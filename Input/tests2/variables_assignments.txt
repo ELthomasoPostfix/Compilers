@@ -1,0 +1,32 @@
+// declarations
+
+int   i;
+int   i2;
+float f;
+float f2;
+char  c;
+char  c2;
+
+int *   icp;
+float * fcp;
+char *  ccp;
+
+int * const *   icp2;
+float * const * fcp2;
+char * const *  ccp2;
+
+// assignments;
+
+i = 2;
+f = 2.1;
+c = '%';
+
+i2 = i + 12;
+f2 = f + 12.12;
+c2 = c;
+
+icp = *icp2;
+fcp = &f2;
+ccp = *ccp2;
+
+fcp2 = &fcp;

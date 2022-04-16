@@ -1,0 +1,25 @@
+// basic variable definitions
+
+int   i = 3;
+float f = .53;
+char  c = 'c';
+
+const int   ci = i;
+const float cf = i;
+const char  cc = i;
+
+
+// basic pointer definitions
+
+int*   ip = &i;
+float* fp = &f;
+char*  cp = &c;
+char*  sp = "abdaf";
+
+
+// variable definition by dereference
+
+int** ip2;
+int*  d_ip = *ip2;
+int   d2_ip = **ip;
+int*  a_d2_ip = &**ip2;      // The sequence '&*' is ignored, it does not appear in the AST
