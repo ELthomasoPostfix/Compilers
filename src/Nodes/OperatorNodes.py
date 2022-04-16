@@ -1,5 +1,5 @@
 from src.Nodes.ASTreeNode import *
-# from src.ErrorHandling.ErrorVisitor import
+
 
 class SumNode(BinaryopNode):
     def accept(self, visitor: ASTreeVisitor):
@@ -168,6 +168,15 @@ class NegativeNode(UnaryopNode):
 
     def __repr__(self):
         return '-'
+
+
+class NotNode(UnaryopNode):
+    def accept(self, visitor: ASTreeVisitor):
+        visitor.visitUnaryop(self)
+
+
+    def __repr__(self):
+        return '!'
 
 
 class AddressOfNode(UnaryopNode):

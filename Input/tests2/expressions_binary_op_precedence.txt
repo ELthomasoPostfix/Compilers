@@ -1,0 +1,26 @@
+/*
+    In following comments, we compare the precedence of operators.
+    e.g. (%) == (*, /) means that the operator '%' has the same level of precedence
+    as the operators '*' and '/'.
+*/
+
+// natural operator precedence
+
+5*3/10 + 9/10;              // (+) < (*, /)
+6*2/2 + 1*2/3 - 6 + 8*8/4;
+1.1 - 3*.12;
+
+4 * 2 + 3;
+4 % 2 + 3;        // (%) == (*, /)
+4 - 2 / 3;
+4 - 2 % 3;
+
+7 + 2 <= 12;    // (<=, >=, <, >)  < (+, -) < (*, /, %)
+7 > 2 - 12;
+7 > 2 % 12;
+
+// parenthesis to override precedence
+
+7 + (2 <= 12);    // (<=, >=, <, >)  < (+, -) < (*, /, %)
+(7 > 2) - 12;
+(7 > 2) % 12;

@@ -69,7 +69,9 @@ nullstatement
 // An expression must be reducible to some typed value (rval?).
 expression
     : LPAREN expression RPAREN                              # parenthesisexp
-    | unaryexpression                                       # unaryexp
+    | unaryop* lvalue (INCR | DECR)                         # unarypostfixexp
+    | (INCR | DECR) unaryop* lvalue                         # unaryprefixexp
+    | unaryop+ expression                                   # unaryexp
     | expression (STAR | DIV | MOD) expression              # multiplicationexp
     | expression (PLUS | MIN) expression                    # addexp
     | expression ((LT | LTE) | (GT | GTE)) expression       # relationalexp

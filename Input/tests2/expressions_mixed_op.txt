@@ -1,0 +1,13 @@
+// binary and unary operators
+
+1 - - - - 2;
+1 + - + 2 - 3;
+-2 == !3 >= 4 + !2;
+-2 % !3 >= 4 + !2;
+7 % !!-+5;
+
+// binary and unary operators with parenthesis
+
+1 - (- - - 2);        // no impact
+1 + - (+ 2 - 3);      // unary '-' larger effect
+2 == !(3 >= 4 + !2);

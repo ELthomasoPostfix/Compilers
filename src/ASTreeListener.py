@@ -129,11 +129,6 @@ class ASTreeListener(MyGrammarListener):
     def enterNullstatement(self, ctx:MyGrammarParser.NullstatementContext):
         self.addCurrentChild(self.createNoopNode(ctx.getText()))
 
-    def enterExpression(self, ctx: MyGrammarParser.ExpressionContext):
-        if not (isinstance(ctx.children[0], MyGrammarParser.LiteralContext) or
-                self.isTerminalType(ctx.children[0], MyGrammarParser.LPAREN)):
-            self.addCurrentChild(ExpressionNode(ctx.getText(), "Ex"))
-
     def enterMultiplicationexp(self, ctx:MyGrammarParser.MultiplicationexpContext):
         if self.isTerminalType(ctx.getChild(1), MyGrammarParser.STAR):
             self.addCurrentChild(MulNode(ctx.getText(), "MUL"))
@@ -164,13 +159,46 @@ class ASTreeListener(MyGrammarListener):
         elif self.isTerminalType(ctx.getChild(1), MyGrammarParser.NEQ):
             self.addCurrentChild(NeqNode(ctx.getText(), "NEQ"))
 
-    def enterUnaryexpression(self, ctx:MyGrammarParser.UnaryexpressionContext):
+    def enterAndexp(self, ctx:MyGrammarParser.AndexpContext):
+        self.addCurrentChild(AndNode(ctx.getText(), "AND"))
+
+    def enterOrexp(self, ctx:MyGrammarParser.AndexpContext):
+        self.addCurrentChild(OrNode(ctx.getText(), "OR"))
+
+    def possiblyAddUnaryExpressionNode(self):
         if not isinstance(self.current, UnaryexpressionNode):
             self.addCurrentChild(UnaryexpressionNode(None, "Un"))
+
+    def removeUnneededUnaryExpressionNode(self):
+        if len(self.current.children) == 1:
+            self.replaceCurrent(self.current.getChild(0))
+
+    def enterUnarypostfixexp(self, ctx:MyGrammarParser.UnarypostfixexpContext):
+        self.possiblyAddUnaryExpressionNode()
+
+    def exitUnarypostfixexp(self, ctx:MyGrammarParser.UnarypostfixexpContext):
         if self.isTerminalType(ctx.getChild(0), MyGrammarParser.INCR):
             self.current.addChild(PrefixIncrementNode(ctx.getText(), "Pre-Incr"))
         elif self.isTerminalType(ctx.getChild(0), MyGrammarParser.DECR):
             self.current.addChild(PrefixDecrementNode(ctx.getText(), "Pre-Decr"))
+        self.removeUnneededUnaryExpressionNode()
+
+    def enterUnaryprefixexp(self, ctx:MyGrammarParser.UnaryprefixexpContext):
+        self.possiblyAddUnaryExpressionNode()
+        if self.isTerminalType(ctx.getChild(-1), MyGrammarParser.INCR):
+            self.current.addChild(PostfixIncrementNode(ctx.getText(), "Post-Incr"))
+        elif self.isTerminalType(ctx.getChild(-1), MyGrammarParser.DECR):
+            self.current.addChild(PostfixDecrementNode(ctx.getText(), "Post-Decr"))
+
+    def exitUnaryprefixexp(self, ctx:MyGrammarParser.UnaryprefixexpContext):
+        self.removeUnneededUnaryExpressionNode()
+
+    def enterUnaryexp(self, ctx:MyGrammarParser.UnaryexpContext):
+        self.possiblyAddUnaryExpressionNode()
+
+    def exitUnaryexp(self, ctx: MyGrammarParser.UnaryexpContext):
+        self.removeUnneededUnaryExpressionNode()
+
 
     def exitUnaryexpression(self, ctx:MyGrammarParser.UnaryexpressionContext):
         if self.isTerminalType(ctx.getChild(-1), MyGrammarParser.INCR):
@@ -187,6 +215,8 @@ class ASTreeListener(MyGrammarListener):
             self.addCurrentChild(PositiveNode(ctx.getText(), "Pos"))
         elif self.isTerminalType(unaryop, MyGrammarParser.MIN):
             self.addCurrentChild(NegativeNode(ctx.getText(), "Neg"))
+        elif self.isTerminalType(unaryop, MyGrammarParser.NOT):
+            self.addCurrentChild(NotNode(ctx.getText(), "Not"))
         elif self.isTerminalType(unaryop, MyGrammarParser.REF) and not\
                 self.siblingsChildIsTerminalType(ctx, 1, MyGrammarParser.STAR):
             self.addCurrentChild(AddressOfNode(ctx.getText(), "Addr"))
