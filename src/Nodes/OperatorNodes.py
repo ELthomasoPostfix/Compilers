@@ -55,6 +55,9 @@ class ModNode(BinaryopNode):
     def evaluate(self, left: LiteralNode, right: LiteralNode):
         return left.getValue() % right.getValue()
 
+    def __repr__(self):
+        return '%'
+
 
 class EqNode(BinaryopNode):
     def accept(self, visitor: ASTreeVisitor):

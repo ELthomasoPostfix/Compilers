@@ -11,8 +11,13 @@ char def(char* a) {
   char cboi;
   float* fboi;
   int nested_decl(char cc);
+  int ia[4];
 
+  *fboi = 2.1;
+
+  int res1 = ia[bob + bob];
   int res = f2(bob, cboi, cf()) + f();
+  int res3 = f2(bob, cboi + cf() - *cp(), fboi);
   *cp() = bob;
   //int fff() = 2;      // ERROR: func declared like var
 }

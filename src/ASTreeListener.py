@@ -213,9 +213,6 @@ class ASTreeListener(MyGrammarListener):
     def enterVar_assig(self, ctx: MyGrammarParser.Var_assigContext):
         self.addCurrentChild(Var_assigNode(ctx.getText(), "Va"))
 
-    def enterFunctiondeclaration(self, ctx:MyGrammarParser.FunctiondeclarationContext):
-        self.addCurrentChild(FunctiondeclarationNode(ctx.getText(), "func_decl"))
-
     def enterFunctiondefinition(self, ctx:MyGrammarParser.FunctiondefinitionContext):
         self.addCurrentChild(FunctiondefinitionNode(ctx.getText(), "func_def"))
 
@@ -237,9 +234,8 @@ class ASTreeListener(MyGrammarListener):
     def enterTypedeclaration(self, ctx:MyGrammarParser.TypedeclarationContext):
         self.addCurrentChild(TypedeclarationNode(ctx.getText(), "Td"))
 
-    def enterLvalueidentifier(self, ctx:MyGrammarParser.LvalueidentifierContext):
-        if self.isTerminalType(ctx.getChild(-1), MyGrammarParser.RPAREN):
-            self.addCurrentChild(FunctioncallNode(ctx.getText(), "Func call"))
+    def enterLvaluefunctioncall(self, ctx:MyGrammarParser.LvaluefunctioncallContext):
+        self.addCurrentChild(FunctioncallNode(ctx.getText(), "Func call"))
 
     def enterLvalueliteralstring(self, ctx:MyGrammarParser.LvalueliteralstringContext):
         self.addCurrentChild(CharNode(ctx.getText(), "String"))

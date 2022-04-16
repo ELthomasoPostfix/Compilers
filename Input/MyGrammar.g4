@@ -70,7 +70,6 @@ nullstatement
 expression
     : LPAREN expression RPAREN                              # parenthesisexp
     | unaryexpression                                       # unaryexp
-    | functioncall                                          # functioncallexp
     | expression (STAR | DIV | MOD) expression              # multiplicationexp
     | expression (PLUS | MIN) expression                    # addexp
     | expression ((LT | LTE) | (GT | GTE)) expression       # relationalexp
@@ -86,10 +85,6 @@ unaryexpression
     : unaryop* lvalue (INCR | DECR)
     | (INCR | DECR) unaryop* lvalue
     | unaryop+ expression
-    ;
-
-functioncall
-    : identifier LPAREN expressionlist? RPAREN
     ;
 
 unaryop
@@ -132,15 +127,6 @@ assignment
 functiondefinition
     : typedeclaration declarator compoundstatement
     ;
-/*
-functiondefinition
-    : functiondeclaration compoundstatement
-    ;
-*/
-// TODO  could make use of noptrdeclarator if functiondeclarator moved into noptrdeclarator
-functiondeclaration
-    : //typedeclaration functiondeclarator
-    ;
 
 expressionlist
     : expression (COMMA expression)*
@@ -162,13 +148,6 @@ noptrdeclarator
     | noptrdeclarator LBRACKET expression RBRACKET
     | noptrdeclarator LPAREN parameterlist? RPAREN
     ;
-
-// TODO could be moved into noptrdeclarator
-/*
-functiondeclarator
-    : noptrdeclarator LPAREN parameterlist? RPAREN
-    ;
-*/
 
 parameterlist
     : functionparameter (COMMA functionparameter)*
@@ -213,18 +192,17 @@ pointer
 
 lvalue
     // atomary lvalues
-    : identifier (LPAREN expressionlist? RPAREN)?   # lvalueidentifier
+    : identifier                            # lvalueidentifier
     // lvalue operations
     | LITERAL_STRING                        # lvalueliteralstring
     | LPAREN lvalue RPAREN                  # lvalueparenthesis
     | lvalue LBRACKET expression RBRACKET   # lvaluearraysubscript
+    | lvalue LPAREN expressionlist? RPAREN  # lvaluefunctioncall
     ;
 
 rvalue
     : literal
     | lvalue       // TODO  should &/REF be part of unaryop?
-    // | REF functionidentifier
-    // functioncall
     ;
 
 literal
