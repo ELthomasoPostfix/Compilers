@@ -130,7 +130,7 @@ class Var_declNode(ASTree):
         return first(self.getChild(1).children, lambda child: isinstance(child, IdentifierNode))
 
 
-class FunctiondeclarationNode(ScopedNode):
+class FunctiondeclarationNode(ASTree):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitFunctiondeclaration(self)
 

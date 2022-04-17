@@ -11,12 +11,22 @@ class DeclarationException(CCompilerException):
         super().__init__(message)
 
 
-class RedeclaredSymbolException(DeclarationException):
+class RedeclaredSymbol(DeclarationException):
     def __init__(self, identifier: str, oldValue: str, newValue: str):
         super().__init__(f"Redeclaration of known symbol: {identifier}, {oldValue} to {newValue}")
 
 
-class UndeclaredSymbolException(DeclarationException):
+class RedefinedFunctionSymbol(DeclarationException):
+    def __init__(self, identifier: str, oldValue: str, newValue: str):
+        super().__init__(f"Redefinition of known function symbol: {identifier}, {oldValue} to {newValue}")
+
+
+class FunctionTypeMismatch(DeclarationException):
+    def __init__(self, identifier: str, oldValue: str, newValue: str):
+        super().__init__(f"Redeclaration of known function symbol, return or param type mismatch: {identifier}, {oldValue} to {newValue}")
+
+
+class UndeclaredSymbol(DeclarationException):
     def __init__(self, identifier: str):
         super().__init__(f"Unknown symbol: {identifier}")
 

@@ -22,7 +22,7 @@ char * const const const const  cmany_c;
 int * * const                        c_pmany_i;
 float * const * const const          c_pmany_f;
 char * const * const * const*const*  c_pmany_c;
-*/
+
 int * const const * const const             cmany_pmany_i;
 float * const const * const * * const       cmany_pmany_f;
 char * const const * const const *          cmany_pmany_c;

@@ -2,6 +2,10 @@ int f();
 
 int f2(int i, char c, float* fp);
 
+int f2(int i, char c, float* f) { return -1; }
+
+int f2(int i, char c, float* fp);
+
 char cf() { char c; return c; }
 
 char* cp() { char* c; return c; }
@@ -21,3 +25,5 @@ char def(char* a) {
   *cp() = bob;
   //int fff() = 2;      // ERROR: func declared like var
 }
+
+int f() { return 1; }

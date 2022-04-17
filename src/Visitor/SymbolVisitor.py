@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Tuple, Callable
 
 from src.CompilersUtils import first
-from src.Exceptions.exceptions import UndeclaredSymbolException
+from src.Exceptions.exceptions import UndeclaredSymbol
 from src.SymbolTable import SymbolTable, Record, Accessibility, ReadAccess,\
     ReadWriteAccess, CType, VariableCType, FunctionCType
 from src.Nodes.ASTreeNode import *
@@ -45,7 +45,7 @@ class SymbolVisitor(ASTreeVisitor):
     def _attachRecord(self, node: TypedNode):
         record: Record = self.currentSymbolTable[node.value]
         if record is None:      # TODO  push this into a SemanticVisitor ???
-            raise UndeclaredSymbolException(node.value)
+            raise UndeclaredSymbol(node.value)
         node.record = record
 
     def _determineCTypeInfo(self, node: TypedeclarationNode) -> Tuple[str, Accessibility]:
@@ -78,26 +78,28 @@ class SymbolVisitor(ASTreeVisitor):
 
         return identifier, Record(varType, access)
 
-    def _determineFunctionPartialRecord(self, node: FunctiondeclarationNode | FunctiondefinitionNode) -> Tuple[str, Record]:
+    def _determineDummyFunctionRecord(self, node: FunctiondeclarationNode | FunctiondefinitionNode) -> Tuple[str, Record]:
         identifier: str = node.getIdentifierNode().value
         typeName, access = self._determineCTypeInfo(node.getChild(0))
         access = ReadAccess()
 
-        varType: FunctionCType = FunctionCType(self.currentSymbolTable.typeList[typeName])
+        # Construct partial (parameterless) function type
+        varType: FunctionCType = FunctionCType(self.currentSymbolTable.typeList[typeName], isinstance(node, FunctiondefinitionNode))
         self._addPointerTypeInfo(node.getChild(1), varType)
+
+        # Fill out dummy parameter info
+        for parameter in node.getChild(1).children:
+            if isinstance(parameter, Var_declNode):
+                a = self._determineVariableRecord(parameter)
+                varType.paramTypes.append(self._determineVariableRecord(parameter)[1].type)
 
         return identifier, Record(varType, access)
 
-    def _determineFunctionSymbols(self, node: FunctiondeclarationNode | FunctiondefinitionNode) -> None:
-        identifier, record = self._determineFunctionPartialRecord(node)
+    def _registerDummyFunctionRecord(self, node: FunctiondeclarationNode | FunctiondefinitionNode) -> FunctionCType:
+        identifier, record = self._determineDummyFunctionRecord(node)
         self.currentSymbolTable[identifier] = record
 
-        self._enterNewSubScope(node)
-
-        for parameter in node.getChild(1).children:
-            if isinstance(parameter, Var_declNode):
-                record.type.paramTypes.append(parameter.getIdentifierNode().record.type)
-
+        return record.type
 
     #
     #   SUB SCOPE CREATION
@@ -116,11 +118,19 @@ class SymbolVisitor(ASTreeVisitor):
         self._enterNewSubScope(node)
 
     def visitFunctiondefinition(self, node: FunctiondefinitionNode):
-        self._determineFunctionSymbols(node)
+        functionType: FunctionCType = self._registerDummyFunctionRecord(node)
+
+        self._enterNewSubScope(node)
+
+        # Attach actual record references
+        functionType.paramTypes.clear()
+        for parameter in node.getChild(1).children:
+            if isinstance(parameter, Var_declNode):
+                functionType.paramTypes.append(parameter.getIdentifierNode().record.type)
+
 
     def visitFunctiondeclaration(self, node: FunctiondeclarationNode):
-        self._determineFunctionSymbols(node)
-
+        self._registerDummyFunctionRecord(node)
 
     #
     #   SYMBOL DECLARATIONS

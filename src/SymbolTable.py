@@ -2,7 +2,7 @@ from __future__ import annotations
 from abc import ABCMeta
 from typing import List, Union
 
-from src.Exceptions.exceptions import RedeclaredSymbolException
+from src.Exceptions.exceptions import RedeclaredSymbol, RedefinedFunctionSymbol, FunctionTypeMismatch
 
 
 class Accessibility(int):
@@ -95,6 +95,9 @@ class CType:   # TODO  and arrays ?????
     def isPointerType(self):
         return len(self._pointers) > 0
 
+    def __eq__(self, other):
+        return isinstance(other, CType) and self._pointers == other._pointers
+
     def __repr__(self):
         return self.__str__()
 
@@ -109,6 +112,11 @@ class VariableCType(CType):
         self.typeIndex = typeIndex
         self.register = None
 
+    def __eq__(self, other):
+        return isinstance(other, VariableCType) and\
+               self.typeIndex == other.typeIndex and\
+               super().__eq__(other)
+
     def __str__(self):
         return str(self.typeIndex) + " " + super().__str__()
 
@@ -117,10 +125,17 @@ class VariableCType(CType):
 
 class FunctionCType(CType):     # TODO:  Are param type needed here? Can't they be inferred from the AST? If not, then FunctionCType can be reduced to VariableType, so better rename VariableType or just move VariableType functionality up into CType
     """A class representing type information for a function."""
-    def __init__(self, returnType: int):
+    def __init__(self, returnType: int, isDefinition: bool):
         super().__init__()
         self.returnTypeIndex: int = returnType
         self.paramTypes: List[CType] = []
+        self.isDefinition: bool = isDefinition
+
+    def __eq__(self, other, requireParamsEq: bool = False):
+        return isinstance(other, FunctionCType) and \
+               self.returnTypeIndex == other.returnTypeIndex and \
+               (requireParamsEq and self.paramTypes == other.paramTypes) and \
+               super().__eq__(other)
 
     def __str__(self):
         return str(self.paramTypes) + " -> " + str(self.returnTypeIndex) + " " + super().__str__()
@@ -156,8 +171,12 @@ class SymbolTable(dict):
         self.typeList = typeList
 
     def __getitem__(self, identifier: str) -> Record:
-        """Retrieve the symbol table information related to :identifier:.
-         Returns None if :identifier: is not declared in the root SymbolTable."""
+        """
+        Retrieve the symbol table information related to :identifier:.
+        Returns None if :identifier: is not declared in the root SymbolTable.
+
+        :return: Record for the given symbol
+        """
         if identifier in self:
             return super().__getitem__(identifier)
         if self._enclosingScope is not None:
@@ -165,12 +184,31 @@ class SymbolTable(dict):
         return None
 
     def __setitem__(self, key: str, value: Record):
-        """Register the identifier and its information in the symbol table.
-        Raises an exception of type Exception if :identifier: is already registered."""
+        """
+        Register the identifier and its information in the symbol table.
+        Raises an exception of type RedeclaredSymbol if :identifier: is already registered.
+        """
         lookup = self[key]
         if lookup is not None:
-            raise RedeclaredSymbolException(key, str(lookup), str(value))
+            # Function type errors
+            if isinstance(value.type, FunctionCType) and isinstance(lookup.type, FunctionCType):
+                if lookup.type.isDefinition and value.type.isDefinition:
+                    raise RedefinedFunctionSymbol(key, str(lookup), str(value))
+                elif not lookup.type.__eq__(value.type, requireParamsEq=True):
+                    raise FunctionTypeMismatch(key, str(lookup), str(value))
+            # Variable type errors
+            else:
+                if self.isGlobal(key) and self._enclosingScope is not None:
+                    raise RedeclaredSymbol(key, str(lookup), str(value))
+
         super().__setitem__(key, value)
+
+    def isGlobal(self, identifier: str) -> bool:
+        if identifier in self:
+            return self._enclosingScope is None
+        if self._enclosingScope is not None:
+            return self._enclosingScope.isGlobal(identifier)
+        return False
 
     @property
     def enclosingScope(self):
