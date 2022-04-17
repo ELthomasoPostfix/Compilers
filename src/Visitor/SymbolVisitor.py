@@ -25,7 +25,7 @@ class SymbolVisitor(ASTreeVisitor):
         """Make the enclosing SymbolTable the current one."""
         self.currentSymbolTable = self.currentSymbolTable.enclosingScope
 
-    def _enterNewSubScope(self, node: ScopedNode, ):
+    def _enterNewSubScope(self, node: ScopedNode):
         """
         For :node: and its children, work in the context of a new sub scope.
         It is implicitly assumed that the :node: argument is a ScopedNode,

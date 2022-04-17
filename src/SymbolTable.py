@@ -201,16 +201,15 @@ class SymbolTable(dict):
         """
         lookup = self[key]
         if lookup is not None:
-            # Function type errors
+            # Function exclusive declaration errors
             if isinstance(value.type, FunctionCType) and isinstance(lookup.type, FunctionCType):
                 if lookup.type.isDefinition and value.type.isDefinition:
                     raise RedefinedFunctionSymbol(key, str(lookup), str(value))
                 elif not lookup.type.__eq__(value.type, requireParamsEq=True):
                     raise FunctionTypeMismatch(key, str(lookup), str(value))
-            # Variable type errors
-            else:
-                if self.isGlobal(key) and self._enclosingScope is not None:
-                    raise RedeclaredSymbol(key, str(lookup), str(value))
+            # Variable involved type errors
+            elif not (self.isGlobal(key) and self._enclosingScope is not None):
+                raise RedeclaredSymbol(key, str(lookup), str(value))
 
         super().__setitem__(key, value)
 

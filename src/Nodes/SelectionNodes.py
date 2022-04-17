@@ -6,7 +6,7 @@ class IfNode(SelectionstatementNode):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitIterationstatement(self)
 
-    def __repr__(self):
+    def __str__(self):
         return "if"
 
 
@@ -14,5 +14,5 @@ class ElseNode(SelectionstatementNode):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitIterationstatement(self)
 
-    def __repr__(self):
+    def __str__(self):
         return "else"
