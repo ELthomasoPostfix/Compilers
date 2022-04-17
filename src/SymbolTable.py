@@ -170,23 +170,34 @@ class SymbolTable(dict):
         self._enclosingScope: SymbolTable = enclosingScope
         self.typeList = typeList
 
-    def __getitem__(self, identifier: str) -> Record:
+    def _getScope(self, symbol: str) -> SymbolTable:
         """
-        Retrieve the symbol table information related to :identifier:.
-        Returns None if :identifier: is not declared in the root SymbolTable.
+        Retrieve the SymbolTable the information related to :symbol: is stored in.
+        Returns None if :symbol: an unknown symbol.
+
+        :param symbol: The symbol to find the scope of
+        :return: The scope of the :symbol:
+        """
+        if symbol in self:
+            return self
+        if self._enclosingScope is not None:
+            return self._enclosingScope._getScope(symbol)
+        return None
+
+    def __getitem__(self, symbol: str) -> Record:
+        """
+        Retrieve the symbol table information related to :symbol:.
+        Returns None if :symbol: an unknown symbol.
 
         :return: Record for the given symbol
         """
-        if identifier in self:
-            return super().__getitem__(identifier)
-        if self._enclosingScope is not None:
-            return self._enclosingScope[identifier]
-        return None
+        scope = self._getScope(symbol)
+        return None if scope is None else super(SymbolTable, scope).__getitem__(symbol)
 
     def __setitem__(self, key: str, value: Record):
         """
-        Register the identifier and its information in the symbol table.
-        Raises an exception of type RedeclaredSymbol if :identifier: is already registered.
+        Register the symbol and its information in the symbol table.
+        Raises an exception of type RedeclaredSymbol if :symbol: is already registered.
         """
         lookup = self[key]
         if lookup is not None:
@@ -203,12 +214,20 @@ class SymbolTable(dict):
 
         super().__setitem__(key, value)
 
-    def isGlobal(self, identifier: str) -> bool:
-        if identifier in self:
-            return self._enclosingScope is None
-        if self._enclosingScope is not None:
-            return self._enclosingScope.isGlobal(identifier)
-        return False
+    def isGlobal(self, symbol: str) -> bool:
+        """
+        Check whether the latest registration of :symbol: is registered at the global
+        scope. Because global symbol declarations or definitions do not clash with
+        local declarations or definitions, it is possible that even though False is
+        returned, there may exist a global definition of symbol, though it is inaccessible
+        in the current context.
+
+        :param symbol: The accessible symbol to check global registration of
+        :return: result of the check
+        """
+        scope = self._getScope(symbol)
+        return False if scope is None or scope._enclosingScope is not None else True
+
 
     @property
     def enclosingScope(self):
