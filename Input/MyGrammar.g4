@@ -5,7 +5,11 @@ cfile
     ;
 
 block
-    :(statement | (functiondefinition))*
+    : includedirective? (statement | (functiondefinition))*
+    ;
+
+includedirective
+    : HASHTAG Whitespace? INCLUDE Whitespace? '<' 'stdio.h' '>'
     ;
 
 statement
@@ -18,7 +22,6 @@ statement
     | nullstatement
     | var_decl   SEMICOLON
     | var_assig  SEMICOLON
-    | 'printf' LPAREN (expression) RPAREN  // TODO un-hack
     ;
 
 expressionstatement
@@ -212,6 +215,9 @@ LINE_COMMENT:       '//' ~[\r\n]* -> skip
     ;
 MULTI_LINE_COMMENT: '/*' .*? '*/' -> skip
     ;
+Whitespace
+    :   [ \t]+ -> skip
+    ;
 
 SEMICOLON:  ';'
     ;
@@ -287,6 +293,15 @@ SPECIFIER_UNSIGNED: 'unsigned'
 SPECIFIER_LONG:     'long'
     ;
 SPECIFIER_SHORT:    'short'
+    ;
+
+// pre-processor directive keywords
+
+HASHTAG
+    : '#'
+    ;
+INCLUDE
+    : 'include'
     ;
 
 // CONTROL KEYWORDS
