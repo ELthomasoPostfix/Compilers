@@ -1,0 +1,23 @@
+{
+  int abba = 2;
+}
+
+int abba = 12;
+
+for (int i = 2; i < 12; ++i) {
+  {
+    int nested_1 = 1;
+
+    {
+      int nested_2 = nested_1 + 1;
+    }
+
+    for (;;) {}
+  }
+
+  int nested_0 = 0;
+
+  while (1) {
+    int acca = 1;
+  }
+}

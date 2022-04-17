@@ -45,17 +45,21 @@ def main():
     listener = ASTreeListener()  # TODO make the root of the CST var 'tree' the ASTree root instead
     walker = ParseTreeWalker()
     walker.walk(listener, tree)
+
+
+
     listener.root.toDot("beginTree.dot", detailed=True)
 
-    OVisitor = OptimizationVisitor()
     tl = TypeList([BuiltinNames.VOID, BuiltinNames.CHAR, BuiltinNames.INT, BuiltinNames.FLOAT])
-    SVisitor = SymbolVisitor(SymbolTable(None, tl))
-    listener.root.accept(OVisitor)
-
+    SVisitor = SymbolVisitor(tl)
     listener.root.accept(SVisitor)
 
+    OVisitor = OptimizationVisitor()
+    #listener.root.accept(OVisitor)
+
+
     llvmVisitor = LLVMVisitor()
-    listener.root.accept(llvmVisitor)
+    #listener.root.accept(llvmVisitor)
     a = llvmVisitor.instructions
 
     file = open("Output/" + "Output.ll", "w")

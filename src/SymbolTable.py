@@ -157,7 +157,7 @@ class Record:
 
 
 
-class SymbolTable(dict):
+class SymbolTable:
     """
     An implementation of a symbol table. Each symbol table contains
     a reference to the symbol table of its enclosing scope, which is
@@ -167,10 +167,11 @@ class SymbolTable(dict):
     """
     def __init__(self, enclosingScope, typeList):
         super().__init__()
-        self._enclosingScope: SymbolTable = enclosingScope
-        self.typeList = typeList
+        self._enclosingScope: SymbolTable | None = enclosingScope
+        self.mapping: dict = {}
+        self.typeList: TypeList = typeList
 
-    def _getScope(self, symbol: str) -> SymbolTable:
+    def _getScope(self, symbol: str) -> SymbolTable | None:
         """
         Retrieve the SymbolTable the information related to :symbol: is stored in.
         Returns None if :symbol: an unknown symbol.
@@ -178,27 +179,30 @@ class SymbolTable(dict):
         :param symbol: The symbol to find the scope of
         :return: The scope of the :symbol:
         """
-        if symbol in self:
+
+        if symbol in self.mapping:
             return self
         if self._enclosingScope is not None:
             return self._enclosingScope._getScope(symbol)
         return None
 
-    def __getitem__(self, symbol: str) -> Record:
+    def __getitem__(self, symbol: str) -> Record | None:
         """
         Retrieve the symbol table information related to :symbol:.
         Returns None if :symbol: an unknown symbol.
 
         :return: Record for the given symbol
         """
-        scope = self._getScope(symbol)
-        return None if scope is None else super(SymbolTable, scope).__getitem__(symbol)
 
-    def __setitem__(self, key: str, value: Record):
+        scope = self._getScope(symbol)
+        return None if scope is None else scope.mapping[symbol]
+
+    def __setitem__(self, key: str, value: Record) -> None:
         """
         Register the symbol and its information in the symbol table.
         Raises an exception of type RedeclaredSymbol if :symbol: is already registered.
         """
+
         lookup = self[key]
         if lookup is not None:
             # Function exclusive declaration errors
@@ -211,7 +215,7 @@ class SymbolTable(dict):
             elif not (self.isGlobal(key) and self._enclosingScope is not None):
                 raise RedeclaredSymbol(key, str(lookup), str(value))
 
-        super().__setitem__(key, value)
+        self.mapping[key] = value
 
     def isGlobal(self, symbol: str) -> bool:
         """
@@ -224,10 +228,10 @@ class SymbolTable(dict):
         :param symbol: The accessible symbol to check global registration of
         :return: result of the check
         """
+
         scope = self._getScope(symbol)
         return False if scope is None or scope._enclosingScope is not None else True
 
+    def __str__(self):
+        return self.mapping.__str__()
 
-    @property
-    def enclosingScope(self):
-        return self._enclosingScope

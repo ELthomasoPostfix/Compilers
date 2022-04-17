@@ -10,8 +10,9 @@ from src.Nodes.ASTreeNode import *
 
 
 class SymbolVisitor(ASTreeVisitor):
-    def __init__(self, globalSymbolTable: SymbolTable):
-        self.currentSymbolTable = globalSymbolTable
+    def __init__(self, typeList: TypeList):
+        self.typeList: TypeList = typeList
+        self.currentSymbolTable = None
 
     #
     # HELPER METHODS
@@ -19,11 +20,11 @@ class SymbolVisitor(ASTreeVisitor):
 
     def _createScope(self):
         """Attach a new SymbolTable to the current one. Make the new SymbolTable the current one"""
-        self.currentSymbolTable = SymbolTable(self.currentSymbolTable, self.currentSymbolTable.typeList)
+        self.currentSymbolTable = SymbolTable(self.currentSymbolTable, self.typeList)
     
     def _closeScope(self):
         """Make the enclosing SymbolTable the current one."""
-        self.currentSymbolTable = self.currentSymbolTable.enclosingScope
+        self.currentSymbolTable = self.currentSymbolTable._enclosingScope
 
     def _enterNewSubScope(self, node: ScopedNode):
         """
@@ -32,7 +33,6 @@ class SymbolVisitor(ASTreeVisitor):
         such that it requires a reference to the newly created SymbolTable.
 
         :param node: The node that generates a new scope, and so a new SymbolTable
-        :param callback: A function to call after symbol table creation and before the children are recursively visited
         """
         self._createScope()
         self._attachSymbolTable(node)
@@ -62,7 +62,7 @@ class SymbolVisitor(ASTreeVisitor):
     def _determineVariableCType(self, node: Var_declNode) -> Tuple[VariableCType, Accessibility]:
         typeName, access = self._determineCTypeInfo(node.getChild(0))
 
-        varType: VariableCType = VariableCType(self.currentSymbolTable.typeList[typeName])
+        varType: VariableCType = VariableCType(self.typeList[typeName])
         self._addPointerTypeInfo(node.getChild(1), varType)
 
         return varType, access
@@ -84,7 +84,7 @@ class SymbolVisitor(ASTreeVisitor):
         access = ReadAccess()
 
         # Construct partial (parameterless) function type
-        varType: FunctionCType = FunctionCType(self.currentSymbolTable.typeList[typeName], isinstance(node, FunctiondefinitionNode))
+        varType: FunctionCType = FunctionCType(self.typeList[typeName], isinstance(node, FunctiondefinitionNode))
         self._addPointerTypeInfo(node.getChild(1), varType)
 
         # Fill out dummy parameter info

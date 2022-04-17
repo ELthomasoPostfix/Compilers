@@ -1,0 +1,19 @@
+for (; 1 < 12; 1);              // missing init clause
+for (int j = 2; ; j++);         // missing loop conditional
+for (int k = 2; k < 12;);       // missing iteration clause
+for (;;);                       // missing everything
+for (int l = 2; l < 12; ++l);   // missing nothing
+for (int l = 2; l < 12; ++l) {} // missing nothing, compound expression
+
+while (1);
+int integer = 0;
+while (integer);
+while (integer) {}
+
+while (true);
+
+int val = 83;
+int a = 12 * 4 - --val % 12;
+while (a != val) {
+  a++;
+}

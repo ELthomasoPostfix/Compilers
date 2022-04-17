@@ -1,0 +1,35 @@
+//#include <stdio.h>
+
+int main()
+{
+    int ia[12];// = {0, 1, 10, 7, 4, 5, 6, 3, 8, 9, 2, 11};
+    
+    for (int j = 0; j < 12; ++j) {
+        "%i";
+        printf("%i", ia[j]);
+        printf("%s", " ");
+    }
+    printf("%s", "\n");
+    
+    int changed = 0;
+    for (int idx = 0; idx < 12 - 1; ++idx) {
+      for (int idx2 = 0; idx2 < 12 - idx; ++idx2)
+        if (ia[idx2] > ia[idx2+1]) {
+            int temp = ia[idx2];
+            ia[idx2] = ia[idx2+1];
+            ia[idx2+1] = temp;
+            changed = 1;
+        }
+        
+        if (!changed) break;
+        changed = 0;
+    
+    }
+    
+    for (int j2 = 0; j2 < 12; ++j2) {
+        printf("%i", ia[j2]);
+        printf("%s", " ");
+    }
+
+    return 0;
+}

@@ -42,6 +42,12 @@ class ASTreeListener(MyGrammarListener):
     def createNoopNode(self, value):
         return NullstatementNode(value, "no-op")
 
+    def splitVariableInitialization(self, varDeclaration):
+        assig = Var_assigNode("", "declaration assig")
+        assig.addChild(varDeclaration.getIdentifierNode())
+        assig.addChild(varDeclaration.children[2].detachSelf())
+        varDeclaration.parent.addChild(assig, varDeclaration.parent.children.index(varDeclaration)+1)
+
     def enterEveryRule(self, ctx:ParserRuleContext):
         self.cstDepth += 1
 
@@ -58,9 +64,11 @@ class ASTreeListener(MyGrammarListener):
         self.addCurrentChild(BlockNode(ctx.getText(), "Bl"))
 
     def enterCompoundstatement(self, ctx:MyGrammarParser.CompoundstatementContext):
-        if len(ctx.children) == 2:
+        if isinstance(self.current, WhileNode) and len(ctx.children) == 2:
             self.addCurrentChild(self.createNoopNode(ctx.getText()))
-        elif isinstance(self.current, BlockNode) or isinstance(self.current, FunctiondefinitionNode):
+        elif isinstance(self.current, BlockNode) or\
+                isinstance(ctx.parentCtx.parentCtx, MyGrammarParser.CompoundstatementContext) or\
+                isinstance(self.current, FunctiondefinitionNode):
             self.addCurrentChild(CompoundstatementNode("", "Co"))
 
     def enterIfstatement(self, ctx:MyGrammarParser.IfstatementContext):
@@ -92,6 +100,9 @@ class ASTreeListener(MyGrammarListener):
             return
         forClause = ctx.children[2]
         insertIndexes = []
+        # This for loop does not include a branch/conditional for the init clause
+        # of the for loop, because we will transform it into a while loop and push
+        # the init clause up anyway, so inserting a noop is meaningless
         for idx, child in enumerate(forClause.children):
             if not isinstance(child, TerminalNodeImpl):
                 continue
@@ -108,6 +119,9 @@ class ASTreeListener(MyGrammarListener):
             initClause = self.current.getChild(0)
             self.current.children.remove(initClause)
             self.current.parent.addChild(initClause, len(self.current.parent.children) - 1)
+
+            if len(initClause.children) == 3:
+                self.splitVariableInitialization(initClause)
 
         # Move iteration expression to the back of the while body
         iterationExpr = self.current.children[1]
@@ -177,17 +191,17 @@ class ASTreeListener(MyGrammarListener):
         self.possiblyAddUnaryExpressionNode()
 
     def exitUnarypostfixexp(self, ctx:MyGrammarParser.UnarypostfixexpContext):
-        if self.isTerminalType(ctx.getChild(0), MyGrammarParser.INCR):
+        if self.isTerminalType(ctx.getChild(-1), MyGrammarParser.INCR):
             self.current.addChild(PrefixIncrementNode(ctx.getText(), "Pre-Incr"))
-        elif self.isTerminalType(ctx.getChild(0), MyGrammarParser.DECR):
+        elif self.isTerminalType(ctx.getChild(-1), MyGrammarParser.DECR):
             self.current.addChild(PrefixDecrementNode(ctx.getText(), "Pre-Decr"))
         self.removeUnneededUnaryExpressionNode()
 
     def enterUnaryprefixexp(self, ctx:MyGrammarParser.UnaryprefixexpContext):
         self.possiblyAddUnaryExpressionNode()
-        if self.isTerminalType(ctx.getChild(-1), MyGrammarParser.INCR):
+        if self.isTerminalType(ctx.getChild(0), MyGrammarParser.INCR):
             self.current.addChild(PostfixIncrementNode(ctx.getText(), "Post-Incr"))
-        elif self.isTerminalType(ctx.getChild(-1), MyGrammarParser.DECR):
+        elif self.isTerminalType(ctx.getChild(0), MyGrammarParser.DECR):
             self.current.addChild(PostfixDecrementNode(ctx.getText(), "Post-Decr"))
 
     def exitUnaryprefixexp(self, ctx:MyGrammarParser.UnaryprefixexpContext):
@@ -198,16 +212,6 @@ class ASTreeListener(MyGrammarListener):
 
     def exitUnaryexp(self, ctx: MyGrammarParser.UnaryexpContext):
         self.removeUnneededUnaryExpressionNode()
-
-
-    def exitUnaryexpression(self, ctx:MyGrammarParser.UnaryexpressionContext):
-        if self.isTerminalType(ctx.getChild(-1), MyGrammarParser.INCR):
-            self.current.addChild(PostfixIncrementNode(ctx.getText(), "Post-Incr"))
-        elif self.isTerminalType(ctx.getChild(-1), MyGrammarParser.DECR):
-            self.current.addChild(PostfixDecrementNode(ctx.getText(), "Post-Decr"))
-
-        if len(self.current.children) == 1:
-            self.replaceCurrent(self.current.getChild(0))
 
     def enterUnaryop(self, ctx: MyGrammarParser.UnaryopContext):
         unaryop = ctx.getChild(0)
@@ -234,11 +238,10 @@ class ASTreeListener(MyGrammarListener):
                 raise DeclarationException(f"Function declared like variable: {ctx.getChild(0).getText()} {ctx.getChild(1).getText()} = {ctx.getChild(2).getText()[1:]}")
 
         # Split off assignment as a separate statement
-        elif len(self.current.children) == 3:
-            assig = Var_assigNode("", "declaration assig")
-            assig.addChild(self.current.getIdentifierNode())
-            assig.addChild(self.current.children[2].detachSelf())
-            self.current.parent.addChild(assig)
+        # Except for a for init clause, as the init var declaration must be pushed outside first
+        if len(self.current.children) == 3 and not isinstance(ctx.parentCtx, MyGrammarParser.ForinitclauseContext):
+            self.splitVariableInitialization(self.current)
+
 
     def enterVar_assig(self, ctx: MyGrammarParser.Var_assigContext):
         self.addCurrentChild(Var_assigNode(ctx.getText(), "Va"))
