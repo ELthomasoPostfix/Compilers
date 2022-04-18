@@ -8,6 +8,7 @@ from src.Nodes.ASTreeNode import CompoundstatementNode, TypedNode, IdentifierNod
 from src.Nodes.BuiltinInfo import BuiltinNames
 from src.SymbolTable import SymbolTable, ReadAccess, ReadWriteAccess, Accessibility, TypeList, Record, CType, \
     VariableCType, FunctionCType
+from src.Visitor.SemanticVisitor import SemanticVisitor
 from src.Visitor.SymbolVisitor import SymbolVisitor
 from src.generated.MyGrammarParser import MyGrammarParser
 from src.generated.MyGrammarLexer import MyGrammarLexer
@@ -42,7 +43,8 @@ def main():
     parser: MyGrammarParser = MyGrammarParser(stream)
     tree = parser.cfile()
 
-    listener = ASTreeListener()  # TODO make the root of the CST var 'tree' the ASTree root instead
+    tl = TypeList([BuiltinNames.VOID, BuiltinNames.CHAR, BuiltinNames.INT, BuiltinNames.FLOAT])
+    listener = ASTreeListener(tl)  # TODO make the root of the CST var 'tree' the ASTree root instead
     walker = ParseTreeWalker()
     walker.walk(listener, tree)
 
@@ -50,9 +52,11 @@ def main():
 
     listener.root.toDot("beginTree.dot", detailed=True)
 
-    tl = TypeList([BuiltinNames.VOID, BuiltinNames.CHAR, BuiltinNames.INT, BuiltinNames.FLOAT])
     SVisitor = SymbolVisitor(tl)
     listener.root.accept(SVisitor)
+
+    SemVisitor = SemanticVisitor()
+    listener.root.accept(SemVisitor)
 
     OVisitor = OptimizationVisitor()
     #listener.root.accept(OVisitor)

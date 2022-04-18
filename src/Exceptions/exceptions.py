@@ -36,3 +36,13 @@ class InitializationException(CCompilerException):
     pass
 
 
+
+class SemanticException(CCompilerException):
+    def __int__(self, message):
+        super().__init__(message)
+
+
+class MisplacedJumpStatement(SemanticException):
+    def __init__(self, jumpStatementName: str, properLocation: str):
+        super().__init__(f"Misplaced jump statement: a {jumpStatementName} statement should be located within a {properLocation}")
+

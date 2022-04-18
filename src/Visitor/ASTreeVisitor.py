@@ -7,6 +7,8 @@ class CfileNode:
     pass
 class BlockNode:
     pass
+class IncludedirectiveNode:
+    pass
 class StatementNode:
     pass
 class ExpressionstatementNode:
@@ -44,8 +46,6 @@ class Var_declNode:
 class Var_assigNode:
     pass
 class AssignmentNode:
-    pass
-class FunctiondefinitionNode:
     pass
 class FunctiondefinitionNode:
     pass
@@ -100,6 +100,9 @@ class ASTreeVisitor:
         self.visitChildren(node)
 
     def visitBlock(self, node: BlockNode):
+        self.visitChildren(node)
+
+    def visitIncludedirective(self, node: IncludedirectiveNode):
         self.visitChildren(node)
 
     def visitStatement(self, node: StatementNode):
@@ -157,9 +160,6 @@ class ASTreeVisitor:
         self.visitChildren(node)
 
     def visitAssignment(self, node: AssignmentNode):
-        self.visitChildren(node)
-
-    def visitFunctiondefinition(self, node: FunctiondefinitionNode):
         self.visitChildren(node)
 
     def visitFunctiondefinition(self, node: FunctiondefinitionNode):

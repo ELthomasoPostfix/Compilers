@@ -1,3 +1,5 @@
+from typing import List
+
 from antlr4 import ParserRuleContext
 from antlr4.tree.Tree import TerminalNodeImpl
 
@@ -13,9 +15,10 @@ from src.generated.MyGrammarParser import MyGrammarParser
 
 
 class ASTreeListener(MyGrammarListener):
-    def __init__(self):
+    def __init__(self, typeList: TypeList):
         self.root: ASTree = None
         self.current: ASTree = self.root
+        self.typeList: TypeList = typeList
 
         self.pushDepths = []
         self.cstDepth = 0
@@ -48,6 +51,22 @@ class ASTreeListener(MyGrammarListener):
         assig.addChild(varDeclaration.children[2].detachSelf())
         varDeclaration.parent.addChild(assig, varDeclaration.parent.children.index(varDeclaration)+1)
 
+    def hasContextAncestor(self, ctx, ancestorCtx):
+        """
+        Check whether :ctx: has an ancestor of the specified
+        type, using isinstance.
+
+        :param ctx: The ctx to find an ancestor for
+        :param ancestorCtx: The class to check for
+        :return: Result
+        """
+
+        if ctx.parentCtx is None:
+            return False
+        elif isinstance(ctx.parentCtx, ancestorCtx):
+            return True
+        self.hasContextAncestor(ctx.parentCtx, ancestorCtx)
+
     def enterEveryRule(self, ctx:ParserRuleContext):
         self.cstDepth += 1
 
@@ -59,6 +78,16 @@ class ASTreeListener(MyGrammarListener):
 
     def enterCfile(self, ctx: MyGrammarParser.CfileContext):
         self.addCurrentChild(CfileNode(ctx.getText(), "Cf"))
+
+    def enterIncludedirective(self, ctx:MyGrammarParser.IncludedirectiveContext):
+        self.current.addChild(FunctiondefinitionNode(None, "Fu")).\
+            addChild(TypedeclarationNode(None, "Td")).\
+            addChild(TypespecifierNode(BuiltinNames.VOID, "Ts"))
+
+        self.current.getChild(0).addChild(FunctionDeclaratorNode(None, "Fd")).\
+            addChild(IdentifierNode("printf", "Id"))
+
+        # TODO  somehow add the printf and scanf methods to the tree
 
     def enterBlock(self, ctx: MyGrammarParser.BlockContext):
         self.addCurrentChild(BlockNode(ctx.getText(), "Bl"))
@@ -98,24 +127,25 @@ class ASTreeListener(MyGrammarListener):
     def exitForstatement(self, ctx:MyGrammarParser.ForstatementContext):
         if not isinstance(self.current, WhileNode):
             return
+
         forClause = ctx.children[2]
+        initClauseMissing = self.isTerminalType(forClause.getChild(0), MyGrammarParser.SEMICOLON)
+        iterConditionMissing = False
+        iterExpressionMissing = False
         insertIndexes = []
         # This for loop does not include a branch/conditional for the init clause
         # of the for loop, because we will transform it into a while loop and push
         # the init clause up anyway, so inserting a noop is meaningless
         for idx, child in enumerate(forClause.children):
-            if not isinstance(child, TerminalNodeImpl):
+            if not self.isTerminalType(child, MyGrammarParser.SEMICOLON):
                 continue
-            if idx > 0 and isinstance(forClause.getChild(idx - 1), TerminalNodeImpl):
-                insertIndexes.append(0)
+            if idx > 0 and self.isTerminalType(forClause.getChild(idx - 1), MyGrammarParser.SEMICOLON):
+                iterConditionMissing = True
             if idx == len(forClause.children) - 1:
-                insertIndexes.append(1)
-
-        for idx in insertIndexes:
-            self.current.addChild(self.createNoopNode(None), idx)
+                iterExpressionMissing = True
 
         # Push up init clause
-        if not self.isTerminalType(forClause.getChild(0), MyGrammarParser.SEMICOLON):
+        if not initClauseMissing:
             initClause = self.current.getChild(0)
             self.current.children.remove(initClause)
             self.current.parent.addChild(initClause, len(self.current.parent.children) - 1)
@@ -123,10 +153,18 @@ class ASTreeListener(MyGrammarListener):
             if len(initClause.children) == 3:
                 self.splitVariableInitialization(initClause)
 
+        # Missing iteration condition results in while(true)
+        if iterConditionMissing:
+            self.current.addChild(IntegerNode(1, BuiltinNames.INT), 0)
+
         # Move iteration expression to the back of the while body
-        iterationExpr = self.current.children[1]
-        self.current.children.remove(iterationExpr)
-        self.current.children.append(iterationExpr)
+        if not iterExpressionMissing:
+            # Remove noop from body being empty; iter expr. is still part of body
+            if isinstance(self.current.getChild(-1), NullstatementNode):
+                self.current.children.remove(self.current.getChild(-1))
+            iterationExpression = self.current.children[1]      # iteration condition ensured to exist
+            self.current.children.remove(iterationExpression)
+            self.current.children.append(iterationExpression)
 
     def enterForstatement(self, ctx:MyGrammarParser.ForstatementContext):
         self.addCurrentChild(WhileNode(ctx.getText(), "While"))
@@ -239,7 +277,7 @@ class ASTreeListener(MyGrammarListener):
 
         # Split off assignment as a separate statement
         # Except for a for init clause, as the init var declaration must be pushed outside first
-        if len(self.current.children) == 3 and not isinstance(ctx.parentCtx, MyGrammarParser.ForinitclauseContext):
+        if len(self.current.children) == 3 and not self.hasContextAncestor(ctx, MyGrammarParser.ForinitclauseContext):
             self.splitVariableInitialization(self.current)
 
 
@@ -285,11 +323,11 @@ class ASTreeListener(MyGrammarListener):
 
     def enterLiteral(self, ctx: MyGrammarParser.LiteralContext):
         if self.isTerminalType(ctx.getChild(0), MyGrammarParser.LITERAL_INT):
-            self.addCurrentChild(IntegerNode(ctx.getText(), "Int"))
+            self.addCurrentChild(IntegerNode(ctx.getText(), BuiltinNames.INT))
         elif self.isTerminalType(ctx.getChild(0), MyGrammarParser.LITERAL_FLOAT):
-            self.addCurrentChild(FloatNode(ctx.getText(), "Float"))
+            self.addCurrentChild(FloatNode(ctx.getText(), BuiltinNames.FLOAT))
         elif self.isTerminalType(ctx.getChild(0), MyGrammarParser.LITERAL_CHAR):
-            self.addCurrentChild(CharNode(ctx.getText().strip("'"), "Char"))
+            self.addCurrentChild(CharNode(ctx.getText().strip("'"), BuiltinNames.CHAR))
         elif self.isTerminalType(ctx.getChild(0), MyGrammarParser.LITERAL_STRING):
             self.addCurrentChild(CharNode(ctx.getText()[:-1][1:], "String"))
 

@@ -1,3 +1,4 @@
+from __future__ import annotations
 import sys
 from src.ASTree.Element import Element
 
@@ -46,16 +47,20 @@ class ASTree(Element):
         self.parent = None
         return self
 
-    def addChild(self, child, idx: int = sys.maxsize):
+    def addChild(self, child, idx: int = sys.maxsize) -> ASTree:
         """
         Create a parent child relationship between the child argument and the caller, inserting the
         child at the specified index. Note that if the idx argument is larger than the children list
         size, the child will be appended instead. Negative idx arguments are accepted.
+        Returns the added child to allow chaining of calls to construct a vertical branch.
+
         :param child: The new child of the caller
         :param idx: Insert child at this index
+        :return: The added child
         """
         self.children.insert(idx, child)
         child.parent = self
+        return child
 
     def getChild(self, idx: int):
         """
@@ -65,6 +70,21 @@ class ASTree(Element):
         :return: The requested child if index in range, else None
         """
         return self.children[idx] if idx < len(self.children) else None
+
+    def hasTypeAncestor(self, ancestorType):
+        """
+        Check whether the caller has an ancestor of the specified
+        type, using isinstance.
+
+        :param ancestorType: The class to check for
+        :return: Result
+        """
+
+        if self.parent is None:
+            return False
+        elif isinstance(self.parent, ancestorType):
+            return True
+        return self.parent.hasTypeAncestor(ancestorType)
 
     def preorderTraverse(self, progress, layer):
         progress.append([self, layer])
