@@ -24,10 +24,6 @@ class TypedNode(ExpressionNode):
         super().__init__(value, name, parent)
         self.record: Record = None
 
-    @abstractmethod
-    def inferType(self, typeList: TypeList) -> CType:
-        return VariableCType(typeList[BuiltinNames.VOID])
-
     def __repr__(self):
         return self.__str__() + "\\n" + str(self.record)
 
@@ -130,7 +126,7 @@ class Var_declNode(ASTree):
         return first(self.getChild(1).children, lambda child: isinstance(child, IdentifierNode))
 
 
-class FunctiondeclarationNode(ASTree):
+class FunctiondeclarationNode(ScopedNode):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitFunctiondeclaration(self)
 
@@ -266,12 +262,6 @@ class BinaryopNode(ExpressionNode):
 class PointerNode(ASTree):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitPointer(self)
-
-    def makeConst(self, qualifier: TypequalifierNode):
-        if self.getChild(0) is not None and\
-                isinstance(self.getChild(0), TypequalifierNode):
-            return
-        self.addChild(qualifier, 0)
 
     def __repr__(self):
         return self.value

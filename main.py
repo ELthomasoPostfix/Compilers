@@ -59,11 +59,11 @@ def main():
     listener.root.accept(SemVisitor)
 
     OVisitor = OptimizationVisitor()
-    #listener.root.accept(OVisitor)
+    listener.root.accept(OVisitor)
 
 
     llvmVisitor = LLVMVisitor()
-    #listener.root.accept(llvmVisitor)
+    listener.root.accept(llvmVisitor)
     a = llvmVisitor.instructions
 
     file = open("Output/" + "Output.ll", "w")
