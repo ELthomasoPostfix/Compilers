@@ -1,6 +1,9 @@
-int main(){
-    int a = 5;
-    int b = a;
+int function(){
+    return 3;
+}
 
-    return 5;
+
+int main(){
+    int a = function();
+    return 0;
 }

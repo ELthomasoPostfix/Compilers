@@ -95,6 +95,10 @@ class LLVMVisitor(ASTreeVisitor):
             output_string += '\n'
             self.instructions.append(output_string)
             self.registerCounter += 1
+        elif isinstance(node.children[1], FunctioncallNode):
+            output_string += "%call = call " + "i32" + " @" + node.children[1].value + '\n'
+            output_string += '\t' + "store " + "i32" + " %call, " + "i32" + "* %" + node.children[0].value + ", align 4" + '\n'
+            self.instructions.append(output_string)
         else:
             output_string += "store " + var_value + " " + str(node.children[1].value) + ", " + var_value
             output_string += "* %" + node.children[0].value + ", align 4"
