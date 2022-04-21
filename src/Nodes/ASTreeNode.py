@@ -263,5 +263,11 @@ class PointerNode(ASTree):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitPointer(self)
 
+    def makeConst(self, qualifier: TypequalifierNode):
+        if self.getChild(0) is not None and\
+                isinstance(self.getChild(0), TypequalifierNode):
+            return
+        self.addChild(qualifier, 0)
+
     def __repr__(self):
         return self.value

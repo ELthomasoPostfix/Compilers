@@ -1,3 +1,10 @@
+for (;;) break;
+for (;;) continue;
+
+while (1) break;
+while (1) continue;
+
+
 for (int idx1 = 0; idx1 < 100; ++idx1) {
   if (idx1 % 2 == 0)
     continue;
@@ -23,4 +30,37 @@ while ( rand_a-- ) {
       break;
     if (rand_a % 2 == 1)
         continue;
+}
+
+
+while (1) {
+    continue;
+    {
+        continue;
+        {
+            continue;
+            {
+                continue;
+            }
+            continue;
+        }
+        continue;
+    }
+    continue;
+}
+
+while (1) {
+    break;
+    {
+        break;
+        {
+            break;
+            {
+                break;
+            }
+            break;
+        }
+        break;
+    }
+    break;
 }
