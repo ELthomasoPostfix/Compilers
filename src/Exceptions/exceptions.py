@@ -4,6 +4,9 @@
 class CCompilerException(Exception):
     pass
 
+#########################################
+# Declaration and Definition exceptions #
+#########################################
 
 
 class DeclarationException(CCompilerException):
@@ -35,6 +38,9 @@ class UndeclaredSymbol(DeclarationException):
 class InitializationException(CCompilerException):
     pass
 
+#######################
+# Semantic exceptions #
+#######################
 
 
 class SemanticException(CCompilerException):
@@ -46,3 +52,36 @@ class MisplacedJumpStatement(SemanticException):
     def __init__(self, jumpStatementName: str, properLocation: str):
         super().__init__(f"Misplaced jump statement: a {jumpStatementName} statement should be located within a {properLocation}")
 
+
+class UnknownType(SemanticException):
+    def __init__(self, typeName: str):
+        super().__init__(f"Unknown type: {typeName}")
+
+
+class InvalidReturnStatement(SemanticException):
+    def __init__(self, details: str):
+        super().__init__(f"Invalid return statement: {details}")
+
+
+class InvalidFunctionCall(SemanticException):
+    def __init__(self, details: str):
+        super().__init__(f"Invalid function call: {details}")
+
+
+class InvalidBinaryOperation(SemanticException):
+    def __init__(self, operator: str, details: str):
+        super().__init__(f"Invalid binary {operator}: {details}")
+
+##########################
+# Compilation exceptions #
+##########################
+
+
+class CompilationException(CCompilerException):
+    def __init__(self, message):
+        super().__init__(message)
+
+
+class UnsupportedFeature(CompilationException):
+    def __init__(self, details: str):
+        super().__init__(f"Unsupported feature: {details}")

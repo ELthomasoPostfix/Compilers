@@ -1,19 +1,15 @@
 import sys
-from ctypes import sizeof
 
 from antlr4 import *
 
 from src.CompilersUtils import coloredDef
-from src.Nodes.ASTreeNode import CompoundstatementNode, TypedNode, IdentifierNode
-from src.Nodes.BuiltinInfo import BuiltinNames
-from src.SymbolTable import SymbolTable, ReadAccess, ReadWriteAccess, Accessibility, TypeList, Record, CType, \
-    VariableCType, FunctionCType
+from src.Enumerations import BuiltinNames
+from src.SymbolTable import TypeList
 from src.Visitor.SemanticVisitor import SemanticVisitor
 from src.Visitor.SymbolVisitor import SymbolVisitor
 from src.generated.MyGrammarParser import MyGrammarParser
 from src.generated.MyGrammarLexer import MyGrammarLexer
 from src.generated.MyGrammarListener import MyGrammarListener
-from src.ASTree.ASTree import ASTree
 from src.ASTreeListener import ASTreeListener
 from src.Visitor.OptimizationVisitor import OptimizationVisitor
 from src.Visitor.LLVMVisitor import LLVMVisitor
@@ -55,14 +51,14 @@ def main():
     SVisitor = SymbolVisitor(tl)
     listener.root.accept(SVisitor)
 
-    SemVisitor = SemanticVisitor()
+    SemVisitor = SemanticVisitor(tl)
     listener.root.accept(SemVisitor)
 
     OVisitor = OptimizationVisitor()
     listener.root.accept(OVisitor)
 
 
-    llvmVisitor = LLVMVisitor()
+    llvmVisitor = LLVMVisitor(tl)
     listener.root.accept(llvmVisitor)
     a = llvmVisitor.instructions
 

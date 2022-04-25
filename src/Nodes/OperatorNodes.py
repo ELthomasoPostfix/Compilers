@@ -1,4 +1,7 @@
+import copy
+
 from src.Nodes.ASTreeNode import *
+from src.Enumerations import LLVMKeywords as llk
 
 
 class SumNode(BinaryopNode):
@@ -6,12 +9,12 @@ class SumNode(BinaryopNode):
         visitor.visitBinaryop(self)
 
     def evaluate(self, left: LiteralNode, right: LiteralNode):
-        a = left.getValue()
-        b = right.getValue()
-        c = a + b
         return left.getValue() + right.getValue()
 
-    def __repr__(self):
+    def getLLVMOpKeyword(self) -> str:
+        return llk.SUM
+
+    def __str__(self):
         return '+'
 
 
@@ -22,7 +25,10 @@ class MinNode(BinaryopNode):
     def evaluate(self, left: LiteralNode, right: LiteralNode):
         return left.getValue() - right.getValue()
 
-    def __repr__(self):
+    def getLLVMOpKeyword(self) -> str:
+        return llk.MIN
+
+    def __str__(self):
         return '-'
 
 
@@ -33,7 +39,10 @@ class MulNode(BinaryopNode):
     def evaluate(self, left: LiteralNode, right: LiteralNode):
         return left.getValue() * right.getValue()
 
-    def __repr__(self):
+    def getLLVMOpKeyword(self) -> str:
+        return llk.MUL
+
+    def __str__(self):
         return '*'
 
 
@@ -44,7 +53,10 @@ class DivNode(BinaryopNode):
     def evaluate(self, left: LiteralNode, right: LiteralNode):
         return left.getValue() / right.getValue()
 
-    def __repr__(self):
+    def getLLVMOpKeyword(self) -> str:
+        return llk.DIV
+
+    def __str__(self):
         return '/'
 
 
@@ -55,7 +67,10 @@ class ModNode(BinaryopNode):
     def evaluate(self, left: LiteralNode, right: LiteralNode):
         return left.getValue() % right.getValue()
 
-    def __repr__(self):
+    def getLLVMOpKeyword(self) -> str:
+        return llk.MOD
+
+    def __str__(self):
         return '%'
 
 
@@ -66,7 +81,10 @@ class EqNode(BinaryopNode):
     def evaluate(self, left: LiteralNode, right: LiteralNode):
         return left.getValue() == right.getValue()
 
-    def __repr__(self):
+    def getLLVMOpKeyword(self) -> str:
+        return f"{llk.COMPARE} {llk.EQ}"
+
+    def __str__(self):
         return '=='
 
 
@@ -77,7 +95,7 @@ class NeqNode(BinaryopNode):
     def evaluate(self, left: LiteralNode, right: LiteralNode):
         return left.getValue() != right.getValue()
 
-    def __repr__(self):
+    def __str__(self):
         return '!='
 
 
@@ -88,7 +106,10 @@ class GtNode(BinaryopNode):
     def evaluate(self, left: LiteralNode, right: LiteralNode):
         return left.getValue() > right.getValue()
 
-    def __repr__(self):
+    def getLLVMOpKeyword(self) -> str:
+        return f"{llk.COMPARE} {llk.GT}"
+
+    def __str__(self):
         return '>'
 
 
@@ -99,8 +120,10 @@ class GteNode(BinaryopNode):
     def evaluate(self, left: LiteralNode, right: LiteralNode):
         return left.getValue() >= right.getValue()
 
+    def getLLVMOpKeyword(self) -> str:
+        return f"{llk.COMPARE} {llk.GTE}"
 
-    def __repr__(self):
+    def __str__(self):
         return '>='
 
 
@@ -111,8 +134,10 @@ class LtNode(BinaryopNode):
     def evaluate(self, left: LiteralNode, right: LiteralNode):
         return left.getValue() < right.getValue()
 
+    def getLLVMOpKeyword(self) -> str:
+        return f"{llk.COMPARE} {llk.LT}"
 
-    def __repr__(self):
+    def __str__(self):
         return '<'
 
 
@@ -123,8 +148,10 @@ class LteNode(BinaryopNode):
     def evaluate(self, left: LiteralNode, right: LiteralNode):
         return left.getValue() <= right.getValue()
 
+    def getLLVMOpKeyword(self) -> str:
+        return f"{llk.COMPARE} {llk.LTE}"
 
-    def __repr__(self):
+    def __str__(self):
         return '<='
 
 
@@ -135,8 +162,10 @@ class AndNode(BinaryopNode):
     def evaluate(self, left: LiteralNode, right: LiteralNode):
         return left.getValue() and right.getValue()     # TODO coerce operand to bool type
 
+    def getLLVMOpKeyword(self) -> str:
+        return llk.AND
 
-    def __repr__(self):
+    def __str__(self):
         return '&&'
 
 
@@ -147,8 +176,10 @@ class OrNode(BinaryopNode):
     def evaluate(self, left: LiteralNode, right: LiteralNode):
         return left.getValue() or right.getValue()     # TODO coerce operand to bool type
 
+    def getLLVMOpKeyword(self) -> str:
+        return llk.OR
 
-    def __repr__(self):
+    def __str__(self):
         return '||'
 
 
@@ -156,8 +187,13 @@ class PositiveNode(UnaryopNode):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitUnaryop(self)
 
+    def inferType(self, typeList: TypeList):
+        return self.parent.getChild(self.parent.children.index(self)+1).inferType(typeList)
 
-    def __repr__(self):
+    def evaluate(self, value: LiteralNode):
+        return + value.getValue()
+
+    def __str__(self):
         return '+'
 
 
@@ -165,8 +201,13 @@ class NegativeNode(UnaryopNode):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitUnaryop(self)
 
+    def inferType(self, typeList: TypeList):
+        return self.parent.getChild(self.parent.children.index(self) + 1).inferType(typeList)
 
-    def __repr__(self):
+    def evaluate(self, value: LiteralNode):
+        return - value.getValue()
+
+    def __str__(self):
         return '-'
 
 
@@ -174,8 +215,13 @@ class NotNode(UnaryopNode):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitUnaryop(self)
 
+    def inferType(self, typeList: TypeList):
+        return CType(typeList[BuiltinNames.INT])
 
-    def __repr__(self):
+    def evaluate(self, value: LiteralNode):
+        return not value.getValue()
+
+    def __str__(self):
         return '!'
 
 
@@ -183,8 +229,14 @@ class AddressOfNode(UnaryopNode):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitUnaryop(self)
 
+    def inferType(self, typeList: TypeList):
+        resultType: CType = copy.deepcopy(self.parent.getChild(self.parent.children.index(self) + 1).inferType(typeList))
+        return resultType.addPointer(False)
 
-    def __repr__(self):
+    def evaluate(self, value: LiteralNode):
+        pass
+
+    def __str__(self):
         return '&'
 
 
@@ -192,8 +244,14 @@ class DereferenceNode(UnaryopNode):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitUnaryop(self)
 
+    def inferType(self, typeList: TypeList):
+        resultType: CType = copy.deepcopy(self.parent.getChild(self.parent.children.index(self) + 1).inferType(typeList))
+        return resultType.removePointer()
 
-    def __repr__(self):
+    def evaluate(self, value: LiteralNode):
+        pass
+
+    def __str__(self):
         return '*'
 
 
@@ -201,8 +259,10 @@ class PrefixIncrementNode(UnaryopNode):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitUnaryop(self)
 
+    def evaluate(self, value: LiteralNode):
+        pass
 
-    def __repr__(self):
+    def __str__(self):
         return '++.'
 
 
@@ -210,8 +270,10 @@ class PostfixIncrementNode(UnaryopNode):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitUnaryop(self)
 
+    def evaluate(self, value: LiteralNode):
+        pass
 
-    def __repr__(self):
+    def __str__(self):
         return '.++'
 
 
@@ -219,8 +281,10 @@ class PrefixDecrementNode(UnaryopNode):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitUnaryop(self)
 
+    def evaluate(self, value: LiteralNode):
+        pass
 
-    def __repr__(self):
+    def __str__(self):
         return '--.'
 
 
@@ -228,8 +292,10 @@ class PostfixDecrementNode(UnaryopNode):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitUnaryop(self)
 
+    def evaluate(self, value: LiteralNode):
+        pass
 
-    def __repr__(self):
+    def __str__(self):
         return '.--'
 
 
@@ -237,6 +303,11 @@ class ArraySubscriptNode(BinaryopNode):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitBinaryop(self)
 
+    def evaluate(self, left: LiteralNode, right: LiteralNode):
+        pass
 
-    def __repr__(self):
+    def getLLVMOpKeyword(self) -> str:
+        return super().getLLVMOpKeyword()
+
+    def __str__(self):
         return "[ ]"

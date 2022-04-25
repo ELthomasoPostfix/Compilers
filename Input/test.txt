@@ -1,9 +1,24 @@
-int function(){
-    return 3;
+int function(int a, char b, float c){
+    int i = 2;
+    return a;
 }
 
+int f() { return 3; }
+
+void ia();
 
 int main(){
-    int a = function();
+    int ia;
+    int ib;
+    int ic;
+    int i = ia + ib % (ic * f() / f()) - 12;
+
+    int* ip;
+    ip = &i;
+
+    float f = 1.1;
+
+    int a = function(2, 'c', f);
+
     return 0;
 }

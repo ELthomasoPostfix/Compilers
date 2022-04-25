@@ -4,15 +4,16 @@ from typing import Tuple, Callable
 
 from src.CompilersUtils import first
 from src.Exceptions.exceptions import UndeclaredSymbol
+from src.Nodes.QualifierNodes import ConstNode
 from src.SymbolTable import SymbolTable, Record, Accessibility, ReadAccess,\
-    ReadWriteAccess, CType, VariableCType, FunctionCType
+    ReadWriteAccess, CType, CType, FunctionCType
 from src.Nodes.ASTreeNode import *
 
 
 class SymbolVisitor(ASTreeVisitor):
     def __init__(self, typeList: TypeList):
         self.typeList: TypeList = typeList
-        self.currentSymbolTable = None
+        self.currentSymbolTable: SymbolTable | None = None
 
     #
     # HELPER METHODS
@@ -24,7 +25,7 @@ class SymbolVisitor(ASTreeVisitor):
     
     def _closeScope(self):
         """Make the enclosing SymbolTable the current one."""
-        self.currentSymbolTable = self.currentSymbolTable._enclosingScope
+        self.currentSymbolTable = self.currentSymbolTable.enclosingScope
 
     def _enterNewSubScope(self, node: ScopedNode):
         """
@@ -42,27 +43,28 @@ class SymbolVisitor(ASTreeVisitor):
     def _attachSymbolTable(self, node: ScopedNode):
         node.symbolTable = self.currentSymbolTable
 
-    def _attachRecord(self, node: TypedNode):
-        record: Record = self.currentSymbolTable[node.value]
+    def _attachRecord(self, node: IdentifierNode):
+        record: Record = self.currentSymbolTable[node.identifier]
         if record is None:      # TODO  push this into a SemanticVisitor ???
-            raise UndeclaredSymbol(node.value)
+            raise UndeclaredSymbol(node.identifier)
         node.record = record
 
     def _determineCTypeInfo(self, node: TypedeclarationNode) -> Tuple[str, Accessibility]:
         access: Accessibility = ReadWriteAccess()
         typeName: str = ""
         for typeInfo in node.children:
-            if isinstance(typeInfo, TypequalifierNode):
-                access = ReadAccess()
+            if isinstance(typeInfo, QualifierNode):
+                if isinstance(typeInfo, ConstNode):
+                    access = ReadAccess()
             else:
-                typeName += typeInfo.value
+                typeName += " " + typeInfo.specifier
 
-        return typeName, access
+        return typeName[1:], access
 
-    def _determineVariableCType(self, node: Var_declNode) -> Tuple[VariableCType, Accessibility]:
+    def _determineVariableCType(self, node: Var_declNode) -> Tuple[CType, Accessibility]:
         typeName, access = self._determineCTypeInfo(node.getChild(0))
 
-        varType: VariableCType = VariableCType(self.typeList[typeName])
+        varType: CType = CType(self.typeList[typeName])
         self._addPointerTypeInfo(node.getChild(1), varType)
 
         return varType, access
@@ -73,13 +75,13 @@ class SymbolVisitor(ASTreeVisitor):
                 type.addPointer(len(child.children) == 1)
 
     def _determineVariableRecord(self, node: Var_declNode) -> Tuple[str, Record]:
-        identifier: str = node.getIdentifierNode().value
+        identifier: str = node.getIdentifierNode().identifier
         varType, access = self._determineVariableCType(node)
 
         return identifier, Record(varType, access)
 
     def _determineDummyFunctionRecord(self, node: FunctiondeclarationNode | FunctiondefinitionNode) -> Tuple[str, Record]:
-        identifier: str = node.getIdentifierNode().value
+        identifier: str = node.getIdentifierNode().identifier
         typeName, access = self._determineCTypeInfo(node.getChild(0))
         access = ReadAccess()
 
@@ -90,7 +92,6 @@ class SymbolVisitor(ASTreeVisitor):
         # Fill out dummy parameter info
         for parameter in node.getChild(1).children:
             if isinstance(parameter, Var_declNode):
-                a = self._determineVariableRecord(parameter)
                 varType.paramTypes.append(self._determineVariableRecord(parameter)[1].type)
 
         return identifier, Record(varType, access)

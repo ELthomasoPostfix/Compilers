@@ -364,17 +364,17 @@ fragment CCHAR
     ;
 fragment ESCAPE_SEQUENCE
     :   CHARACTER_ESCAPE_SEQUENCE
-    |   OCTYPE_ESCAPE_SEQUENCE
+    |   OCT_ESCAPE_SEQUENCE
     |   HEX_ESCAPE_SEQUENCE
     ;
 fragment CHARACTER_ESCAPE_SEQUENCE
     :   '\\' ['"?abfnrtv\\]
     ;
-fragment OCTYPE_DIG
+fragment OCT_DIG
     :   [0-7]
     ;
-fragment OCTYPE_ESCAPE_SEQUENCE
-    :   '\\' OCTYPE_DIG OCTYPE_DIG? OCTYPE_DIG?
+fragment OCT_ESCAPE_SEQUENCE
+    :   '\\' OCT_DIG OCT_DIG? OCT_DIG?
     ;
 fragment HEX_DIG
     :    [0-9a-fA-F]

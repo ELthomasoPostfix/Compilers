@@ -1,16 +1,16 @@
 from __future__ import annotations
 import sys
+from typing import List
+
 from src.ASTree.Element import Element
 
 
 class ASTree(Element):
-    def __init__(self, value, name, parent=None):
-        self.value = value  # TODO  delete this, should be in derived classes
+    def __init__(self, parent=None):
         self.children: [ASTree] = []
-        self.name = name
         self.parent: ASTree = parent
 
-    def replaceSelf(self, replacement):
+    def replaceSelf(self, replacement) -> None:
         """
         Replace the caller by the replacement argument in the AST. In other words,
         replace the caller by the replacement argument in all parent-caller and caller-child relationships.
@@ -21,7 +21,7 @@ class ASTree(Element):
 
         :param replacement: The replacement of the caller in the AST. Passing None will essentially clip the caller and all its children from the caller's parent AST.
         """
-        if self in self.parent.children:
+        if self.parent is not None and self in self.parent.children:
             if replacement is None:
                 self.parent.children.remove(self)
             else:
@@ -41,7 +41,7 @@ class ASTree(Element):
             self.parent = None
             self.children.clear()
 
-    def detachSelf(self):
+    def detachSelf(self) -> ASTree:
         """Undo the caller-parent relationship. The caller is removed a child of the parent."""
         self.parent.children.remove(self)
         self.parent = None
@@ -62,16 +62,33 @@ class ASTree(Element):
         child.parent = self
         return child
 
-    def getChild(self, idx: int):
+    def getChild(self, idx: int) -> ASTree:
         """
         Get the child at the specified index. If index out of range,
         None is returned instead.
         :param idx: The index of the requested child
         :return: The requested child if index in range, else None
         """
-        return self.children[idx] if idx < len(self.children) else None
 
-    def hasTypeAncestor(self, ancestorType):
+        cLen = len(self.children)
+        return self.children[idx] if cLen > 0 and idx < cLen else None
+
+    def getAncestorOfType(self, ancestorType) -> ASTree | None:
+        """
+        Get the caller's first ancestor of the specified
+        type, using isinstance.
+
+        :param ancestorType: The class to check for
+        :return: The ancestor if it exists, else None
+        """
+
+        if self.parent is None:
+            return None
+        elif isinstance(self.parent, ancestorType):
+            return self.parent
+        return self.parent.getAncestorOfType(ancestorType)
+
+    def hasTypeAncestor(self, ancestorType) -> bool:
         """
         Check whether the caller has an ancestor of the specified
         type, using isinstance.
@@ -80,13 +97,9 @@ class ASTree(Element):
         :return: Result
         """
 
-        if self.parent is None:
-            return False
-        elif isinstance(self.parent, ancestorType):
-            return True
-        return self.parent.hasTypeAncestor(ancestorType)
+        return self.getAncestorOfType(ancestorType) is not None
 
-    def preorderTraverse(self, progress, layer):
+    def preorderTraverse(self, progress, layer) -> List[List[ASTree, int]]:
         progress.append([self, layer])
         for child in self.children:
             if len(child.children) != 0:
@@ -137,5 +150,3 @@ class ASTree(Element):
         """
         return type(self).__name__
 
-    def toLLVM(self):
-        pass

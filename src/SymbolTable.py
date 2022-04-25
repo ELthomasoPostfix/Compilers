@@ -70,75 +70,96 @@ class TypeList:
         return self.typeList.__repr__()
 
 
-## Abstract base class representing type information for symbols in a symbol table.
+## A class representing type information for a variable.
 #
 #
-class CType:   # TODO  and arrays ?????
-    """Abstract base class representing type information for symbols in a symbol table."""
-    __metaclass__ = ABCMeta
+class CType:
+    """A class representing type information for a variable."""
 
-    def __init__(self):
+    def __init__(self, typeIndex: int):
+        super().__init__()
+        self.typeIndex = typeIndex
+        self.register = None
         self._pointers: List[bool] = []
 
     ## Add a level of indirection to the CType, possibly marked const through the isConst parameter.
     #
-    # It returns self to allow chaining the method.
+    # It returns the caller to allow chaining the method.
     def addPointer(self, isConst: bool) -> CType:
         """
         Add a level of indirection to the CType.
-        :param isConst: make level of indirection read-only
-        :return: self, to allow chaining the method
+
+        :param isConst: Make level of indirection read-only or not
+        :return: caller, to allow chaining the method
         """
         self._pointers.append(isConst)
         return self
 
-    def isPointerType(self):
-        return len(self._pointers) > 0
+    ## Remove a level of indirection from the CType.
+    #
+    # It returns the caller to allow chaining the method.
+    def removePointer(self) -> CType:
+        """
+        Remove a level of indirection from the CType.
 
-    def __eq__(self, other):
-        return isinstance(other, CType) and self._pointers == other._pointers
+        :return: caller, to allow chaining the method
+        """
+
+        if self.pointerCount() == 0:
+            return self
+
+        self._pointers.remove(self._pointers[-1])
+        return self
+
+    def pointerCount(self):
+        return len(self._pointers)
+
+    def isPointerType(self):
+        return self.pointerCount() > 0
+
+    def isConst(self, ptrIndex: int):
+        return self._pointers[ptrIndex]
+
+    def __eq__(self, other, requirePointerEq: bool = False):
+        """
+        Equality check with :other:.
+        Checks type equality
+        Checks pointer equality if :requirePointerEq: is true.
+        """
+
+        return ((isinstance(other, int) and other == self.typeIndex) or\
+                (isinstance(other, CType) and self.typeIndex == other.typeIndex)) and \
+               (not requirePointerEq or (requirePointerEq and self._pointers == other._pointers))
 
     def __repr__(self):
         return self.__str__()
 
     def __str__(self):
-        return "".join(["*" + ("const " if const else "") for const in self._pointers])
+        return str(self.typeIndex) + (" " if self.pointerCount() > 0 else "") + "".join(["*" + ("const " if const else "") for const in self._pointers])
 
 
-class VariableCType(CType):
-    """A class representing type information for a variable."""
-    def __init__(self, typeIndex: int):
-        super().__init__()
-        self.typeIndex = typeIndex
-        self.register = None
-
-    def __eq__(self, other):
-        return isinstance(other, VariableCType) and\
-               self.typeIndex == other.typeIndex and\
-               super().__eq__(other)
-
-    def __str__(self):
-        return str(self.typeIndex) + " " + super().__str__()
-
-# TODO   Add LiteralCType class, to be returned by LiteralNode classes????
-
-
-class FunctionCType(CType):     # TODO:  Are param type needed here? Can't they be inferred from the AST? If not, then FunctionCType can be reduced to VariableType, so better rename VariableType or just move VariableType functionality up into CType
+class FunctionCType(CType):
     """A class representing type information for a function."""
+
     def __init__(self, returnType: int, isDefinition: bool):
-        super().__init__()
-        self.returnTypeIndex: int = returnType
+        super().__init__(returnType)
         self.paramTypes: List[CType] = []
         self.isDefinition: bool = isDefinition
 
-    def __eq__(self, other, requireParamsEq: bool = False):
-        return isinstance(other, FunctionCType) and \
-               self.returnTypeIndex == other.returnTypeIndex and \
-               (requireParamsEq and self.paramTypes == other.paramTypes) and \
-               super().__eq__(other)
+    def __eq__(self, other, requirePointerEq: bool = False, requireParamsEq: bool = False):
+        """
+        Equality check with :other:. :other: must also be a CType derivative.
+        Checks type (return type if :other: is a function type) equality
+        Checks parameter equality if :requireParamsEq: is true.
+        Checks pointer equality.
+        """
+
+        return (not requireParamsEq or
+                (requireParamsEq and isinstance(other, FunctionCType) and self.paramTypes == other.paramTypes)) and \
+               super().__eq__(other, requirePointerEq)
 
     def __str__(self):
-        return str(self.paramTypes) + " -> " + str(self.returnTypeIndex) + " " + super().__str__()
+        return str(self.paramTypes) + " -> " + str(self.typeIndex) + " " + super().__str__()
 
 
 
@@ -147,6 +168,7 @@ class Record:
     def __init__(self, cType: CType, access: Accessibility):
         self.type: CType = cType
         self.access = access
+        self.register: str = ""
 
     def __repr__(self):
         return self.__str__()
@@ -231,6 +253,19 @@ class SymbolTable:
 
         scope = self._getScope(symbol)
         return False if scope is None or scope._enclosingScope is not None else True
+
+    def isGlobalScope(self):
+        """
+        Check whether the SymbolTable is the global symbol table.
+
+        :return: True if global
+        """
+
+        return self._enclosingScope is None
+
+    @property
+    def enclosingScope(self):
+        return self._enclosingScope
 
     def __str__(self):
         return self.mapping.__str__()

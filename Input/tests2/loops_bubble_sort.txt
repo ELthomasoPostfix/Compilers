@@ -1,14 +1,15 @@
 // dummy for loop bubble sort
 int changed = 0;
 for (int idx = 0; idx < 12 - 1; ++idx) {
-  for (int idx2 = 0; idx2 < 12 - idx - 1; ++idx2)
+  for (int idx2 = 0; idx2 < 12 - idx - 1; ++idx2) {
     int bubble_sort_condition = 1;
     if (bubble_sort_condition == 1) {
         // bubble sort swap
         changed = 1;
     }
-    if (!changed) break;
-    changed = 0;
+  }
+  if (!changed) break;
+  changed = 0;
 }
 
 // dummy while loop bubble sort
