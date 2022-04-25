@@ -5,6 +5,7 @@ from typing import Tuple, Callable
 from src.CompilersUtils import first
 from src.Exceptions.exceptions import UndeclaredSymbol
 from src.Nodes.QualifierNodes import ConstNode
+from src.Nodes.SelectionNodes import ElseNode
 from src.SymbolTable import SymbolTable, Record, Accessibility, ReadAccess,\
     ReadWriteAccess, CType, CType, FunctionCType
 from src.Nodes.ASTreeNode import *
@@ -37,8 +38,16 @@ class SymbolVisitor(ASTreeVisitor):
         """
         self._createScope()
         self._attachSymbolTable(node)
+
+        # ElseNode SymbolTable should not have the IfNode SymbolTable as a
+        # parent, but share the same parent.
+        if isinstance(node, ElseNode):
+            node.symbolTable.setEnclosingScope(node.symbolTable.enclosingScope.enclosingScope)
+
         self.visitChildren(node)
-        self._closeScope()
+
+        if not isinstance(node, ElseNode):
+            self._closeScope()
 
     def _attachSymbolTable(self, node: ScopedNode):
         node.symbolTable = self.currentSymbolTable

@@ -1,0 +1,14 @@
+
+// global vars
+
+int bob;
+
+int main() {
+
+    // conditionals
+
+    if (1);
+    else {}
+
+    return 0;
+}

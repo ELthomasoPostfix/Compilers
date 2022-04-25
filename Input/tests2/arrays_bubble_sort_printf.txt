@@ -6,10 +6,10 @@ int main()
     
     for (int j = 0; j < 12; ++j) {
         "%i";
-        printf("%i", ia[j]);
-        printf("%s", " ");
+        //printf("%i", ia[j]);
+        //printf("%s", " ");
     }
-    printf("%s", "\n");
+    //printf("%s", "\n");
     
     int changed = 0;
     for (int idx = 0; idx < 12 - 1; ++idx) {
@@ -27,8 +27,8 @@ int main()
     }
     
     for (int j2 = 0; j2 < 12; ++j2) {
-        printf("%i", ia[j2]);
-        printf("%s", " ");
+        //printf("%i", ia[j2]);
+        //printf("%s", " ");
     }
 
     return 0;

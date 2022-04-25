@@ -263,6 +263,9 @@ class SymbolTable:
 
         return self._enclosingScope is None
 
+    def setEnclosingScope(self, enclosingScope: SymbolTable):
+        self._enclosingScope = enclosingScope
+
     @property
     def enclosingScope(self):
         return self._enclosingScope

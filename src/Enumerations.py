@@ -25,6 +25,7 @@ class LLVMKeywords:
     ALIGN: str = "align"
     DEFINE: str = "define"
 
+    BRANCH: str = "br"
     CALL: str = "call"
     RETURN: str = "ret"
     ALLOCA: str = "alloca"
@@ -52,6 +53,7 @@ class LLVMKeywords:
 
     VOID: str = "void"
     I32: str = "i32"
+    I1: str = "i1"
     FLOAT: str = "float"
     CHAR: str = "i8"
     STR: str = f"[n x {CHAR}]"

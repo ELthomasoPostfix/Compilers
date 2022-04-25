@@ -426,15 +426,23 @@ class LLVMVisitor(ASTreeVisitor):
     def visitSelectionstatement(self, node: SelectionstatementNode):
         self._openScope(node)
         ifn = node
-        ifn.getChild(0).accept(self)
+        ifn.getChild(0).accept(self)    # evaluate condition
         result = self._getExpressionLocation(ifn.getChild(0))
         output_string = ""
-        output_string += '\t' + f"br i1 {result}, label %if.then, label %if.else" + '\n'
+        output_string += '\t' + f"{llk.BRANCH} {llk.I1} {result}, label %if.then, label %if.else" + '\n'
         output_string += '\n' + "if.then:" + '\n'
         self.instructions.append(output_string)
         for i in range(1, len(node.children)-1):
             node.children[i].accept(self)
-        iteration_node = node.children[2].children[0]
+        iteration_node = node.getChild(2).getChild(0)
+
+        # TODO  This check SHOULD be deleted, as it blocks any else node with no children
+        #   ==> iteration_node = node.getChild(2).getChild(0)
+        #   should be
+        #   ==> iteration_node = node.getChild(2)
+        if iteration_node is None:
+            return
+
         branch_counter = 2
         output_string = ""
         while True:
