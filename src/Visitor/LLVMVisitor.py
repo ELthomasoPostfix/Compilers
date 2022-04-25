@@ -275,6 +275,10 @@ class LLVMVisitor(ASTreeVisitor):
         # update scope
         self._closeScope()
 
+    # TODO  Give NoneType exception for Input/tests/functions.txt if super().visitFunctiondeclaration() is used instead.
+    def visitFunctiondeclaration(self, node: FunctiondeclarationNode):
+        pass
+
     # TODO
     # TODO
     # TODO

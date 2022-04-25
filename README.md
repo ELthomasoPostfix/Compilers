@@ -2,22 +2,42 @@
 A project for the course Compilers at the University of Antwerp during the second semester of academic year of 2021-2022. The group is composed of Jeff Boermans and Thomas Gueutal.
 
 # Scripts
-<b>generate.sh</b>: can be called to (re)generate the dependency ANTLR python files.
+All bash (.sh) scripts needed are found in ```Compilers/``` directory. All scripts can be called with the -h flag to display a help message.
+Scripts should be called from the /Compilers directory, as they are dependent the compiler file structure.
 
-<b>run.sh</b>: requires exactly one positional argument, namely the file to run the compiler on. Can be called to in one step generate the dependency ANTLR python files, if they do not exist yet, as well as call the main.py file. The script depends on the generate.sh script to generate the dependency ANTLR python files.
+<b>build.sh</b>: can be called independently to (re)generate the dependency ANTLR python files. Possibly gets called by <b>run.sh</b>.
 
-An example call of the compiler is ```./run Input/tests/vars.txt```. Please note that the run.sh script should be called from the directory it is located in.
+<b>run.sh</b>:  Treat all positional arguments as to compile files containing C code. Can be called to in one step generate the dependency ANTLR python files, if they do not exist yet, as well as call the main.py file.
+The script depends on the <b>build.sh</b> script to generate the dependency ANTLR python files.
+
+Example calls of the compiler follows:
+```
+./run Input/tests/functions.txt
+./run Input/tests/*.txt
+./run -h
+```
+Please note that the <b>run.sh</b> script should be called from the directory it is located in.
+The file extension is not checked, so any file may be passed.
 
 # Test files
 Example test files are found in 'Input/tests'.
 
 # Output
-Currently, the compiler will only output a .dot, endtree.dot is post-optimization (e.g. literal folding) and begintree.dot is pre-optimization, file into the Output folder, as no LLVM conversion has been completed yet.
+Currently, for a given file ```<input-file>.ext```, with file name ```<input-file>``` and file extension ```ext``` the
+compiler will output two .dot files and one .ll file into the output directory ```Compilers/Output/```. The first .dot file is ```beginTree_<file-name>.dot``` and is the AST pre-optimization.
+The second .dot file is ```endTree_<file-name>.dot``` and is the AST post-optimization (i.e. literal folding, constant propagation).
+The .ll file contains the generated LLVM code for the given input file.
 
 # ANTLR runtime
-The ANTLR 4 runtime .jar is provided together with this repository. It is found in the 'Input' directory. As such, all scripts refer to that .jar file instead of any pre-installed versions of ANTLR.
+The ANTLR 4 runtime .jar is provided together with this repository. It is found in the directory ```Compiler/Input/```,
+as is the ANTLR grammar file ```MyGrammar.g4```.
+As such, all scripts refer to that .jar file instead of any pre-installed versions of ANTLR.
 
 # Features
+
+The design of this table was adopted from the one provided for the course <em>Computer Graphics</em> taught by professor Benny Van Houdt.
+
+---
 
 V: Working
 

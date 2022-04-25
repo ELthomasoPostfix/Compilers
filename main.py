@@ -33,7 +33,10 @@ class KeyPrinter(MyGrammarListener):
 
 
 def main():
-    input_stream = FileStream(sys.argv[1])
+    ifPath = sys.argv[1]
+    ifName = ifPath.split('/')[-1].split('.')[0]
+
+    input_stream = FileStream(ifPath)
     lexer: MyGrammarLexer = MyGrammarLexer(input_stream)
     stream = CommonTokenStream(lexer)
     parser: MyGrammarParser = MyGrammarParser(stream)
@@ -46,7 +49,7 @@ def main():
 
 
 
-    listener.root.toDot("beginTree.dot", detailed=True)
+    listener.root.toDot(f"beginTree_{ifName}.dot", detailed=True)
 
     SVisitor = SymbolVisitor(tl)
     listener.root.accept(SVisitor)
@@ -57,16 +60,15 @@ def main():
     OVisitor = OptimizationVisitor()
     listener.root.accept(OVisitor)
 
+    listener.root.toDot(f"endTree_{ifName}.dot", detailed=True)
 
     llvmVisitor = LLVMVisitor(tl)
     listener.root.accept(llvmVisitor)
     a = llvmVisitor.instructions
 
-    file = open("Output/" + "Output.ll", "w")
+    file = open("Output/" + f"{ifName}.ll", "w")
     for string in a:
         file.write(string)
-
-    listener.root.toDot("endTree.dot", detailed=True)
 
     print(tree.getText())
     print()
