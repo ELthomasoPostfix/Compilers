@@ -23,6 +23,7 @@ class LLVMVisitor(ASTreeVisitor):
         self.localRegisterCounter = 0
         self.globalRegisterCounter = 0
         self.currentSymbolTable: SymbolTable | None = None
+        self.labelCounter = 0
 
     #
     #   REGISTER HANDLING HELPER METHODS
@@ -30,11 +31,11 @@ class LLVMVisitor(ASTreeVisitor):
 
     def _reserveUnnamedRegister(self, prefix: str) -> str:
         if prefix == "%":
-            reservedReg: str = f"%{self.globalRegisterCounter}"
+            reservedReg: str = f"%{self.localRegisterCounter}"
             self._incrLocalRegCtr()
             return reservedReg
         elif prefix == "@":
-            reservedReg: str = f"@{self.localRegisterCounter}"
+            reservedReg: str = f"@{self.globalRegisterCounter}"
             self._incrGlobalRegCtr()
             return reservedReg
         else:
@@ -83,8 +84,10 @@ class LLVMVisitor(ASTreeVisitor):
                     self.instructions.append(self._createLoadStatement(srcType, srcLocation, srcType[:-1], dstLocation))
             return f"{self._getNamedRegisterPrefix(expression.identifier)}{expression.identifier}"
         # The location an expression would be stored in
+        elif isinstance(expression, Var_assigNode):
+            return self.currentSymbolTable[expression.getIdentifierNode().identifier].register
         else:
-            return f"%{self.globalRegisterCounter - 1}"
+            return f"%{self.localRegisterCounter - 1}"
 
     #
     #   SCOPE HANDLING HELPER METHODS
@@ -394,9 +397,19 @@ class LLVMVisitor(ASTreeVisitor):
     def visitIterationstatement(self, node: IterationstatementNode):
         self._openScope(node)
 
-        # The self.visitChildren(node) call may be replaced by LLVM generation code
-        self.visitChildren(node)
-
+        output_string = ""
+        ifn = node
+        ifn.getChild(0).accept(self)
+        result = self._getExpressionLocation(ifn.getChild(0))
+        output_string += '\t' + "br label %while.cond" + '\n'
+        output_string += '\n' + "while.cond:" + '\n'
+        output_string += '\t' + f"br i1 {result}, label %while.body{self.labelCounter}, label %while.end{self.labelCounter}"
+        output_string += '\n' + '\n'
+        output_string += f"while.body{self.labelCounter}:" + '\n'
+        self.instructions.append(output_string)
+        for i in range(2, len(node.children)):
+            node.children[i].accept(self)
+        self.instructions.append('\n' + "while.end:" + '\n')
         self._closeScope()
 
     #
