@@ -1,0 +1,33 @@
+int bob;
+char cboi;
+float* fboi;
+
+int f();
+int f2(int f, char c, float* fp);
+int f2(int i, char c, float* f) { return -1; }
+int f2(int i, char c, float* fp);
+char cf() { char c; return c; }
+char* cp() { char* c; return c; }
+float* fp() { float* f; return f; }
+int* ip() { int* i; return i; }
+
+char main(char* a) {
+  int bob;
+  char cboi;
+  float* fboi;
+  int nested_decl(char cc);
+  int ia[4];
+
+  //*fboi = 2.1;
+
+  int res1 = ia[bob + bob];
+  int res = f2(bob, cboi, cf()) + f();
+  int res3 = f2(bob, cboi + cf() - *cp(), fboi);
+  int res4 = f2(bob + ia[bob + f() - - &**ip()], cboi + cf() - *cp(), fboi);
+  //*cp() = bob;
+  //int fff() = 2;      // ERROR: func declared like var
+
+  return cboi;
+}
+
+int f() { return 1; }
