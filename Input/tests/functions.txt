@@ -18,14 +18,16 @@ char main(char* a) {
   int nested_decl(char cc);
   int ia[4];
 
-  *fboi = 2.1;
+  //*fboi = 2.1;
 
   int res1 = ia[bob + bob];
   int res = f2(bob, cboi, cf()) + f();
   int res3 = f2(bob, cboi + cf() - *cp(), fboi);
   int res4 = f2(bob + ia[bob + f() - - &**ip()], cboi + cf() - *cp(), fboi);
-  *cp() = bob;
+  //*cp() = bob;
   //int fff() = 2;      // ERROR: func declared like var
+
+  return cboi;
 }
 
 int f() { return 1; }
