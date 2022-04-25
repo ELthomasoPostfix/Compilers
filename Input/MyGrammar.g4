@@ -88,6 +88,7 @@ forCondition
 
 forinitclause
     : var_decl
+    | var_assig
     | expression
     ;
 
