@@ -1,24 +1,8 @@
-int function(int a, char b, float c){
-    int i = 2;
-    return a;
-}
-
-int f() { return 3; }
-
-void ia();
-
 int main(){
-    int ia;
-    int ib;
-    int ic;
-    int i = ia + ib % (ic * f() / f()) - 12;
+    int i = 1;
 
-    int* ip;
-    ip = &i;
-
-    float f = 1.1;
-
-    int a = function(2, 'c', f);
-
+    for(i = 1; i < 10; i++){
+        int a = 5;
+    }
     return 0;
 }
