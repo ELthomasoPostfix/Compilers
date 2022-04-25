@@ -3,16 +3,10 @@ from src.Nodes.ASTreeNode import SelectionstatementNode
 
 
 class IfNode(SelectionstatementNode):
-    def accept(self, visitor: ASTreeVisitor):
-        visitor.visitIterationstatement(self)
-
     def __str__(self):
         return "if"
 
 
 class ElseNode(SelectionstatementNode):
-    def accept(self, visitor: ASTreeVisitor):
-        visitor.visitIterationstatement(self)
-
     def __str__(self):
         return "else"
