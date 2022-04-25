@@ -1,0 +1,13 @@
+// null statement body
+
+void f1 () {
+    if (1);
+}
+
+void f2 () {
+    if (1);
+    else;
+}
+
+
+

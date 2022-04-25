@@ -20,7 +20,8 @@ Please note that the <b>run.sh</b> script should be called from the directory it
 The file extension is not checked, so any file may be passed.
 
 # Test files
-Example test files are found in 'Input/tests'.
+Example test files are found in the directory ```Compilers/Input/tests2/```. The file names should be
+relatively indicative of what they contain and test
 
 # Output
 Currently, for a given file ```<input-file>.ext```, with file name ```<input-file>``` and file extension ```ext``` the

@@ -461,6 +461,9 @@ class LLVMVisitor(ASTreeVisitor):
             self.instructions.append('\t' + "br label %if.end4")
             self.instructions.append('\n' + f"if.else:" + '\n')
             ifn = iteration_node
+            # TODO  same as above comment (or at least similar)
+            if ifn.getChild(0) is None:
+                return
             ifn.getChild(0).accept(self)
             result = self._getExpressionLocation(ifn.getChild(0))
             output_string += '\t' + f"br i1 {result}, label %if.then{branch_counter}, label %if.else{branch_counter+1}"
