@@ -7,7 +7,7 @@ from src.Exceptions.exceptions import UnknownType, UnsupportedFeature, InvalidBi
 from src.Nodes.IterationNodes import WhileNode
 from src.Nodes.JumpNodes import ReturnNode
 from src.Nodes.LiteralNodes import *
-from src.Nodes.SelectionNodes import IfNode
+from src.Nodes.SelectionNodes import IfNode, ElseNode
 from src.SymbolTable import FunctionCType
 from src.Visitor.ASTreeVisitor import ASTreeVisitor, ForexpressionNode, AssignmentNode, FunctiondeclaratorNode
 from src.Nodes.ASTreeNode import *
@@ -421,10 +421,48 @@ class LLVMVisitor(ASTreeVisitor):
 
     def visitSelectionstatement(self, node: SelectionstatementNode):
         self._openScope(node)
+        ifn = node
+        ifn.getChild(0).accept(self)
+        result = self._getExpressionLocation(ifn.getChild(0))
+        output_string = ""
+        output_string += '\t' + f"br i1 {result}, label %if.then, label %if.else" + '\n'
+        output_string += '\n' + "if.then:" + '\n'
+        self.instructions.append(output_string)
+        for i in range(1, len(node.children)-1):
+            node.children[i].accept(self)
+        iteration_node = node.children[2].children[0]
+        branch_counter = 2
+        output_string = ""
+        while True:
+            if isinstance(iteration_node, ElseNode):
+                if branch_counter != 2:
+                    output_string += '\n' + '\n'
+                    output_string += f"if.else{branch_counter}:" + '\n'
+                    self.instructions.append(output_string)
+                    for i in range(1, len(iteration_node.parent.children)-1):
+                        iteration_node.parent.children[i].accept(self)
+                    output_string = '\t' + "br label %if.end" + '\n' + '\n'
+                    output_string += f"if.end:" + '\n'
+                    output_string += '\t' + f"br label %if.end{branch_counter+1}" + '\n'
+                    self.instructions.append(output_string)
+                break
+            self.instructions.append('\t' + "br label %if.end4")
+            self.instructions.append('\n' + f"if.else:" + '\n')
+            ifn = iteration_node
+            ifn.getChild(0).accept(self)
+            result = self._getExpressionLocation(ifn.getChild(0))
+            output_string += '\t' + f"br i1 {result}, label %if.then{branch_counter}, label %if.else{branch_counter+1}"
+            output_string += '\n' + '\n'
+            output_string += f"if.then{branch_counter}:" + '\n'
+            self.instructions.append(output_string)
+            for i in range(1, len(iteration_node.children)-1):
+                iteration_node.children[i].accept(self)
+            output_string = '\t' + "br label %if.end"
 
-        # The self.visitChildren(node) call may be replaced by LLVM generation code
-        self.visitChildren(node)
-
+            branch_counter += 1
+            iteration_node = iteration_node.children[-1]
+        output_string = '\n' + f"if.end{branch_counter+1}:" + '\n'
+        self.instructions.append(output_string)
         self._closeScope()
 
     def visitIterationstatement(self, node: IterationstatementNode):
@@ -457,3 +495,7 @@ class LLVMVisitor(ASTreeVisitor):
     def visitIdentifier(self, node: IdentifierNode):
         # Identifiers must be components of instructions
         pass
+
+
+
+
