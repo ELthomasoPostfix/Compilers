@@ -318,7 +318,7 @@ class BinaryopNode(ExpressionNode):
 
     @abstractmethod
     def getLLVMOpKeyword(self) -> str:
-        return "dummy"
+        return "dummyKeyword"
 
     @abstractmethod
     def evaluate(self, left: LiteralNode, right: LiteralNode) -> LiteralNode:

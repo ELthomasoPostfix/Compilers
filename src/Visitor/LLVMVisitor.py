@@ -39,7 +39,7 @@ class LLVMVisitor(ASTreeVisitor):
             self._incrGlobalRegCtr()
             return reservedReg
         else:
-            raise f"unknown unnamed temporary prefix: {prefix} when trying to reserve unnamed temporary register"
+            raise Exception(f"unknown unnamed temporary prefix: '{prefix}' when trying to reserve unnamed temporary register")
 
     def _incrGlobalRegCtr(self):
         self.globalRegisterCounter += 1
@@ -73,16 +73,35 @@ class LLVMVisitor(ASTreeVisitor):
         """
 
         if isinstance(expression, LiteralNode):
-            return str(expression.getValue())
-        elif isinstance(expression, IdentifierNode):
+            value = str(expression.getValue())
 
-            if False:
-                srcLocation = self.currentSymbolTable[expression.identifier].register
-                if not srcLocation[1:].isnumeric():
-                    dstLocation = self._reserveUnnamedRegister(srcLocation[0])
-                    srcType = self._CToLLVMType(expression.getType()) + "*"     # TODO implicit address-of operator should take care of this???
-                    self.instructions.append(self._createLoadStatement(srcType, srcLocation, srcType[:-1], dstLocation))
-            return f"{self._getNamedRegisterPrefix(expression.identifier)}{expression.identifier}"
+            # If Literal not part of an expression, store it in an intermediate register
+            if not expression.hasTypeAncestor(ExpressionNode):
+                sumKeyword = llk.SUM
+                literalLLVMtype = self._CToLLVMType(expression.inferType(self.typeList))
+                sumKeyword = self._getBinaryOpPrefix(sumKeyword, literalLLVMtype) + sumKeyword
+                dstRegister = self._reserveUnnamedRegister('%')
+
+                intermediateInstr = '\t' + f"{dstRegister} = {sumKeyword} {literalLLVMtype} 0, {value}" + '\n'
+                self.instructions.append(intermediateInstr)
+                value = dstRegister
+
+            return value
+        elif isinstance(expression, IdentifierNode):
+            NamedRegister = self.currentSymbolTable[expression.identifier].register
+
+            # Variable declarations result in a named register
+            # Any use of a declared variable will permanently move
+            # the value of the named register into an unnamed one
+            if not NamedRegister[1:].isnumeric():
+                UnnamedRegister = self._reserveUnnamedRegister(NamedRegister[0])
+                NamedRegType = self._CToLLVMType(expression.getType()) + "*"     # TODO implicit address-of operator should take care of this???
+                self.instructions.append(self._createLoadStatement(NamedRegType, NamedRegister, NamedRegType[:-1], UnnamedRegister, wrap=True))
+
+                self.currentSymbolTable[expression.identifier].register = UnnamedRegister
+
+            # Always returns an unnamed register
+            return self.currentSymbolTable[expression.identifier].register
         # The location an expression would be stored in
         elif isinstance(expression, Var_assigNode):
             return self.currentSymbolTable[expression.getIdentifierNode().identifier].register
@@ -142,16 +161,16 @@ class LLVMVisitor(ASTreeVisitor):
         prefix = ""
         binaryOpInstruction = binaryOpInstruction[:3]
         if operandLLVMType == llk.FLOAT:
-            prefixedOps = ["add", "sub", "mul", "div", "rem", "cmp"]
+            prefixedOps = [llk.SUM, llk.MIN, llk.MUL, llk.DIV, llk.MOD, llk.COMPARE]
             if binaryOpInstruction in prefixedOps:
                 prefix = llk.FOP_PREF
 
         if operandLLVMType == llk.I32:
-            prefixedOps = ["div", "rem"]
+            prefixedOps = [llk.DIV, llk.MOD]
             if binaryOpInstruction in prefixedOps:
                 prefix = llk.SOP_PREF
 
-            prefixedOps = ["cmp"]
+            prefixedOps = [llk.COMPARE]
             if binaryOpInstruction in prefixedOps:
                 prefix = llk.IOP_PREF
 
@@ -193,16 +212,11 @@ class LLVMVisitor(ASTreeVisitor):
         output_string = ""
         returnExpression = returnNode.getChild(0)
 
-        if isinstance(returnExpression, IdentifierNode):
-            output_string += '\t' + f"%{self.globalRegisterCounter} = {llk.LOAD} {returnType}, {returnType}* %"
-            output_string += f"{returnExpression.identifier}, {llk.ALIGN} 4" + '\n'
-            output_string += '\t' + f"{llk.RETURN} {returnType} %{self.globalRegisterCounter}" + '\n'
-        else:
-            output_string = '\t' + f"{llk.RETURN} {returnType} {returnNode.children[0].getValue()}" + '\n'
+        returnExpression.accept(self)   # evaluate return expression
+        retExpLocation = self._getExpressionLocation(returnExpression)
+        retExpType = self._CToLLVMType(returnExpression.inferType(self.typeList))
 
-        # a = 5
-        # output_string = '\t' + "ret " + var_value + " " + str(node.children[2].children[-1].children[0].value) + '\n'
-        return output_string
+        return '\t' + f"{llk.RETURN} {retExpType} {retExpLocation}" + '\n'
 
     #
     #   VISITOR METHODS
@@ -223,6 +237,7 @@ class LLVMVisitor(ASTreeVisitor):
         output_string += f"{llk.DEFINE} {retType} @{identifierNode.identifier}("
 
         allocations = []
+        stores = []
 
         # Add parameter declarations
         paramIdentifiers = node.getParamIdentifierNodes()
@@ -231,21 +246,23 @@ class LLVMVisitor(ASTreeVisitor):
             output_string += f"{paramType} %{pId.identifier}"
 
             idName = pId.identifier
-            allocations.append('\t' + f"%{idName}.addr = {llk.ALLOCA} {paramType}" + '\n')
-            allocations.append(self._createStoreStatement(
-                paramType, self._getNamedRegisterPrefix(idName) + idName,
-                paramType + '*', self._getNamedRegisterPrefix(idName) + idName + ".addr",
+            registerPrefix = self._getNamedRegisterPrefix(idName)
+            cpyRegister = f"{registerPrefix}{idName}.addr"
+            allocations.append('\t' + f"{cpyRegister} = {llk.ALLOCA} {paramType}" + '\n')
+            stores.append(self._createStoreStatement(
+                paramType, registerPrefix + idName,
+                paramType + '*', cpyRegister,       # TODO  the '*' should be done through implicit address-of operator for the right side of a assignment
                 wrap=True))
+            self.currentSymbolTable[idName].register = cpyRegister
 
             # Check object identity, not equality (mem address vs __eq__ method)
             if pId is not paramIdentifiers[-1]:
                 output_string += ", "
 
-        # Add parameter allocations and assignments
-        # TODO  is this necessary??? What does it do???
+        # Add parameter allocations and copying
         output_string += ") {" + '\n' + "entry:" + '\n'
         output_string += "".join(allocations)
-
+        output_string += "".join(stores)
 
         self.instructions.append(output_string)
 
@@ -264,17 +281,30 @@ class LLVMVisitor(ASTreeVisitor):
     # TODO
     # TODO
     def visitVar_decl(self, node: Var_declNode):
-        self.visitChildren(node)
-        return
-
+        identifierNode = node.getIdentifierNode()
+        idLLVMType = self._CToLLVMType(identifierNode.getType())
         identifier = node.getIdentifierNode().identifier
-        regType = '@' if self.currentSymbolTable.isGlobal(identifier) else '%'
-        dstLocation = self._reserveUnnamedRegister(regType)
+        allocInstr = ""
+        dstLocation = self._getNamedRegisterPrefix(identifier) + identifier
+
+        # TODO  global vars are scuffer, also see self.visitVar_assig()
+        if dstLocation[0] == '@':
+            initValue = 0
+
+            rightSibling = node.parent.getChild(node.parent.children.index(node)+1)
+            if rightSibling is not None and isinstance(rightSibling, Var_assigNode) and\
+                rightSibling.getIdentifierNode().identifier == identifier and\
+                    isinstance(rightSibling.getChild(1), LiteralNode):
+                initValue = rightSibling.getChild(1).getValue()
+                idLLVMType = self._CToLLVMType(rightSibling.getChild(1).inferType(self.typeList))
+
+            allocInstr = f"{dstLocation} = global {idLLVMType} {initValue}" + '\n'
+        else:
+            allocInstr = '\t' + f"{dstLocation} = {llk.ALLOCA} {idLLVMType}" + '\n'
 
         self.currentSymbolTable[identifier].register = dstLocation
+        self.instructions.append(allocInstr)
 
-
-        #output_string = self._createStoreStatement(rhsLLVMType, rhsLocation, lhsLLVMType, lhsLocation, wrap=True)
 
     # TODO  for global variables,
     # TODO      int a;
@@ -282,35 +312,38 @@ class LLVMVisitor(ASTreeVisitor):
     # TODO  is not actually valid C code??? definition on same line?
     def visitVar_assig(self, node: Var_assigNode):
 
-        if True:
-            lhs = node.getChild(0)
-            rhs = node.getChild(1)
+        # TODO this is a scuffed fix: Ignore global var initialization assignments,
+        #   let visitVar_decl handle those
+        if self.currentSymbolTable is None:
+            return
 
-            # Visit rhs expression
-            node.getChild(1).accept(self)
+        lhs = node.getChild(0)
+        rhs = node.getChild(1)
 
-            rhsLLVMType = self._CToLLVMType(rhs.inferType(self.typeList))
-            rhsLocation = self._getExpressionLocation(rhs)
+        # Visit rhs expression
+        node.getChild(1).accept(self)
 
-            if not isinstance(lhs, IdentifierNode):
-                raise UnsupportedFeature("The left hand side of an assignment MUST be an identifier for now")
+        rhsLocation = self._getExpressionLocation(rhs)
 
-            # Visit lhs expression
-            node.getChild(0).accept(self)
+        if not isinstance(lhs, IdentifierNode):
+            raise UnsupportedFeature("The left hand side of an assignment MUST be an identifier for now")
 
-            lhsLLVMType = self._CToLLVMType(lhs.inferType(self.typeList)) + "*"
-            lhsLocation = f"{self._getNamedRegisterPrefix(lhs.identifier)}{lhs.identifier}.addr"
+        # Visit lhs expression
+        node.getChild(0).accept(self)
 
-            # TODO if you can assign to not just identifiers, this final assignment should also be diversified
-            output_string = self._createStoreStatement(rhsLLVMType, rhsLocation, lhsLLVMType, lhsLocation, wrap=True)
-            self.instructions.append(output_string)
+        # Assign the register where the result is stored as the location of lhs
+        self.currentSymbolTable[lhs.identifier].register = rhsLocation
+
+        # TODO if lhs is an expression (ptr type?), then do a store
+        #  output_string = self._createStoreStatement(rhsLLVMType, rhsLocation, lhsLLVMType, lhsLocation, wrap=True)
+        #  self.instructions.append(output_string)
+
 
     def visitBinaryop(self, node: BinaryopNode):
 
         lhs: ExpressionNode = node.getChild(0)
         rhs: ExpressionNode = node.getChild(1)
         lhsLLVMType = self._CToLLVMType(lhs.inferType(self.typeList))
-        rhsLLVMType = self._CToLLVMType(rhs.inferType(self.typeList))
 
         lhs.accept(self)    # evaluate lhs
         lhsLocation = self._getExpressionLocation(lhs)
@@ -325,7 +358,7 @@ class LLVMVisitor(ASTreeVisitor):
         binaryOpInstruction = self._getBinaryOpPrefix(binaryOpInstruction, lhsLLVMType) + binaryOpInstruction
 
         output_string = '\t' +\
-                        f"{dstTempRegister} = {binaryOpInstruction} {lhsLLVMType} {lhsLocation}, {rhsLLVMType} {rhsLocation}" +\
+                        f"{dstTempRegister} = {binaryOpInstruction} {lhsLLVMType} {lhsLocation}, {rhsLocation}" +\
                         '\n'
         self.instructions.append(output_string)
 

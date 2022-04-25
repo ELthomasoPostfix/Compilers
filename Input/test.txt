@@ -1,8 +1,32 @@
-int main(){
-    int i = 1;
+int function(int a, char b, float c){
+    int i = 2;
+    return a;
+}
 
-    for(i = 1; i < 10; i++){
-        int a = 5;
-    }
+int fic(int i, char c) {
+
+  return i;
+}
+
+int f() { return 3; }
+
+void ia();
+
+int main(){
+
+    if (1) {}
+
+    int ia;
+    int ib;
+    int ic;
+    int i = ia + ib % (ic * f() / f()) - 12;
+
+    int* ip;
+    ip = &i;
+
+    float f = 1.1;
+
+    int a = function(2, 'c', f);
+
     return 0;
 }

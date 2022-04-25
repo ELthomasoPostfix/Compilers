@@ -171,7 +171,7 @@ class Record:
         self.register: str = ""
 
     def __repr__(self):
-        return self.__str__()
+        return str([self.type, self.access, self.register])
 
     def __str__(self):
         return str([self.type, self.access])

@@ -34,7 +34,7 @@ class LLVMKeywords:
     SOP_PREF: str = "s"     # signed binary prefix
     IOP_PREF: str = "i"     # integer binary prefix
     SUM: str = "add"
-    MIN: str = "min"
+    MIN: str = "sub"
     MUL: str = "mul"
     DIV: str = "div"
     AND: str = "and"
