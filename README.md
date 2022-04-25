@@ -76,11 +76,6 @@ O: optional feature
 |     | Multi-dimensional Arrays 2 | X                      | X           |             | O    | Assignment of complete arrays or array rows                                                                     |
 |     | Dynamic arrays             | X                      | X           |             | O    |                                                                                                                 |
 |     | Import                     | V                      | X           |             | M    | Support for import of stdio.h and use of printf and scanf, with sequences with codes d, i, s and c              |
-|     |                            |                        |             |             |      |                                                                                                                 |
-|     |                            |                        |             |             |      |                                                                                                                 |
-|     |                            |                        |             |             |      |                                                                                                                 |
-|     |                            |                        |             |             |      |                                                                                                                 |
-|     |                            |                        |             |             |      |                                                                                                                 |
 
 * Unary +, - (LLVM): Unary - works for floats but not for ints.
 * Semantic Errors: missing operations of incompatible types, assignment to an rvalue and assignment to const variable
