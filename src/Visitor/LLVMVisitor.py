@@ -472,15 +472,16 @@ class LLVMVisitor(ASTreeVisitor):
         ifn = node
         ifn.getChild(0).accept(self)
         result = self._getExpressionLocation(ifn.getChild(0))
-        output_string += '\t' + "br label %while.cond" + '\n'
-        output_string += '\n' + "while.cond:" + '\n'
+        output_string += '\t' + f"br label %while.cond{self.labelCounter}" + '\n'
+        output_string += '\n' + f"while.cond{self.labelCounter}:" + '\n'
         output_string += '\t' + f"br i1 {result}, label %while.body{self.labelCounter}, label %while.end{self.labelCounter}"
         output_string += '\n' + '\n'
         output_string += f"while.body{self.labelCounter}:" + '\n'
         self.instructions.append(output_string)
-        for i in range(2, len(node.children)):
+        for i in range(1, len(node.children)):
             node.children[i].accept(self)
-        self.instructions.append('\n' + "while.end:" + '\n')
+        self.instructions.append('\n' + f"while.end{self.labelCounter}:" + '\n')
+        self.labelCounter += 1
         self._closeScope()
 
     #
