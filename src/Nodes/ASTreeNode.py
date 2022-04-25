@@ -117,7 +117,7 @@ class UnaryopNode(ExpressionNode):
     ## Retrieve the CType type of the result of the unary operation.
     @abstractmethod
     def inferType(self, typeList: TypeList):
-        return CType(typeList[BuiltinNames.VOID])
+        return self.parent.getChild(self.parent.children.index(self) + 1).inferType(typeList)
 
     @abstractmethod
     def evaluate(self, value: LiteralNode):

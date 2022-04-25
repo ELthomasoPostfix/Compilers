@@ -184,12 +184,6 @@ class OrNode(BinaryopNode):
 
 
 class PositiveNode(UnaryopNode):
-    def accept(self, visitor: ASTreeVisitor):
-        visitor.visitUnaryop(self)
-
-    def inferType(self, typeList: TypeList):
-        return self.parent.getChild(self.parent.children.index(self)+1).inferType(typeList)
-
     def evaluate(self, value: LiteralNode):
         return + value.getValue()
 
@@ -198,12 +192,6 @@ class PositiveNode(UnaryopNode):
 
 
 class NegativeNode(UnaryopNode):
-    def accept(self, visitor: ASTreeVisitor):
-        visitor.visitUnaryop(self)
-
-    def inferType(self, typeList: TypeList):
-        return self.parent.getChild(self.parent.children.index(self) + 1).inferType(typeList)
-
     def evaluate(self, value: LiteralNode):
         return - value.getValue()
 
@@ -212,12 +200,6 @@ class NegativeNode(UnaryopNode):
 
 
 class NotNode(UnaryopNode):
-    def accept(self, visitor: ASTreeVisitor):
-        visitor.visitUnaryop(self)
-
-    def inferType(self, typeList: TypeList):
-        return CType(typeList[BuiltinNames.INT])
-
     def evaluate(self, value: LiteralNode):
         return not value.getValue()
 
@@ -226,11 +208,8 @@ class NotNode(UnaryopNode):
 
 
 class AddressOfNode(UnaryopNode):
-    def accept(self, visitor: ASTreeVisitor):
-        visitor.visitUnaryop(self)
-
     def inferType(self, typeList: TypeList):
-        resultType: CType = copy.deepcopy(self.parent.getChild(self.parent.children.index(self) + 1).inferType(typeList))
+        resultType: CType = copy.deepcopy(super().inferType(typeList))
         return resultType.addPointer(False)
 
     def evaluate(self, value: LiteralNode):
@@ -241,11 +220,8 @@ class AddressOfNode(UnaryopNode):
 
 
 class DereferenceNode(UnaryopNode):
-    def accept(self, visitor: ASTreeVisitor):
-        visitor.visitUnaryop(self)
-
     def inferType(self, typeList: TypeList):
-        resultType: CType = copy.deepcopy(self.parent.getChild(self.parent.children.index(self) + 1).inferType(typeList))
+        resultType: CType = copy.deepcopy(super().inferType(typeList))
         return resultType.removePointer()
 
     def evaluate(self, value: LiteralNode):
@@ -256,9 +232,6 @@ class DereferenceNode(UnaryopNode):
 
 
 class PrefixIncrementNode(UnaryopNode):
-    def accept(self, visitor: ASTreeVisitor):
-        visitor.visitUnaryop(self)
-
     def evaluate(self, value: LiteralNode):
         pass
 
@@ -267,9 +240,6 @@ class PrefixIncrementNode(UnaryopNode):
 
 
 class PostfixIncrementNode(UnaryopNode):
-    def accept(self, visitor: ASTreeVisitor):
-        visitor.visitUnaryop(self)
-
     def evaluate(self, value: LiteralNode):
         pass
 
@@ -278,9 +248,6 @@ class PostfixIncrementNode(UnaryopNode):
 
 
 class PrefixDecrementNode(UnaryopNode):
-    def accept(self, visitor: ASTreeVisitor):
-        visitor.visitUnaryop(self)
-
     def evaluate(self, value: LiteralNode):
         pass
 
@@ -289,9 +256,6 @@ class PrefixDecrementNode(UnaryopNode):
 
 
 class PostfixDecrementNode(UnaryopNode):
-    def accept(self, visitor: ASTreeVisitor):
-        visitor.visitUnaryop(self)
-
     def evaluate(self, value: LiteralNode):
         pass
 

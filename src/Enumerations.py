@@ -41,6 +41,7 @@ class LLVMKeywords:
     OR: str = "or"
     MOD: str = "rem"
     COMPARE: str = "cmp"
+    FNEG: str = "fneg"
 
     EQ: str = "eq"
     NEQ: str = "neq"
