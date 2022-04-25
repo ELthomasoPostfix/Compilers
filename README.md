@@ -64,7 +64,7 @@ O: optional feature
 |     | Binary %                   | V                      | V           |             | O    |                                                                                                                 |
 |     | Constant folding           | V                      | N           | N           | O    |                                                                                                                 |
 | 2   | Types int, float, char     | V                      | V           |             | M    |                                                                                                                 |
-|     | Types pointers             | V                      | X           |             | M    |                                                                                                                 |
+|     | Types pointers             | -                      | X           |             | M    |                                                                                                                 |
 |     | Reserved words             | V                      | N           | N           | M    | int, float, char and const                                                                                      |
 |     | Variables                  | V                      | V           |             | M    | declarations, definitions <br> assignments and use in expressions                                               |
 |     | Pointer operations         | V                      | X           |             | M    | unary & and *                                                                                                   |
@@ -99,6 +99,7 @@ O: optional feature
 |     | Import                     | V                      | X           |             | M    | Support for import of stdio.h and use of printf and scanf, with sequences with codes d, i, s and c              |
 
 * Unary +, - (LLVM): Unary - works for floats but not for ints.
+* Types Pointers: The grammar does not allow (*var)++ or ++(*var). The grammar variable lvalue is missing a similar to 'STAR lvalue' for this to work.
 * Semantic Errors: missing operations of incompatible types, assignment to an rvalue and assignment to const variable
 * Conditionals 1 LLVM: Unfinished LLVM block labeling, so only a single if-else per function definition is possible
 * Local and Global variables AST: The problem lies with global variables. A lack of semantic checks means non-literal/constant expressions can be assigned to a global variable in global scope.
