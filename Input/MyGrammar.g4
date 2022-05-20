@@ -5,7 +5,7 @@ cfile
     ;
 
 block
-    : includedirective? (statement | (functiondefinition))*
+    : includedirective? (declarationstatement | (functiondefinition))*
     ;
 
 includedirective
@@ -20,8 +20,8 @@ statement
     | iterationstatement
     | jumpstatement
     | nullstatement
-    | var_decl   SEMICOLON
-    | var_assig  SEMICOLON
+    | declarationstatement
+    | var_assig     SEMICOLON
     ;
 
 expressionstatement
@@ -87,7 +87,7 @@ forCondition
 	;
 
 forinitclause
-    : var_decl
+    : declaration
     | var_assig
     | expression
     ;
@@ -96,8 +96,12 @@ forexpression
     : expression
     ;
 
-var_decl
+declaration
     : typedeclaration declarator assignment?
+    ;
+
+declarationstatement
+    : declaration SEMICOLON
     ;
 
 // TODO  assigning to expression is very wide --> Many semantic checks
@@ -111,7 +115,7 @@ var_assig
     ;
 
 assignment
-    : ASSIG expression
+    : ASSIG (expression | (LBRACE expressionlist RBRACE))
     ;
 
 functiondefinition

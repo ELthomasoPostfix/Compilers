@@ -70,7 +70,7 @@ class SymbolVisitor(ASTreeVisitor):
 
         return typeName[1:], access
 
-    def _determineVariableCType(self, node: Var_declNode) -> Tuple[CType, Accessibility]:
+    def _determineVariableCType(self, node: VariabledeclarationNode) -> Tuple[CType, Accessibility]:
         typeName, access = self._determineCTypeInfo(node.getChild(0))
 
         varType: CType = CType(self.typeList[typeName])
@@ -83,7 +83,7 @@ class SymbolVisitor(ASTreeVisitor):
             if isinstance(child, PointerNode):
                 type.addPointer(len(child.children) == 1)
 
-    def _determineVariableRecord(self, node: Var_declNode) -> Tuple[str, Record]:
+    def _determineVariableRecord(self, node: VariabledeclarationNode) -> Tuple[str, Record]:
         identifier: str = node.getIdentifierNode().identifier
         varType, access = self._determineVariableCType(node)
 
@@ -100,7 +100,7 @@ class SymbolVisitor(ASTreeVisitor):
 
         # Fill out dummy parameter info
         for parameter in node.getChild(1).children:
-            if isinstance(parameter, Var_declNode):
+            if isinstance(parameter, VariabledeclarationNode):
                 varType.paramTypes.append(self._determineVariableRecord(parameter)[1].type)
 
         return identifier, Record(varType, access)
@@ -135,7 +135,7 @@ class SymbolVisitor(ASTreeVisitor):
         # Attach actual record references
         functionType.paramTypes.clear()
         for parameter in node.getChild(1).children:
-            if isinstance(parameter, Var_declNode):
+            if isinstance(parameter, VariabledeclarationNode):
                 functionType.paramTypes.append(parameter.getIdentifierNode().record.type)
 
 
@@ -146,7 +146,7 @@ class SymbolVisitor(ASTreeVisitor):
     #   SYMBOL DECLARATIONS
     #
 
-    def visitVar_decl(self, node: Var_declNode):
+    def visitVariabledeclaration(self, node: VariabledeclarationNode):
         identifier, record = self._determineVariableRecord(node)
         self.currentSymbolTable[identifier] = record
 

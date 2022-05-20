@@ -41,7 +41,9 @@ class ForinitclauseNode:
     pass
 class ForexpressionNode:
     pass
-class Var_declNode:
+class DeclarationNode:
+    pass
+class VariabledeclarationNode:
     pass
 class Var_assigNode:
     pass
@@ -153,7 +155,7 @@ class ASTreeVisitor:
     def visitForexpression(self, node: ForexpressionNode):
         self.visitChildren(node)
 
-    def visitVar_decl(self, node: Var_declNode):
+    def visitVariabledeclaration(self, node: VariabledeclarationNode):
         self.visitChildren(node)
 
     def visitVar_assig(self, node: Var_assigNode):

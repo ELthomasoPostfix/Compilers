@@ -1,3 +1,8 @@
+int i;
+char c = 'a';
+
+
+
 int main(){
     int i;
     int j;
@@ -10,6 +15,7 @@ int main(){
 
     for(j = 0; j < 10 ; j++){
         b = b + 1;
+        char c = '';
     }
 
     return 0;

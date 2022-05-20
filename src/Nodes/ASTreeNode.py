@@ -139,9 +139,9 @@ class IdentifierNode(TypedNode):
         return self.identifier
 
 
-class Var_declNode(ASTree):
+class VariabledeclarationNode(ASTree):
     def accept(self, visitor: ASTreeVisitor):
-        visitor.visitVar_decl(self)
+        visitor.visitVariabledeclaration(self)
 
     def getIdentifierNode(self) -> IdentifierNode:
         return first(self.getChild(1).children, lambda child: isinstance(child, IdentifierNode))
@@ -163,7 +163,7 @@ class FunctiondefinitionNode(ScopedNode):
         return first(self.getChild(1).children, lambda child: isinstance(child, IdentifierNode))
 
     def getParamIdentifierNodes(self) -> List[IdentifierNode]:
-        return [varDeclaration.getIdentifierNode() for varDeclaration in self.getChild(1).children if isinstance(varDeclaration, Var_declNode)]
+        return [varDeclaration.getIdentifierNode() for varDeclaration in self.getChild(1).children if isinstance(varDeclaration, VariabledeclarationNode)]
 
 
 class Var_assigNode(ASTree):

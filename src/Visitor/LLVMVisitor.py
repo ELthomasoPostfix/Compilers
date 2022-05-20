@@ -284,7 +284,7 @@ class LLVMVisitor(ASTreeVisitor):
     # TODO
     # TODO
     # TODO
-    def visitVar_decl(self, node: Var_declNode):
+    def visitVariabledeclaration(self, node: VariabledeclarationNode):
         identifierNode = node.getIdentifierNode()
         idLLVMType = self._CToLLVMType(identifierNode.getType())
         identifier = node.getIdentifierNode().identifier
@@ -317,7 +317,7 @@ class LLVMVisitor(ASTreeVisitor):
     def visitVar_assig(self, node: Var_assigNode):
 
         # TODO this is a scuffed fix: Ignore global var initialization assignments,
-        #   let visitVar_decl handle those
+        #   let visitVariabledeclaration handle those
         if self.currentSymbolTable is None:
             return
 

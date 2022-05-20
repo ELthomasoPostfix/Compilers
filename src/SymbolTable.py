@@ -79,7 +79,6 @@ class CType:
     def __init__(self, typeIndex: int):
         super().__init__()
         self.typeIndex = typeIndex
-        self.register = None
         self._pointers: List[bool] = []
 
     ## Add a level of indirection to the CType, possibly marked const through the isConst parameter.
@@ -127,7 +126,7 @@ class CType:
         Checks pointer equality if :requirePointerEq: is true.
         """
 
-        return ((isinstance(other, int) and other == self.typeIndex) or\
+        return ((isinstance(other, int) and other == self.typeIndex) or
                 (isinstance(other, CType) and self.typeIndex == other.typeIndex)) and \
                (not requirePointerEq or (requirePointerEq and self._pointers == other._pointers))
 

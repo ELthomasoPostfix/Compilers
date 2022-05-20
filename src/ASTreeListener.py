@@ -100,7 +100,7 @@ class ASTreeListener(MyGrammarListener):
         printfDeclaration.addChild(FunctionDeclaratorNode()).\
             addChild(IdentifierNode("printf"))
 
-        param = Var_declNode()
+        param = VariabledeclarationNode()
         param.addChild(TypedeclarationNode()).\
             addChild(TypespecifierNode(BuiltinNames.CHAR))      # Type specifier
         param.getChild(0).addChild(ConstNode(), 0)    # const
@@ -300,10 +300,10 @@ class ASTreeListener(MyGrammarListener):
                 self.siblingsChildIsTerminalType(ctx, -1, MyGrammarParser.REF):
             self.addCurrentChild(DereferenceNode())
 
-    def enterVar_decl(self, ctx: MyGrammarParser.Var_declContext):
-        self.addCurrentChild(Var_declNode())
+    def enterDeclaration(self, ctx:MyGrammarParser.DeclarationContext):
+        self.addCurrentChild(VariabledeclarationNode())
 
-    def exitVar_decl(self, ctx:MyGrammarParser.Var_declContext):
+    def exitDeclaration(self, ctx:MyGrammarParser.DeclarationContext):
         if isinstance(self.current.getChild(1), FunctionDeclaratorNode):
             self.replaceCurrent(FunctiondeclarationNode())
             if len(self.current.children) == 3:
@@ -334,7 +334,7 @@ class ASTreeListener(MyGrammarListener):
             self.replaceCurrent(FunctionDeclaratorNode())
 
     def enterFunctionparameter(self, ctx:MyGrammarParser.FunctionparameterContext):
-        self.addCurrentChild(Var_declNode())
+        self.addCurrentChild(VariabledeclarationNode())
 
     def enterTypedeclaration(self, ctx:MyGrammarParser.TypedeclarationContext):
         self.addCurrentChild(TypedeclarationNode())
