@@ -74,7 +74,8 @@ class SymbolVisitor(ASTreeVisitor):
         typeName, access = self._determineCTypeInfo(node.getChild(0))
 
         varType: CType = CType(self.typeList[typeName])
-        self._addPointerTypeInfo(node.getChild(1), varType)
+        self._addPointerTypeInfo(node.getDeclaratorNode(), varType)
+        varType.isArray = isinstance(node.getDeclaratorNode(), ArrayDeclaratorNode)
 
         return varType, access
 

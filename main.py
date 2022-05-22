@@ -50,7 +50,7 @@ def main():
 
 
 
-    listener.root.toDot(f"beginTree_{ifName}.dot", detailed=True, typeList=tl)
+    listener.root.toDot(f"beginTree_{ifName}.dot", detailed=True)
 
     SVisitor = SymbolVisitor(tl)
     listener.root.accept(SVisitor)
@@ -61,7 +61,7 @@ def main():
     OVisitor = OptimizationVisitor()
     listener.root.accept(OVisitor)
 
-    listener.root.toDot(f"endTree_{ifName}.dot", detailed=True, typeList=tl)
+    listener.root.toDot(f"endTree_{ifName}.dot", detailed=True)
 
     llvmVisitor = LLVMVisitor(tl)
     listener.root.accept(llvmVisitor)
