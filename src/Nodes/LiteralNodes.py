@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 from src.Nodes.ASTreeNode import LiteralNode
-from src.SymbolTable import TypeList, CType, CType
-from src.Visitor import ASTreeVisitor
+from src.SymbolTable import TypeList, CType
 from src.Enumerations import BuiltinRanks, BuiltinNames, LLVMKeywords
 
 
@@ -14,13 +15,11 @@ def promote(left: LiteralNode, right: LiteralNode) -> [LiteralNode, LiteralNode]
 
 
 class IntegerNode(LiteralNode):
-    def accept(self, visitor: ASTreeVisitor):
-        visitor.visitLiteral(self)
-
     def inferType(self, typeList: TypeList) -> CType:
         return CType(typeList[BuiltinNames.INT])
 
-    def rank(self) -> int:
+    @staticmethod
+    def rank() -> int:
         return BuiltinRanks.INT
 
     def setValue(self, value) -> None:
@@ -41,14 +40,15 @@ class IntegerNode(LiteralNode):
 
 
 class FloatNode(LiteralNode):
-    def accept(self, visitor: ASTreeVisitor):
-        visitor.visitLiteral(self)
-
     def inferType(self, typeList: TypeList) -> CType:
         return CType(typeList[BuiltinNames.FLOAT])
 
-    def rank(self) -> int:
+    @staticmethod
+    def rank() -> int:
         return BuiltinRanks.FLOAT
+
+    def name(self) -> str:
+        return BuiltinNames.FLOAT
 
     def setValue(self, value) -> None:
         """
@@ -67,17 +67,20 @@ class FloatNode(LiteralNode):
         return str(self.getValue())
 
 
+# TODO  A string literal must be null terminated (\00 or \x00) and is converted to a char array.
+#   Only array subscript can be applied to string literals.
 class CharNode(LiteralNode):
-    def accept(self, visitor: ASTreeVisitor):
-        visitor.visitLiteral(self)
-
     def inferType(self, typeList: TypeList) -> CType:
         if len(self._value) > 1:
             return CType(typeList[BuiltinNames.CHAR]).addPointer(False)
         return CType(typeList[BuiltinNames.CHAR])
 
-    def rank(self) -> int:
+    @staticmethod
+    def rank() -> int:
         return BuiltinRanks.CHAR
+
+    def name(self) -> str:
+        return BuiltinNames.CHAR
 
     def setValue(self, value) -> None:
         """

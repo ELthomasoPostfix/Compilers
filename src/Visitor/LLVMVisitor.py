@@ -177,6 +177,7 @@ class LLVMVisitor(ASTreeVisitor):
         return prefix
 
     def _CToLLVMType(self, cType: CType) -> str:
+        # TODO take array type into account
         llvmType = ""
         if cType == self.typeList[BuiltinNames.CHAR]:
             llvmType = LLVMKeywords.CHAR

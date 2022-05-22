@@ -143,8 +143,11 @@ class VariabledeclarationNode(ASTree):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitVariabledeclaration(self)
 
+    def getDeclaratorNode(self) -> DeclaratorNode:
+        return self.getChild(1)
+
     def getIdentifierNode(self) -> IdentifierNode:
-        return first(self.getChild(1).children, lambda child: isinstance(child, IdentifierNode))
+        return first(self.getDeclaratorNode().children, lambda child: isinstance(child, IdentifierNode))
 
 
 class FunctiondeclarationNode(ScopedNode):
@@ -173,14 +176,24 @@ class Var_assigNode(ASTree):
     def getIdentifierNode(self) -> IdentifierNode:
         return self.getChild(0)
 
+
 class DeclaratorNode(ASTree):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitDeclarator(self)
+
+    def getIdentifierNode(self):
+        return next(node for node in self.children if isinstance(node, IdentifierNode))
 
 
 class ArrayDeclaratorNode(DeclaratorNode):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitDeclarator(self)
+
+    def getArraySize(self):
+        return self.getChild(1)
+
+    def getSubscriptExpressions(self):
+        return self.children[next(idx+1 for idx, child in enumerate(self.children) if isinstance(child, IdentifierNode)):]
 
 
 class FunctionDeclaratorNode(DeclaratorNode):
@@ -254,8 +267,9 @@ class LiteralNode(ExpressionNode):
         pass
 
     ## Retrieve the rank of the concrete LiteralNode (built-in type).
+    @staticmethod
     @abstractmethod
-    def rank(self) -> int:
+    def rank() -> int:
         pass
 
     def getValue(self):

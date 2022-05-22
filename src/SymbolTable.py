@@ -66,6 +66,9 @@ class TypeList:
             self.reverseMapping[newType] = len(self.typeList)
             self.typeList.append(newType)
 
+    def __len__(self):
+        return len(self.typeList)
+
     def __repr__(self):
         return self.typeList.__repr__()
 
@@ -76,9 +79,10 @@ class TypeList:
 class CType:
     """A class representing type information for a variable."""
 
-    def __init__(self, typeIndex: int):
+    def __init__(self, typeIndex: int, isArray: bool = False):
         super().__init__()
         self.typeIndex = typeIndex
+        self.isArray = isArray
         self._pointers: List[bool] = []
 
     ## Add a level of indirection to the CType, possibly marked const through the isConst parameter.
@@ -122,7 +126,7 @@ class CType:
     def __eq__(self, other, requirePointerEq: bool = False):
         """
         Equality check with :other:.
-        Checks type equality
+        Checks type equality.
         Checks pointer equality if :requirePointerEq: is true.
         """
 
@@ -134,14 +138,16 @@ class CType:
         return self.__str__()
 
     def __str__(self):
-        return str(self.typeIndex) + (" " if self.pointerCount() > 0 else "") + "".join(["*" + ("const " if const else "") for const in self._pointers])
+        return str(self.typeIndex) +\
+               (" " if self.pointerCount() > 0 else "") + "".join(["*" + ("const " if const else "") for const in self._pointers]) + \
+               (" []" if self.isArray else "")
 
 
 class FunctionCType(CType):
     """A class representing type information for a function."""
 
     def __init__(self, returnType: int, isDefinition: bool):
-        super().__init__(returnType)
+        super().__init__(returnType, False)
         self.paramTypes: List[CType] = []
         self.isDefinition: bool = isDefinition
 

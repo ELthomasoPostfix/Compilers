@@ -1,49 +1,55 @@
-// empty char
+int main () {
 
-'';
+  // empty char
 
-// alphabet and symbols
-'a';
-'Z';
-'4';
-'%';
-'+';
-'-';
-'/';
-'^';
-'[';
-'(';
-'{';
-'!';
-'#';
+    '';
 
-// simple escape sequence
-'\'';
-'\"';
-'\?';
-'\\';
-'\a';
-'\b';
-'\f';
-'\n';
-'\r';
-'\t';
-'\v';
+    // alphabet and symbols
+    'a';
+    'Z';
+    '4';
+    '%';
+    '+';
+    '-';
+    '/';
+    '^';
+    '[';
+    '(';
+    '{';
+    '!';
+    '#';
 
-// octal escape sequence
+    // simple escape sequence
+    '\'';
+    '\"';
+    '\?';
+    '\\';
+    '\a';
+    '\b';
+    '\f';
+    '\n';
+    '\r';
+    '\t';
+    '\v';
 
-'\000';
-'\0';
-'\16';
-'\707';
-'\777';
-'\235';
+    // octal escape sequence
 
-// hex escape sequence
+    '\000';
+    '\0';
+    '\16';
+    '\707';
+    '\777';
+    '\235';
 
-'\xaf';
-'\x1F';
-'\xB9';
-'\x00';
-'\x1';
-'\x0';
+    // hex escape sequence
+
+    '\xaf';
+    '\x1F';
+    '\xB9';
+    '\x00';
+    '\x1';
+    '\x0';
+
+
+  return 0;
+}

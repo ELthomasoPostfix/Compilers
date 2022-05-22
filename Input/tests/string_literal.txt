@@ -1,17 +1,19 @@
-// empty string
+int main () {
+    // empty string
 
-"";
+    "";
 
-// alphabet and symbols
-"aZ4%+-/^[({!#";
+    // alphabet and symbols
+    "aZ4%+-/^[({!#";
 
-// simple escape sequence
-"\'\"\?\\\a\b\f\n\r\t\v";
+    // simple escape sequence
+    "\'\"\?\\\a\b\f\n\r\t\v";
 
-// octal escape sequence
+    // octal escape sequence
 
-"\000\0\16\707\777\235";
+    "\000\0\16\707\777\235";
 
-// hex escape sequence
+    // hex escape sequence
 
-"\xaf\x1F\xB9\x00\x1\x0";
+    "\xaf\x1F\xB9\x00\x1\x0";
+}

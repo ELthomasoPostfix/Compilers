@@ -4,6 +4,7 @@ from antlr4 import *
 
 from src.CompilersUtils import coloredDef
 from src.Enumerations import BuiltinNames
+from src.Nodes.LiteralNodes import IntegerNode, CharNode
 from src.SymbolTable import TypeList
 from src.Visitor.SemanticVisitor import SemanticVisitor
 from src.Visitor.SymbolVisitor import SymbolVisitor
@@ -49,7 +50,7 @@ def main():
 
 
 
-    listener.root.toDot(f"beginTree_{ifName}.dot", detailed=True)
+    listener.root.toDot(f"beginTree_{ifName}.dot", detailed=True, typeList=tl)
 
     SVisitor = SymbolVisitor(tl)
     listener.root.accept(SVisitor)
@@ -60,7 +61,7 @@ def main():
     OVisitor = OptimizationVisitor()
     listener.root.accept(OVisitor)
 
-    listener.root.toDot(f"endTree_{ifName}.dot", detailed=True)
+    listener.root.toDot(f"endTree_{ifName}.dot", detailed=True, typeList=tl)
 
     llvmVisitor = LLVMVisitor(tl)
     listener.root.accept(llvmVisitor)
