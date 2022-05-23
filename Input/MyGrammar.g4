@@ -373,7 +373,7 @@ fragment ESCAPE_SEQUENCE
     |   HEX_ESCAPE_SEQUENCE
     ;
 fragment CHARACTER_ESCAPE_SEQUENCE
-    :   '\\' ['"?abfnrtv\\]
+    :   '\\' ['"abfnrtv\\]      // We do not support the \? escape sequence
     ;
 fragment OCT_DIG
     :   [0-7]

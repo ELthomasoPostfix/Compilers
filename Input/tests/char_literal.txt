@@ -1,8 +1,8 @@
 int main () {
 
-  // empty char
+    // empty char NOT allowed
 
-    '';
+    // '';
 
     // alphabet and symbols
     'a';
@@ -22,7 +22,7 @@ int main () {
     // simple escape sequence
     '\'';
     '\"';
-    '\?';
+    // '\?';    // We do not support this C escape sequence
     '\\';
     '\a';
     '\b';

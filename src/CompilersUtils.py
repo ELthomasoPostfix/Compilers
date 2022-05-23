@@ -1,5 +1,5 @@
 import sys
-
+from ctypes import pointer, c_float, POINTER, c_int32, cast, c_char
 from typing import List, Set, Dict
 
 
@@ -20,6 +20,54 @@ def first(items: list, predicate: callable):
     """
     return next((item for item in items if predicate(item)), None)
 
+
+def ftoi(fl: float) -> int:
+    """
+    Interpret the passed single precision (32-bit) floating point bit sequence as a signed integer.
+
+    :param fl: The to interpret float.
+    :return: The integer interpretation.
+    """
+
+    return cast(pointer(c_float(fl)), POINTER(c_int32)).contents.value
+
+
+def isOctalEscapeSequence(octal: str) -> bool:
+    if len(octal) < 2 or len(octal) > 4:
+        return False
+    return octal[0] == '\\' and all('0' <= dig <= '7' for dig in octal[1:])
+
+
+def isHexEscapeSequence(hex: str) -> bool:
+    if len(hex) < 3 or len(hex) > 4:
+        return False
+    return hex[:2] == "\\x" and all('0' <= dig <= '9' or 'a' <= dig <= 'f' or 'A' <= dig <= 'F' for dig in hex[2:])
+
+
+def isCharEscapeSequence(char: str) -> bool:
+    l = len(char)
+    if len(char) != 2:
+        return False
+    return char[0] == '\\' and char[1] in "\'\"abfnrtv\\"
+
+
+def ctoi(c: str) -> int:
+    """
+    Interpret the signed char bit sequence, octal escape sequence or hex escape sequence as a signed integer.
+
+    :param c: The to interpret char.
+    :return: The integer interpretation.
+    """
+
+    if isOctalEscapeSequence(c):
+        return int(c[1:], 8)
+    elif isHexEscapeSequence(c):
+        return int(c[2:], 16)
+    elif isCharEscapeSequence(c):
+        c = bytes(c, "utf-8").decode("unicode_escape")
+
+    assert len(c) == 1
+    return ord(c)
 
 
 

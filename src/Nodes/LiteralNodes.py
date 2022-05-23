@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from src.CompilersUtils import ctoi
 from src.Nodes.ASTreeNode import LiteralNode
 from src.SymbolTable import TypeList, CType
 from src.Enumerations import BuiltinRanks, BuiltinNames, LLVMKeywords
@@ -47,9 +48,6 @@ class FloatNode(LiteralNode):
     def rank() -> int:
         return BuiltinRanks.FLOAT
 
-    def name(self) -> str:
-        return BuiltinNames.FLOAT
-
     def setValue(self, value) -> None:
         """
         Set the value of the LiteralNode.
@@ -79,24 +77,24 @@ class CharNode(LiteralNode):
     def rank() -> int:
         return BuiltinRanks.CHAR
 
-    def name(self) -> str:
-        return BuiltinNames.CHAR
-
-    def setValue(self, value) -> None:
+    def setValue(self, value: str | int) -> None:
         """
         Set the value of the LiteralNode.
-        pre-cond: :value: is convertible to str type
+        pre-cond: :value: is a len 1 string convertible to an int, octal escape sequence, hex escape sequence or an int
         post-cond: value member of LiteralNode is assigned the passed value
 
         :param value: The new value of the LiteralNode
         """
 
-        self._value = str(value)
-        assert isinstance(self._value, str), f"{self.__class__.__name__} incorrectly set value: expected type {str}," \
+        assert isinstance(value, int) or isinstance(value, str), f"Cannot construct {self.__class__.__name__} instance " \
+                                                                 f"from {value.__class__.__name__} type value"
+
+        self._value = ctoi(value) if isinstance(value, str) else value
+        assert isinstance(self._value, int), f"{self.__class__.__name__} incorrectly set value: expected type {int}," \
                                              f" but got {type(self.getValue())}"
 
     def __repr__(self):
-        return "'" + self.getValue() + "'"
+        return "'" + str(self.getValue()) + "'"
 
 
 def coerce(operand: LiteralNode, rank: int):

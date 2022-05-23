@@ -6,7 +6,7 @@ from antlr4 import ParserRuleContext
 from antlr4.tree.Tree import TerminalNodeImpl
 
 from src.CompilersUtils import coloredDef
-from src.Exceptions.exceptions import DeclarationException
+from src.Exceptions.exceptions import DeclarationException, InitializationException
 from src.Nodes.IterationNodes import WhileNode, DoWhileNode
 from src.Nodes.JumpNodes import ContinueNode, BreakNode, ReturnNode
 from src.Nodes.QualifierNodes import ConstNode
@@ -361,7 +361,10 @@ class ASTreeListener(MyGrammarListener):
         elif self.isTerminalType(ctx.getChild(0), MyGrammarParser.LITERAL_FLOAT):
             self.addCurrentChild(FloatNode(float(ctx.getText())))
         elif self.isTerminalType(ctx.getChild(0), MyGrammarParser.LITERAL_CHAR):
-            self.addCurrentChild(CharNode(self.getStringContents(ctx)))
+            char = self.getStringContents(ctx)
+            if len(char) == 0:
+                raise InitializationException("Empty char literal")
+            self.addCurrentChild(CharNode(char))
         elif self.isTerminalType(ctx.getChild(0), MyGrammarParser.LITERAL_STRING):
             self.addCurrentChild(CharNode(self.getStringContents(ctx)))
 
