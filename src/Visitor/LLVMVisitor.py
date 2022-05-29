@@ -12,18 +12,17 @@ from src.SymbolTable import FunctionCType
 from src.Visitor.ASTreeVisitor import ASTreeVisitor, ForexpressionNode, AssignmentNode, FunctiondeclaratorNode
 from src.Nodes.ASTreeNode import *
 from src.Enumerations import LLVMKeywords as llk
+from src.Visitor.GenerationVisitor import GenerationVisitor
 
 
-
-class LLVMVisitor(ASTreeVisitor):
+class LLVMVisitor(GenerationVisitor):
     def __init__(self, typeList: TypeList):
         self.instructions = []
-        self.typeList = typeList
         self.tab = '\t'
         self.localRegisterCounter = 0
         self.globalRegisterCounter = 0
-        self.currentSymbolTable: SymbolTable | None = None
         self.labelCounter = 0
+        super().__init__(typeList)
 
     #
     #   REGISTER HANDLING HELPER METHODS
@@ -108,6 +107,9 @@ class LLVMVisitor(ASTreeVisitor):
         else:
             return f"%{self.localRegisterCounter - 1}"
 
+    def _evaluateExpression(self, expressionNode: ExpressionNode) -> str:
+        expressionNode.accept(self)
+        return self._getExpressionLocation(expressionNode)
     #
     #   SCOPE HANDLING HELPER METHODS
     #
@@ -213,8 +215,7 @@ class LLVMVisitor(ASTreeVisitor):
         output_string = ""
         returnExpression = returnNode.getChild(0)
 
-        returnExpression.accept(self)   # evaluate return expression
-        retExpLocation = self._getExpressionLocation(returnExpression)
+        retExpLocation = self._evaluateExpression(returnExpression)  # evaluate return expression
         retExpType = self._CToLLVMType(returnExpression.inferType(self.typeList))
 
         return '\t' + f"{llk.RETURN} {retExpType} {retExpLocation}" + '\n'
@@ -326,15 +327,13 @@ class LLVMVisitor(ASTreeVisitor):
         rhs = node.getChild(1)
 
         # Visit rhs expression
-        node.getChild(1).accept(self)
-
-        rhsLocation = self._getExpressionLocation(rhs)
+        rhsLocation = self._evaluateExpression(rhs)
 
         if not isinstance(lhs, IdentifierNode):
             raise UnsupportedFeature("The left hand side of an assignment MUST be an identifier for now")
 
         # Visit lhs expression
-        node.getChild(0).accept(self)
+        lhs.accept(self)
 
         # Assign the register where the result is stored as the location of lhs
         self.currentSymbolTable[lhs.identifier].register = rhsLocation
@@ -350,11 +349,11 @@ class LLVMVisitor(ASTreeVisitor):
         rhs: ExpressionNode = node.getChild(1)
         lhsLLVMType = self._CToLLVMType(lhs.inferType(self.typeList))
 
-        lhs.accept(self)    # evaluate lhs
-        lhsLocation = self._getExpressionLocation(lhs)
+        # evaluate lhs
+        lhsLocation = self._evaluateExpression(lhs)
 
-        rhs.accept(self)    # evaluate rhs
-        rhsLocation = self._getExpressionLocation(rhs)
+        # evaluate rhs
+        rhsLocation = self._evaluateExpression(rhs)
 
         # Reserve register only after operands have reserved theirs
         dstTempRegister: str = self._reserveUnnamedRegister('%')
@@ -388,10 +387,10 @@ class LLVMVisitor(ASTreeVisitor):
 
         for idx, param in enumerate(callParams):
             # Evaluate the parameter expression
-            param.accept(self)
+            paramLoc = self._evaluateExpression(param)
 
             # Add expression result to call
-            output_string += f"{self._CToLLVMType(param.inferType(self.typeList))} {self._getExpressionLocation(param)}"
+            output_string += f"{self._CToLLVMType(param.inferType(self.typeList))} {paramLoc}"
 
             # Add comma separator
             # Check object identity, not equality (mem address vs __eq__ method)
@@ -408,27 +407,11 @@ class LLVMVisitor(ASTreeVisitor):
             output_string = self.returnStatement(node, self._CToLLVMType(funcDefType))
             self.instructions.append(output_string)
 
-    def visitBlock(self, node: BlockNode):
-        self._openScope(node)
-
-        # The self.visitChildren(node) call may be replaced by LLVM generation code
-        self.visitChildren(node)
-
-        self._closeScope()
-
-    def visitCompoundstatement(self, node: CompoundstatementNode):
-        self._openScope(node)
-
-        # The self.visitChildren(node) call may be replaced by LLVM generation code
-        self.visitChildren(node)
-
-        self._closeScope()
-
     def visitSelectionstatement(self, node: SelectionstatementNode):
         self._openScope(node)
         ifn = node
-        ifn.getChild(0).accept(self)    # evaluate condition
-        result = self._getExpressionLocation(ifn.getChild(0))
+        # evaluate condition
+        result = self._evaluateExpression(ifn.getChild(0))
         output_string = ""
         output_string += '\t' + f"{llk.BRANCH} {llk.I1} {result}, label %if.then, label %if.else" + '\n'
         output_string += '\n' + "if.then:" + '\n'
@@ -465,8 +448,7 @@ class LLVMVisitor(ASTreeVisitor):
             # TODO  same as above comment (or at least similar)
             if ifn.getChild(0) is None:
                 return
-            ifn.getChild(0).accept(self)
-            result = self._getExpressionLocation(ifn.getChild(0))
+            result = self._evaluateExpression(ifn.getChild(0))
             output_string += '\t' + f"br i1 {result}, label %if.then{branch_counter}, label %if.else{branch_counter+1}"
             output_string += '\n' + '\n'
             output_string += f"if.then{branch_counter}:" + '\n'
@@ -486,8 +468,7 @@ class LLVMVisitor(ASTreeVisitor):
 
         output_string = ""
         ifn = node
-        ifn.getChild(0).accept(self)
-        result = self._getExpressionLocation(ifn.getChild(0))
+        result = self._evaluateExpression(ifn.getChild(0))
         output_string += '\t' + f"br label %while.cond{self.labelCounter}" + '\n'
         output_string += '\n' + f"while.cond{self.labelCounter}:" + '\n'
         output_string += '\t' + f"br i1 {result}, label %while.body{self.labelCounter}, label %while.end{self.labelCounter}"
