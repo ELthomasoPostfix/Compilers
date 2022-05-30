@@ -171,12 +171,15 @@ class FunctionCType(CType):
 
 
 
+class MIPSLocation:
+    pass
+
 
 class Record:
     def __init__(self, cType: CType, access: Accessibility):
         self.type: CType = cType
         self.access = access
-        self.register: str = ""
+        self.register: str | MIPSLocation = ""
         self.fpOffset: int = -1     # Offset of the allocated stack memory to the frame pointer
 
     def __repr__(self):

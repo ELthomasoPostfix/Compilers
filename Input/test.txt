@@ -1,5 +1,3 @@
-int fi(char c1, char c2) { return 2; }
-
 int main() {
   int i0 = 1;
   int i1 = 4;

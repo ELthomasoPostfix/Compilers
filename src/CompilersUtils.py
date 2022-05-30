@@ -1,5 +1,6 @@
 import sys
 from ctypes import pointer, c_float, POINTER, c_int32, cast, c_char
+from math import ceil, floor
 from typing import List, Set, Dict
 
 
@@ -68,6 +69,28 @@ def ctoi(c: str) -> int:
     assert len(c) == 1
     return ord(c)
 
+
+def toCaptureRange(limit: int):
+    """
+    Create a regex expression that captures integers in the
+    range [0, :limit:] for limit less than 100.
+
+    :param limit: The upper limit of the capture group
+    :return: The generated regex
+    """
+
+    count = ceil(limit / 10)
+    regex = '('
+    mod = limit % 10
+    leftover = '0' if mod == 0 else f"[0-{mod}]"
+
+    regex += leftover if limit < 10 else "[0-9]"
+    regex += "" if limit < 20 else "|" + ("1" if limit < 30 else f"[1-{floor(limit / 10) - 1}]") + "[0-9]"
+    regex += "" if limit < 10 else f"|{count - (mod != 0)}" + leftover
+
+    regex += ')'
+
+    return regex
 
 
 class FlagContainer:
