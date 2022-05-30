@@ -9,6 +9,14 @@ class CCompilerException(Exception):
 #########################################
 
 
+class OutOfBoundsLiteral(CCompilerException):
+    pass
+
+#########################################
+# Declaration and Definition exceptions #
+#########################################
+
+
 class DeclarationException(CCompilerException):
     def __int__(self, message):
         super().__init__(message)

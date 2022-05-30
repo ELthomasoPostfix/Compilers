@@ -1,12 +1,11 @@
-int globInt = 4;
+int fi(char c1, char c2) { return 2; }
 
 int main() {
+  int i0 = 1;
+  int i1 = 4;
+  int i = 2 * i1 + i0 - i0 * 4;
+  // int i = 2 * i1 + i0 - - i0 * 4;
 
-  int constProp = 5;
-  int ia[3] = {2, 3};
-  //int iaz[0];
-  int ial[2] = {1, 2};
-  int* ipa[2];
 
   return 0;
 }

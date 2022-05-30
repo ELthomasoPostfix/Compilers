@@ -7,7 +7,7 @@ from src.Visitor.ASTreeVisitor import ASTreeVisitor
 
 class GenerationVisitor(ASTreeVisitor):
     def __init__(self, typeList: TypeList):
-        self.typeList = typeList
+        self.typeList: TypeList = typeList
         self.currentSymbolTable: SymbolTable | None = None
         super().__init__()
 

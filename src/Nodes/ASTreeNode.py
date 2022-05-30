@@ -12,12 +12,23 @@ from abc import ABCMeta, abstractmethod
 
 
 class ExpressionNode(ASTree):
+    def __init__(self, parent=None):
+        super(ExpressionNode, self).__init__(parent)
+        self.ershovNumber = 0
+
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitExpression(self)
 
     @abstractmethod
     def inferType(self, typeList: TypeList) -> CType:
         return CType(typeList[BuiltinNames.VOID])
+
+    @abstractmethod
+    def evaluateErshovNumber(self):
+        pass
+
+    def ershovNumberIsEvaluated(self):
+        return self.ershovNumber >= 1
 
 
 class TypedNode(ExpressionNode):
@@ -34,6 +45,10 @@ class TypedNode(ExpressionNode):
     @abstractmethod
     def inferType(self, typeList: TypeList) -> CType:
         return super().inferType(typeList)
+
+    @abstractmethod
+    def evaluateErshovNumber(self):
+        pass
 
     def __repr__(self):
         return self.__str__() + "\\n" + str(self.record)
@@ -107,7 +122,23 @@ class UnaryexpressionNode(ExpressionNode):
 
     ## Retrieve the CType type of the result of the unary expression.
     def inferType(self, typeList: TypeList) -> CType:
-        return self.getChild(0).inferType(typeList)
+        return self.getSubExpression().inferType(typeList)
+
+    ## Retrieve the child of the unary expression that will be applied last of all operators or atoms
+    def getSubExpression(self) -> ExpressionNode:
+        """
+        Retrieve the operator or atom (identifier or literal) that will
+        be applied last in evaluating the unary expression.
+
+        :return: The child applied last
+        """
+
+        return self.getChild(0)
+
+    def evaluateErshovNumber(self):
+        subExpression = self.getSubExpression()
+        subExpression.evaluateErshovNumber()
+        self.ershovNumber = subExpression.ershovNumber
 
 
 class UnaryopNode(ExpressionNode):
@@ -117,11 +148,26 @@ class UnaryopNode(ExpressionNode):
     ## Retrieve the CType type of the result of the unary operation.
     @abstractmethod
     def inferType(self, typeList: TypeList):
-        return self.parent.getChild(self.parent.children.index(self) + 1).inferType(typeList)
+        return self.getSubExpression().inferType(typeList)
 
     @abstractmethod
     def evaluate(self, value: LiteralNode):
         pass
+
+    ## Get the expression the unary operator will be applied to
+    def getSubExpression(self) -> ExpressionNode:
+        """
+        Get the expression the unary operator will be applied to
+
+        :return: The sub expression of the operator
+        """
+
+        return self.parent.getChild(self.parent.children.index(self) + 1)
+
+    def evaluateErshovNumber(self):
+        subExpression = self.getSubExpression()
+        subExpression.evaluateErshovNumber()
+        self.ershovNumber = subExpression.ershovNumber
 
 
 class IdentifierNode(TypedNode):
@@ -134,6 +180,9 @@ class IdentifierNode(TypedNode):
 
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitIdentifier(self)
+
+    def evaluateErshovNumber(self):
+        self.ershovNumber = 1
 
     def __str__(self):
         return self.identifier
@@ -255,8 +304,9 @@ class LiteralNode(ExpressionNode):
         visitor.visitLiteral(self)
 
     ## Retrieve the CType type of the concrete LiteralNode (built-in type).
+    @staticmethod
     @abstractmethod
-    def inferType(self, typeList: TypeList) -> CType:
+    def inferType(typeList: TypeList) -> CType:
         """
         Determine the CType of the LiteralNode.
 
@@ -295,6 +345,9 @@ class LiteralNode(ExpressionNode):
     def __repr__(self):
         return self.getValue()
 
+    def evaluateErshovNumber(self):
+        self.ershovNumber = 1
+
 
 ## An recursive instance of an ExpressionNode.
 # Provides an interface to infer the CType return type of the function call through FunctioncallNode::inferType.
@@ -312,6 +365,26 @@ class FunctioncallNode(ExpressionNode):
 
     def getIdentifierNode(self) -> IdentifierNode:
         return self.getChild(0)
+
+    def evaluateErshovNumber(self):
+        paramExpressions = self.getParameterNodes()
+        if len(paramExpressions) == 0:
+            return
+
+        for param in paramExpressions:
+            param.evaluateErshovNumber()
+
+        # The first expression needs to at least be evaluated
+        self.ershovNumber = paramExpressions[0].ershovNumber
+        for idx in range(1, len(paramExpressions)):
+            ershov = paramExpressions[idx].ershovNumber     # next expression's ershov number
+            # If all param expressions are evaluated in order, then the max of
+            # the new epxr and the current max is enough to evaluate both
+            if self.ershovNumber != ershov:
+                self.ershovNumber = max(self.ershovNumber, ershov)
+            # Holding the previous result costs one register
+            else:
+                self.ershovNumber += 1
 
 
 ## An recursive instance of an ExpressionNode.
@@ -334,9 +407,26 @@ class BinaryopNode(ExpressionNode):
     def getLLVMOpKeyword(self) -> str:
         return "dummyKeyword"
 
+    @staticmethod
+    @abstractmethod
+    def getMIPSROpKeyword(instructionType: str) -> str:
+        if instructionType == "I":
+            return "dummy-I"
+        elif instructionType == "R":
+            return "dummy-R"
+        return "dummyKeyword"
+
     @abstractmethod
     def evaluate(self, left: LiteralNode, right: LiteralNode) -> LiteralNode:
         pass
+
+    def evaluateErshovNumber(self):
+        for operand in self.children:
+            operand.evaluateErshovNumber()
+        if self.getChild(0).ershovNumber != self.getChild(1).ershovNumber:
+            self.ershovNumber = max([operand.ershovNumber for operand in self.children])
+        else:
+            self.ershovNumber = self.getChild(1).ershovNumber + 1
 
 
 class PointerNode(ASTree):

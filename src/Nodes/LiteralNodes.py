@@ -16,7 +16,8 @@ def promote(left: LiteralNode, right: LiteralNode) -> [LiteralNode, LiteralNode]
 
 
 class IntegerNode(LiteralNode):
-    def inferType(self, typeList: TypeList) -> CType:
+    @staticmethod
+    def inferType(typeList: TypeList) -> CType:
         return CType(typeList[BuiltinNames.INT])
 
     @staticmethod
@@ -41,7 +42,8 @@ class IntegerNode(LiteralNode):
 
 
 class FloatNode(LiteralNode):
-    def inferType(self, typeList: TypeList) -> CType:
+    @staticmethod
+    def inferType(typeList: TypeList) -> CType:
         return CType(typeList[BuiltinNames.FLOAT])
 
     @staticmethod
@@ -68,9 +70,8 @@ class FloatNode(LiteralNode):
 # TODO  A string literal must be null terminated (\00 or \x00) and is converted to a char array.
 #   Only array subscript can be applied to string literals.
 class CharNode(LiteralNode):
-    def inferType(self, typeList: TypeList) -> CType:
-        if len(self._value) > 1:
-            return CType(typeList[BuiltinNames.CHAR]).addPointer(False)
+    @staticmethod
+    def inferType(typeList: TypeList) -> CType:
         return CType(typeList[BuiltinNames.CHAR])
 
     @staticmethod

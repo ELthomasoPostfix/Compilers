@@ -1,17 +1,19 @@
 from src.Nodes.ASTreeNode import *
 from src.Exceptions.exceptions import MisplacedJumpStatement, InvalidReturnStatement, InvalidFunctionCall, \
-    InvalidBinaryOperation, UnsupportedFeature, DeclarationException, InitializationException
+    InvalidBinaryOperation, UnsupportedFeature, DeclarationException, InitializationException, OutOfBoundsLiteral
 from src.Nodes.JumpNodes import ContinueNode, BreakNode, ReturnNode
-from src.Nodes.LiteralNodes import IntegerNode
+from src.Nodes.LiteralNodes import IntegerNode, FloatNode, CharNode
 from src.Nodes.OperatorNodes import ModNode, ArraySubscriptNode
+from src.Visitor.ASTreeVisitor import AssignmentNode
 
 
 class SemanticVisitor(ASTreeVisitor):
     def __init__(self, typeList: TypeList):
         self.typeList: TypeList = typeList
+        self.mainExists = False
 
     def toTypeName(self, ctype: CType):
-        return self.typeList[ctype.typeIndex]
+        return ctype.typeName(self.typeList)
 
     def visitJumpstatement(self, node: JumpstatementNode):
         if (isinstance(node, ContinueNode) or isinstance(node, BreakNode)) and\
@@ -21,7 +23,6 @@ class SemanticVisitor(ASTreeVisitor):
             raise MisplacedJumpStatement(node.__str__(), "function definition")
 
     def visitFunctiondefinition(self, node: FunctiondefinitionNode):
-        traverse = node.preorderTraverse([], 0)
         returnNodes = [retNode[0]
                        for retNode in node.preorderTraverse([], 0)
                        if isinstance(retNode[0], ReturnNode)]
@@ -74,9 +75,12 @@ class SemanticVisitor(ASTreeVisitor):
         for idx in range(len(paramTypes)):
             if paramTypes[idx] != cType.paramTypes[idx]:
                 raise InvalidFunctionCall(f"function '{node.getIdentifierNode().identifier}' has invalid param types.\n"
-                                          f"Needed {cType.paramTypes} but got {paramTypes}")
+                                          f"Needed {[self.toTypeName(t) for t in cType.paramTypes]} "
+                                          f"but got {[self.toTypeName(t) for t in paramTypes]}")
 
     def visitBinaryop(self, node: BinaryopNode):
+        self.visitChildren(node)
+
         lhs = node.getChild(0)
         rhs = node.getChild(1)
         lhsType: CType = lhs.inferType(self.typeList)
@@ -137,3 +141,32 @@ class SemanticVisitor(ASTreeVisitor):
     def visitUnaryexpression(self, node: UnaryexpressionNode):
         # TODO  make sure & and * operations are applied validly
         self.visitChildren(node)
+
+    def visitVar_assig(self, node: Var_assigNode):
+        self.visitChildren(node)
+
+        lhsType = node.getIdentifierNode().inferType(self.typeList)
+        rhsType = node.getChild(1).inferType(self.typeList)
+
+        # A char type may be assigned an int value
+        if lhsType == self.typeList[BuiltinNames.CHAR] and (rhsType == self.typeList[BuiltinNames.INT]):
+            return
+
+        elif lhsType != rhsType:
+            raise UnsupportedFeature(f"The compiler does not support implicit nor explicit type conversions of any kind.\n"
+                                     f"In binary {node.__str__()} got (lhs type, rhs type) = "
+                                     f"({self.toTypeName(lhsType)}, {self.toTypeName(rhsType)})")
+
+    def visitLiteral(self, node: LiteralNode):
+        lims = [-32768, 32767, -3.40282346639e+38, 3.40282346639e+38, -128, 127]
+        baseIdx = 0 if isinstance(node, IntegerNode) else\
+            (2 if isinstance(node, FloatNode) else
+             (4 if isinstance(node, CharNode) else -1))
+
+        if baseIdx == -1:
+            raise UnsupportedFeature(f"Unknown literal type: {self.toTypeName(node.inferType(self.typeList))}")
+
+        minLim, maxLim = lims[baseIdx], lims[baseIdx+1]
+        if not (minLim <= node.getValue() <= maxLim):
+            raise OutOfBoundsLiteral(f"An {self.toTypeName(node.inferType(self.typeList))} literal must be between "
+                                     f"{minLim} and {maxLim}")

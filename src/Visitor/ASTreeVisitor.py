@@ -1,6 +1,15 @@
+from __future__ import annotations
+
+
 class ASTree:
     def __init__(self):
         self.children = None
+
+    def getChild(self, idx) -> ASTree:
+        pass
+
+    def accept(self, visitor: ASTreeVisitor):
+        pass
 
 
 class CfileNode:
@@ -93,10 +102,13 @@ class ASTreeVisitor:
         for c in node.children:
             c.accept(self)
 
+    def visitChild(self, node: ASTree, childIdx: int):
+        node.getChild(childIdx).accept(self)
+
+
+
     def visitBinaryop(self, node: ASTree):
         self.visitChildren(node)
-
-
 
     def visitCfile(self, node: CfileNode):
         self.visitChildren(node)

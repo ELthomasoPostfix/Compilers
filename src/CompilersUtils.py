@@ -45,7 +45,6 @@ def isHexEscapeSequence(hex: str) -> bool:
 
 
 def isCharEscapeSequence(char: str) -> bool:
-    l = len(char)
     if len(char) != 2:
         return False
     return char[0] == '\\' and char[1] in "\'\"abfnrtv\\"

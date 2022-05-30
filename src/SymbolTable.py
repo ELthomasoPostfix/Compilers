@@ -123,6 +123,9 @@ class CType:
     def isConst(self, ptrIndex: int):
         return self._pointers[ptrIndex]
 
+    def typeName(self, typeList: TypeList):
+        return typeList[self.typeIndex]
+
     def __eq__(self, other, requirePointerEq: bool = False):
         """
         Equality check with :other:.
@@ -174,6 +177,7 @@ class Record:
         self.type: CType = cType
         self.access = access
         self.register: str = ""
+        self.fpOffset: int = -1     # Offset of the allocated stack memory to the frame pointer
 
     def __repr__(self):
         return str([self.type, self.access, self.register])
@@ -258,6 +262,17 @@ class SymbolTable:
 
         scope = self._getScope(symbol)
         return False if scope is None or scope._enclosingScope is not None else True
+
+    def isLocal(self, symbol: str):
+        """
+        Check whether the symbol is defined within the callee symbol table. Does not
+        take enclosing scopes into account.
+
+        :param symbol: The symbol to check local registration for.
+        :return: True if symbol is registered in the callee, False if not
+        """
+
+        return symbol in self.mapping
 
     def isGlobalScope(self):
         """

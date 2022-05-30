@@ -1,7 +1,7 @@
 import copy
 
 from src.Nodes.ASTreeNode import *
-from src.Enumerations import LLVMKeywords as llk
+from src.Enumerations import LLVMKeywords as llk, MIPSKeywords as mk
 
 
 class SumNode(BinaryopNode):
@@ -13,6 +13,13 @@ class SumNode(BinaryopNode):
 
     def getLLVMOpKeyword(self) -> str:
         return llk.SUM
+
+    @staticmethod
+    def getMIPSROpKeyword(instructionType: str) -> str:
+        if instructionType == "I":
+            return mk.I_ADD
+        elif instructionType[0] == "R":
+            return mk.R_ADD
 
     def __str__(self):
         return '+'
@@ -28,6 +35,13 @@ class MinNode(BinaryopNode):
     def getLLVMOpKeyword(self) -> str:
         return llk.MIN
 
+    @staticmethod
+    def getMIPSROpKeyword(instructionType: str) -> str:
+        if instructionType == "I":
+            return mk.I_MIN
+        elif instructionType[0] == "R":
+            return mk.R_MIN
+
     def __str__(self):
         return '-'
 
@@ -41,6 +55,16 @@ class MulNode(BinaryopNode):
 
     def getLLVMOpKeyword(self) -> str:
         return llk.MUL
+
+    @staticmethod
+    def getMIPSROpKeyword(instructionType: str) -> str:
+        if instructionType[0] == "I":
+            return mk.S_MUL_N
+        if instructionType[0] == "R":
+            if instructionType[1] == "N":
+                return mk.S_MUL_N
+            elif instructionType[1] == "O":
+                return mk.S_MUL_O
 
     def __str__(self):
         return '*'
@@ -56,6 +80,13 @@ class DivNode(BinaryopNode):
     def getLLVMOpKeyword(self) -> str:
         return llk.DIV
 
+    @staticmethod
+    def getMIPSROpKeyword(instructionType: str) -> str:
+        if instructionType[0] == "I":
+            return mk.S_DIV
+        if instructionType[0] == "R":
+            return mk.S_DIV
+
     def __str__(self):
         return '/'
 
@@ -69,6 +100,11 @@ class ModNode(BinaryopNode):
 
     def getLLVMOpKeyword(self) -> str:
         return llk.MOD
+
+    @staticmethod
+    def getMIPSROpKeyword(instructionType: str) -> str:
+        if instructionType[0] in ["R", "I"]:
+            return mk.S_REM
 
     def __str__(self):
         return '%'
