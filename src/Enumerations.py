@@ -78,54 +78,75 @@ class MIPSRegisterInfo:
     FP: str = "$fp"
     RA: str = "$ra"
 
-    V_CAPTURE_REGEX: str = f"(\\$v{toCaptureRange(V_REG_COUNT - 1)})"
-    A_CAPTURE_REGEX: str = f"(\\$a{toCaptureRange(A_REG_COUNT - 1)})"
-    T_CAPTURE_REGEX: str = f"(\\$t{toCaptureRange(T_REG_COUNT - 1)})"
-    S_CAPTURE_REGEX: str = f"(\\$s{toCaptureRange(S_REG_COUNT - 1)})"
-    F_CAPTURE_REGEX: str = f"(\\$f{toCaptureRange(F_REG_COUNT - 1)})"
-    ZERO_CAPTURE_REGEX: str = f"(\\{ZERO}|\\{ZERO_FULL})"
-    SPECIAL_CAPTURE_REGEX: str = f"({ZERO_CAPTURE_REGEX}|\\{GP}|\\{SP}|\\{FP}|\\{RA})"
-    REGISTER_CAPTURE_REGEX: str = V_CAPTURE_REGEX + "|" + A_CAPTURE_REGEX + "|" + T_CAPTURE_REGEX + "|" +\
-                                  S_CAPTURE_REGEX + "|" + F_CAPTURE_REGEX + "|" + SPECIAL_CAPTURE_REGEX
+    V_REGEX: str = f"(\\$v{toCaptureRange(V_REG_COUNT - 1)})"
+    A_REGEX: str = f"(\\$a{toCaptureRange(A_REG_COUNT - 1)})"
+    T_REGEX: str = f"(\\$t{toCaptureRange(T_REG_COUNT - 1)})"
+    S_REGEX: str = f"(\\$s{toCaptureRange(S_REG_COUNT - 1)})"
+    F_REGEX: str = f"(\\$f{toCaptureRange(F_REG_COUNT - 1)})"
+    ZERO_REGEX: str = f"(\\{ZERO}|\\{ZERO_FULL})"
+    SPECIAL_REGEX: str = f"({ZERO_REGEX}|\\{GP}|\\{SP}|\\{FP}|\\{RA})"
+    REGISTER_REGEX: str = V_REGEX + "|" + A_REGEX + "|" + T_REGEX + "|" + \
+                          S_REGEX + "|" + F_REGEX + "|" + SPECIAL_REGEX
 
 
 class MIPSLocation(str):
+    label = "[a-zA-Z._][a-zA-Z0-9._]*"
+    posLiteralNum = "(0|[1-9][0-9]*)"
+    literalNum = f"-?{posLiteralNum}"
+
+    def __init__(self, value):
+        super().__init__()
+        self._isRegister: bool = re.fullmatch(MIPSRegisterInfo.REGISTER_REGEX, value) is not None
+        self._isAddress:  bool = False
+        if not self._isRegister:
+            # Register contents based address
+            #       ($t0)
+            #       100($t0)
+            #       -100($t0)
+            #       label($t0)
+            #       label+100($t0)
+            if self[-1] == ')' and '(' in self[-7:-4]:
+                split = self.split('(')
+                registerOffset = split[0]       # The offset to add to the address
+                register = split[1][:-1]        # The register containing the address to which to add the offset
+                if registerOffset == "" or\
+                        re.fullmatch(self.literalNum, registerOffset) is not None or\
+                        re.fullmatch(self.label, registerOffset) is not None or\
+                        re.fullmatch(f"{self.label}\+{self.posLiteralNum}", registerOffset) is not None:
+                    self._isAddress = re.fullmatch(MIPSRegisterInfo.REGISTER_REGEX, register) is not None
+            # literal integer or label based address
+            #       100
+            #       -100
+            #       label
+            #       label+100               # label-100 is not valid!
+            else:
+                literalAndLabelRegex = f"{self.literalNum}|{self.label}(\+{self.posLiteralNum})?"
+
+                self._isAddress = re.fullmatch(literalAndLabelRegex, self) is not None
+
     def isRegister(self):
-        return re.fullmatch(MIPSRegisterInfo.REGISTER_CAPTURE_REGEX, self) is not None
+        return self._isRegister
 
     def isZeroRegister(self):
-        return re.fullmatch(MIPSRegisterInfo.ZERO_CAPTURE_REGEX, self) is not None
+        return re.fullmatch(MIPSRegisterInfo.ZERO_REGEX, self) is not None
 
     def isSavedRegister(self):
-        return re.fullmatch(MIPSRegisterInfo.S_CAPTURE_REGEX, self) is not None
+        return re.fullmatch(MIPSRegisterInfo.S_REGEX, self) is not None
 
     def isArgRegister(self):
-        return re.fullmatch(MIPSRegisterInfo.A_CAPTURE_REGEX, self) is not None
+        return re.fullmatch(MIPSRegisterInfo.A_REGEX, self) is not None
 
     def isTempRegister(self):
-        return re.fullmatch(MIPSRegisterInfo.T_CAPTURE_REGEX, self) is not None
+        return re.fullmatch(MIPSRegisterInfo.T_REGEX, self) is not None
 
     def isValRegister(self):
-        return re.fullmatch(MIPSRegisterInfo.V_CAPTURE_REGEX, self) is not None
+        return re.fullmatch(MIPSRegisterInfo.V_REGEX, self) is not None
 
     def isFloatRegister(self):
-        return re.fullmatch(MIPSRegisterInfo.F_CAPTURE_REGEX, self) is not None
+        return re.fullmatch(MIPSRegisterInfo.F_REGEX, self) is not None
 
     def isAddress(self):
-        label = "[a-zA-Z._][a-zA-Z0-9._]*"
-        posLiteralNum = "(0|[1-9][0-9]*)"
-        literalNum = f"-?{posLiteralNum}"
-
-        if self[-1] == ')' and '(' in self[-7:-4]:
-            split = self.split('(')
-            if re.fullmatch(literalNum, split[0]) is None and re.fullmatch(label, split[0]) is None and\
-                re.fullmatch(f"{label}\+{posLiteralNum}", split[0]) is None:
-                return False
-            return re.fullmatch(MIPSRegisterInfo.REGISTER_CAPTURE_REGEX, split[1][:-1]) is not None
-
-        regex = f"{literalNum}|{label}|{label}\+{posLiteralNum}"
-
-        return re.fullmatch(regex, self) is not None
+        return self._isAddress
 
 
 
