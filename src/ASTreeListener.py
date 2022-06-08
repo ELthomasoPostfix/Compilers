@@ -121,7 +121,7 @@ class ASTreeListener(MyGrammarListener):
         scanfDeclaration.addChild(FunctionDeclaratorNode()).\
             addChild(IdentifierNode("scanf"))
         # TODO scanf parameters
-        print(coloredDef("The AST scanf declaration does not define any parameters"))
+        # print(coloredDef("The AST scanf declaration does not define any parameters"))
 
     def enterBlock(self, ctx: MyGrammarParser.BlockContext):
         self.addCurrentChild(BlockNode())

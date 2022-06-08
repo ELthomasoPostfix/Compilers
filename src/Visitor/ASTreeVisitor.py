@@ -229,4 +229,3 @@ class ASTreeVisitor:
 
     def visitIdentifier(self, node: IdentifierNode):
         self.visitChildren(node)
-
