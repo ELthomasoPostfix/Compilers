@@ -21,7 +21,9 @@ class LLVMVisitor(GenerationVisitor):
         self.tab = '\t'
         self.localRegisterCounter = 0
         self.globalRegisterCounter = 0
-        self.labelCounter = 0
+        self.thenCounter = 0
+        self.elseCounter = 0
+        self.endCounter = 0
         super().__init__(typeList)
 
     #
@@ -414,27 +416,33 @@ class LLVMVisitor(GenerationVisitor):
     def visitSelectionstatement(self, node: SelectionstatementNode):
         self._openScope(node)
         while True:
-            isEnd = "end"
-            result = self._evaluateExpression(node.getChild(0))
-            if isinstance(node.getChild(-1), ElseNode):
-                isEnd = "else"
+            elseCheck = False
+            if node.getChild(0) is not None:
+                result = self._evaluateExpression(node.getChild(0))
             if isinstance(node, IfNode):
-                self.instructions.append('\t' + f"{llk.BRANCH} {llk.I1} {result}, label %if.then{self.labelCounter}, " \
-                                                f"label %if.{isEnd}{self.labelCounter}" + '\n')
-                self.instructions.append('\n' + f"if.then{self.labelCounter}:" + '\n')
+                if isinstance(node.getChild(-1), ElseNode):
+                    elseCheck = True
+                if elseCheck:
+                    self.instructions.append('\t' + f"{llk.BRANCH} {llk.I1} {result}, label %if.then{self.thenCounter}, " \
+                                                    f"label %if.else{self.elseCounter}" + '\n')
+                else:
+                    self.instructions.append('\t' + f"{llk.BRANCH} {llk.I1} {result}, label %if.then{self.thenCounter}, " \
+                                                    f"label %if.end{self.endCounter}" + '\n')
+                self.instructions.append('\n' + f"if.then{self.thenCounter}:" + '\n')
+                self.thenCounter += 1
             for i in range(1, len(node.children) - 1):
                 node.children[i].accept(self)
-
-            self.instructions.append('\t' + f"br label %if.end{self.labelCounter}" + '\n')
-            self.instructions.append('\n' + f"if.{isEnd}{self.labelCounter}:" + '\n')
-
-            if isinstance(node.getChild(-1), ElseNode):
+            self.instructions.append('\t' + f"br label %if.end{self.endCounter}" + '\n')
+            if elseCheck:
+                self.instructions.append('\n' + f"if.else{self.elseCounter}:" + '\n')
+                self.elseCounter += 1
+            else:
+                self.instructions.append('\n' + f"if.end{self.endCounter}:" + '\n')
+                self.endCounter += 1
+            if elseCheck:
                 node = node.getChild(-1)
             else:
                 break
-        self.labelCounter = self.labelCounter + 1
-
-
 
     def visitIterationstatement(self, node: IterationstatementNode):
         self._openScope(node)
