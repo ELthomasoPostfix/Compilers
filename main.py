@@ -1,11 +1,13 @@
+import re
 import sys
 
 from antlr4 import *
 
-from src.CompilersUtils import coloredDef
-from src.Enumerations import BuiltinNames
+from src.CompilersUtils import coloredDef, ftoi, ctoi, toCaptureRange
+from src.Enumerations import BuiltinNames, MIPSLocation
 from src.Nodes.LiteralNodes import IntegerNode, CharNode
 from src.SymbolTable import TypeList
+from src.Visitor.MIPSVisitor import MIPSVisitor
 from src.Visitor.SemanticVisitor import SemanticVisitor
 from src.Visitor.SymbolVisitor import SymbolVisitor
 from src.generated.MyGrammarParser import MyGrammarParser
@@ -63,11 +65,19 @@ def main():
 
     listener.root.toDot(f"endTree_{ifName}.dot", detailed=True)
 
-    llvmVisitor = LLVMVisitor(tl)
-    listener.root.accept(llvmVisitor)
-    a = llvmVisitor.instructions
+    outputType = "c"
 
-    file = open("Output/" + f"{ifName}.ll", "w")
+    #llvmVisitor = LLVMVisitor(tl)
+    #listener.root.accept(llvmVisitor)
+    #a = llvmVisitor.instructions
+    #outputType = "ll"
+
+    mipsVisitor = MIPSVisitor(tl)
+    listener.root.accept(mipsVisitor)
+    a = mipsVisitor.instructions
+    outputType = "asm"
+
+    file = open("Output/" + f"{ifName}.{outputType}", "w")
     for string in a:
         file.write(string)
 

@@ -73,6 +73,18 @@ class ASTree(Element):
         cLen = len(self.children)
         return self.children[idx] if cLen > 0 and idx < cLen else None
 
+    def getSibling(self, offset: int):
+        """
+        Get the sibling :offset: positions from the callee.
+
+        :param offset: The amount of positions to offset from the callee in its parent's children list
+        :return: The sibling if it exists, else None. Returns None callee has no parent
+        """
+        if self.parent is None:
+            return None
+
+        return self.parent.getChild(self.parent.children.index(self) + offset)
+
     def getAncestorOfType(self, ancestorType) -> ASTree | None:
         """
         Get the caller's first ancestor of the specified

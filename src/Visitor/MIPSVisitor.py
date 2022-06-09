@@ -1,16 +1,153 @@
 from __future__ import annotations
 
+from typing import Set
+
 from src.Nodes.ASTreeNode import *
-from src.Enumerations import MIPSKeywords as mk, MIPSLocation
+from src.Enumerations import MIPSKeywords as mk, MIPSLocation, MIPSRegisterInfo
 from src.Nodes.LiteralNodes import IntegerNode, CharNode
 from src.Visitor.GenerationVisitor import GenerationVisitor
 
+
+class MIPSFunctionDefinition:
+    def __init__(self, label: str):
+        self.label: str = label
+        self.usedSavedRegisters: Set[MIPSLocation] = set()
+        self.storeRA: bool = False
+        self.instructions = []
+        self.framePointerOffset: int = 0
+        # local data                # Enough stack allocated memory to store all declared variables?
+        # return address $ra        # save the previous frame pointer
+        # return address $ra        # optional, save the return address in case of function calls
+        # n saved register slots    # used to save the contents of saved registers
+        # 4 + n Argument slots      # allocated by caller, used by callee to store function arguments
+        #                           # in case of callee making a function call. n = max(#func_args - 4, 0) over all
+        #                           # function calls done by the caller
+        self._argSlotCount: int = 4
+        self._savedArgsUpTo: int = 0
+
+    @property
+    def frameSize(self):
+        # data + $ra + k spilled saved registers + n argument slots
+        frameSize = mk.WORD_SIZE + \
+                    self.framePointerOffset + \
+                    (0 if self.isLeafFunction() else mk.WORD_SIZE) + \
+                    len(self.usedSavedRegisters) + \
+                    self._argSlotCount * mk.WORD_SIZE
+        # Align frame size on double word size
+        twoWords = mk.WORD_SIZE * 2
+        return frameSize + (twoWords - frameSize % twoWords)
+
+    def toMips(self):
+        ws = " " * 4
+        result = [self.label + ":"]
+        spillBaseRegister = mk.SP
+
+        # arg slot offset + used saved register offset
+        spilledOffset = (self._argSlotCount - 1) * mk.WORD_SIZE + len(self.usedSavedRegisters) * mk.WORD_SIZE
+        raLocation: MIPSLocation | None = None
+
+        def addComment(tabCount: int, text: str):
+            result[-1] += "\t"*tabCount + MIPSComment(text)
+
+        # Construct stack frame
+        result.append(ws + MIPSComment("start of prologue"))
+        result.append(ws + f"{mk.I_ADD_U} {mk.SP}, {mk.SP}, {-4}")
+        addComment(2, "allocate frame pointer")
+
+        result.append(ws + store("RW", mk.FP, MIPSLocation(f"0({mk.SP})")))
+        addComment(3, "save frame pointer")
+
+        result.append(ws + f"{move(mk.SP, mk.FP)}")
+        addComment(3, "$fp = $sp")
+
+        result.append("")
+        result.append(ws + f"{mk.I_ADD_U} {mk.SP}, {mk.SP}, {-(self.frameSize - 4)}")
+        addComment(2, "allocate rest of stack frame")
+        if not self.isLeafFunction():
+            raLocation = MIPSLocation(f"{spilledOffset + mk.WORD_SIZE}({mk.SP})")
+            result.append(ws + store("RW", mk.RA, raLocation))
+            addComment(2, "save return address")
+
+        result.append("")
+
+        # Spill needed saved registers
+        for idx, sr in enumerate(self.usedSavedRegisters):
+            result.append(ws + store("RW", sr, constructAddress(spilledOffset - idx * mk.WORD_SIZE, spillBaseRegister)))
+
+        result.append(ws + MIPSComment("end of prologue"))
+        result.append("")
+        result.append(ws + MIPSComment("start of body"))
+
+        result.extend(self.instructions)
+
+        result.append(ws + MIPSComment("end of body"))
+        result.append("")
+        result.append(ws + MIPSComment("start of epilogue"))
+
+        # Load pre-spilled saved registers
+        for idx, sr in enumerate(self.usedSavedRegisters):
+            result.append(ws + load("RW", constructAddress(spilledOffset - idx * mk.WORD_SIZE, spillBaseRegister), sr))
+
+        # TODO DO NOT RELOAD ARGUMENT REGISTERS? THEY ARE NOT NEEDED POST FCALL
+
+        result.append("")
+
+        # Destruct stack frame
+        if not self.isLeafFunction():
+            result.append(ws + load("RW", raLocation, mk.RA))
+            addComment(2, "load return address")
+        result.append(ws + load("RW", constructAddress(0, mk.FP), mk.FP))
+        addComment(2, "load previous frame pointer")
+        result.append("")
+        result.append(ws + f"{mk.I_ADD_U} {mk.SP}, {mk.SP}, {self.frameSize}")
+        addComment(2, "deallocate entire stack frame")
+
+        result.append(ws + MIPSComment("end of epilogue"))
+        result.append("")
+
+        # return
+        result.append(ws + f"{mk.JR} {mk.RA}")
+        
+        return result
+    
+    def argumentSlotLocation(self, argSlotIdx: int) -> MIPSLocation:
+        """
+        Get the address for the specified argument slot. Throws assertion error if the
+        specified argument slot does not exist.
+
+        :param argSlotIdx: The slot to get the address for
+        :return: The address of slot :argSlotIdx:
+        """
+
+        assert argSlotIdx < self._argSlotCount
+        return MIPSLocation(f"{mk.WORD_SIZE * argSlotIdx}({mk.SP})")
+
+    def adjustArgumentSlotCount(self, node: FunctioncallNode) -> None:
+        """
+        The number of argument slots is directly based off of the highest number
+        of parameters a function call within the current function definition requires.
+
+        :param node: The call to reevaluate the arg slot count based off of
+        """
+
+        self._argSlotCount = max(len(node.getParameterNodes()), self._argSlotCount)
+        assert self._argSlotCount >= 4, "Incorrectly adjusted argument slot count of function definition"
+        assert self.storeRA, "Function call should imply storing the return address"
+
+    def isLeafFunction(self):
+        return not self.storeRA
+    
+    def _usedSavedRegisterCount(self) -> int:
+        return len(self.usedSavedRegisters)
 
 
 class MIPSVisitor(GenerationVisitor):
     def __init__(self, typeList: TypeList):
         self._sectionData = []
         self._sectionText = []
+        self._functionDefinitions: List[MIPSFunctionDefinition] = []
+        self._currFuncDef: MIPSFunctionDefinition | None = None
+        self.addInstrs = True
 
         self._registerDescriptors: dict = dict()    # variable names whose current value is in a register {reg: [IDs]}
         self._addressDescriptors: dict = dict()     # all locations where the current value of a variable is stored # TODO this is register member of SymbolTable???
@@ -36,6 +173,11 @@ class MIPSVisitor(GenerationVisitor):
         for instruction in self._sectionData:
             allInstructions += instruction + "\n"
         allInstructions += ".text\n"
+        # TODO !!!
+        for instruction in self._currFuncDef.toMips():
+            allInstructions += instruction + "\n"
+        return allInstructions
+        # TODO !!!
         for instruction in self._sectionText:
             allInstructions += instruction + "\n"
         return allInstructions
@@ -88,7 +230,7 @@ class MIPSVisitor(GenerationVisitor):
         if len(regList) == 0:
             # TODO spill some register and return the newly freed register
             #   ==> depends on regType value
-            return MIPSLocation()
+            return MIPSLocation("")
 
         return regList.pop()
 
@@ -119,49 +261,13 @@ class MIPSVisitor(GenerationVisitor):
 
         reserved = []
 
-        # TODO reserved actual registers
+        # TODO reserve actual registers
         reserved = [MIPSLocation(f"$s{num}") for num in range(count)]
-        # TODO reserved actual registers
+        # TODO !!!
+        self._currFuncDef.usedSavedRegisters.update(reserved)
+        # TODO reserve actual registers
 
         return reserved
-
-    def _load(self, instrType: str, srcAddress: MIPSLocation, dstReg: MIPSLocation):
-        if not (instrType == "I" or instrType == "RW" or instrType == "RB" or instrType == "RA"):
-            raise Exception("Incorrect mips load type")
-
-        if instrType != "I" and not srcAddress.isAddress() and "$s" not in srcAddress:
-            raise Exception(f"Loading from incorrect source (should be address): load from '{srcAddress}'")
-
-        if not dstReg.isRegister():
-            raise Exception(f"Loading into incorrect destination (should be register): load into '{dstReg}'")
-
-        instruction = mk.I_L if instrType == "I" else\
-            (mk.R_LW if instrType == "RW" else (mk.R_LB if instrType == "RB" else mk.R_LA))
-        return f"{instruction} {dstReg}, {srcAddress}"
-
-    @staticmethod
-    def _store(instrType: str, src, dstReg: MIPSLocation):
-        if not (instrType == "RW" or instrType == "RB"):
-            raise Exception("incorrect mips load type")
-
-        instruction = mk.R_SW if instrType == "RW" else mk.R_SB
-        return f"{instruction} {src}, {dstReg}"
-
-    @staticmethod
-    def _move(srcReg: MIPSLocation, dstReg: MIPSLocation):
-        return f"{mk.R_MOVE}, {dstReg}, {srcReg}"
-
-    @staticmethod
-    def _constructAddress(fpOffset: int, register: MIPSLocation) -> MIPSLocation:
-        """
-        Construct a mips address of the format 'offset(register)'
-
-        :param fpOffset: The offset to the register contents
-        :param register: The register contents to use as an address
-        :return: The address MIPSLocation
-        """
-
-        return MIPSLocation(f"{fpOffset}({register})")
 
     def _addTextLabel(self, labelName: str):
         self._sectionText.append(f"{labelName}:")
@@ -170,7 +276,14 @@ class MIPSVisitor(GenerationVisitor):
         instruction = ' '*4 + instruction
         if insertIndex >= 0:
             self._sectionText.insert(insertIndex, instruction)
+            # TODO !!!
+            if self.addInstrs:
+                self._currFuncDef.instructions.insert(insertIndex, instruction)
+            self._sectionText.insert(insertIndex, instruction)
         else:
+            # TODO !!!
+            if self.addInstrs:
+                self._currFuncDef.instructions.append(instruction)
             self._sectionText.append(instruction)
 
     def _resetSavedUsage(self):
@@ -194,6 +307,10 @@ class MIPSVisitor(GenerationVisitor):
         # update scope
         self._openScope(node)
 
+        # TODO !!! 0
+        self._functionDefinitions.append(MIPSFunctionDefinition(node.getIdentifierNode().identifier))
+        self._currFuncDef = self._functionDefinitions[-1]
+
         # Function body setup
         self._resetSavedUsage()
         self._addTextLabel(node.getIdentifierNode().identifier)
@@ -201,58 +318,8 @@ class MIPSVisitor(GenerationVisitor):
         # TODO for function 'main' no stack frame needed?
 
         # Do function body
-        sfInsertIndex = len(self._sectionText)
+        sfInsertIndex = len(self._sectionText)      # The index to later insert the stack frame construction
         self.visitChild(node, 2)    # Generate code for the function body
-
-        # store return values
-        # TODO visitReturn, happens recursively in visitChild(node, 2)
-
-        # Stack frame setup
-        neededSavedRegisters: List[MIPSLocation] =\
-            [self._savedRegisters[srIdx] for srIdx, usr in enumerate(self._usedSavedRegisters) if usr]
-        self._frameSize += len(neededSavedRegisters) * mk.WORD_SIZE     # TODO delete
-
-        # Construct stack frame
-        loadLoc = mk.FP
-        fpOffset, raOffset = 0, -mk.WORD_SIZE
-        instrOffset = len(self._sectionText)
-        self._addTextInstruction(f"{mk.I_ADD_U} {mk.SP}, {mk.SP}, {-4}", sfInsertIndex)   # 1
-        self._addTextInstruction(self._store("RW", mk.FP, self._constructAddress(fpOffset, mk.SP)), sfInsertIndex+1)  # 2
-        self._addTextInstruction(self._move(mk.SP, mk.FP), sfInsertIndex+2)   # 3
-        self._addTextInstruction(f"{mk.I_ADD_U} {mk.SP}, {mk.SP}, {-(self._frameSize - 4)}", sfInsertIndex+3)   # 4
-        self._addTextInstruction(self._store("RW", mk.RA, self._constructAddress(raOffset, loadLoc)), sfInsertIndex+4)   # 5
-        instrOffset = len(self._sectionText) - instrOffset - 1
-
-        # Spill needed saved registers
-        for idx, sr in enumerate(neededSavedRegisters):
-            # size($ra) + summ_i(size(sr_i))        with i < idx
-            spOffset = - (mk.WORD_SIZE + mk.WORD_SIZE * (idx + 1))
-            insertIndex = instrOffset + 1 + (idx + 1)
-            self._addTextInstruction(self._store("RW", sr, self._constructAddress(spOffset, loadLoc)), insertIndex)
-
-        self._addTextWhiteSpace(sfInsertIndex + instrOffset + len(neededSavedRegisters))
-
-        # TODO spill argument registers???
-
-
-
-        # Load pre-spilled saved registers
-        self._addTextWhiteSpace(-1)
-        for idx, sr in enumerate(neededSavedRegisters):
-            # size($fp) + size($ra) + summ_i(size(sr_i))        with i < idx
-            spOffset = - (mk.WORD_SIZE + mk.WORD_SIZE * (idx + 1))
-            self._addTextInstruction(self._load("RW", self._constructAddress(spOffset, loadLoc), sr))
-
-        # TODO DO NOT RELOAD ARGUMENT REGISTERS? THEY ARE NOT NEEDED POST FCALL
-
-
-        # Destruct stack frame
-        self._addTextInstruction(self._load("RW", self._constructAddress(raOffset, loadLoc), mk.RA))  # 2
-        self._addTextInstruction(self._load("RW", self._constructAddress(fpOffset, loadLoc), mk.FP))   # 1
-        self._addTextInstruction(f"{mk.I_ADD_U} {mk.SP}, {mk.SP}, {self._frameSize}")   # 3
-
-        # return
-        self._addTextInstruction(f"{mk.JR} {mk.RA}")
 
         # update scope
         self._closeScope()
@@ -323,7 +390,7 @@ class MIPSVisitor(GenerationVisitor):
 
         if isinstance(lhs, LiteralNode):
             mipsKeyword = node.getMIPSROpKeyword('RN')
-            loadLiteral = self._load("I", lhs.getValue(), lhsResult)
+            loadLiteral = load("I", lhs.getValue(), lhsResult)
             self._addTextInstruction(loadLiteral)
             # TODO take float into account. And ptrs ??? --> part of unary expr??
         elif isinstance(rhs, LiteralNode):
@@ -354,6 +421,10 @@ class MIPSVisitor(GenerationVisitor):
 
         self._ensureErshovReady(node)
 
+        # TODO !!!
+        self._currFuncDef.storeRA = True
+        self._currFuncDef.adjustArgumentSlotCount(node)
+
         # Calculate parameters
         paramExpressions = node.getParameterNodes()
         reservationsBackup = self._reservedLocations
@@ -364,6 +435,8 @@ class MIPSVisitor(GenerationVisitor):
 
             paramExp.accept(self)
 
+            # TODO store f"$a{argIdx}" into f"{argIdx*mk.WORD_SIZE}($sp)", because stack pointer should be at the end of
+            #  the stack frame, which is where the arg slots are located
             # TODO move register resultIndex into $a register or memory
 
 
@@ -381,7 +454,11 @@ class MIPSVisitor(GenerationVisitor):
         # Word sized addressing must use word aligned addresses
         if allocAmount == mk.WORD_SIZE:
             self._frameSize += mk.WORD_SIZE - self._frameSize % mk.WORD_SIZE
+            # TODO !!!
+            self._currFuncDef.framePointerOffset += mk.WORD_SIZE - self._frameSize % mk.WORD_SIZE
         self._frameSize += allocAmount
+        # TODO !!!
+        self._currFuncDef.framePointerOffset += allocAmount
         self.currentSymbolTable[node.getIdentifierNode().identifier].fpOffset = self._frameSize
 
     def visitIdentifier(self, node: IdentifierNode):
@@ -394,10 +471,58 @@ class MIPSVisitor(GenerationVisitor):
             if src == "":
                 pass
             src = src if src != "" else dst
-            loadInstr = self._load(instrType, src, dst)
+            loadInstr = load(instrType, src, dst)
             self._addTextInstruction(loadInstr)
 
             self.currentSymbolTable[node.identifier].register = dst
 
     def visitLiteral(self, node: LiteralNode):
         self._ensureErshovReady(node)
+
+
+def load(instrType: str, srcAddress: MIPSLocation, dstReg: MIPSLocation):
+    if not (instrType == "I" or instrType == "RW" or instrType == "RB" or instrType == "RA"):
+        raise Exception("Incorrect mips load type")
+
+    # TODO
+    # TODO
+    # TODO """"$s" not in srcAddress""" is a quick fix, remove this
+    # TODO
+    # TODO
+    if instrType != "I" and not srcAddress.isAddress() and "$s" not in srcAddress:
+        raise Exception(f"Loading from incorrect source (should be address): load from '{srcAddress}'")
+
+    if not dstReg.isRegister():
+        raise Exception(f"Loading into incorrect destination (should be register): load into '{dstReg}'")
+
+    instruction = mk.I_L if instrType == "I" else\
+        (mk.R_LW if instrType == "RW" else (mk.R_LB if instrType == "RB" else mk.R_LA))
+    return f"{instruction} {dstReg}, {srcAddress}"
+
+
+def move(srcReg: MIPSLocation, dstReg: MIPSLocation):
+    return f"{mk.R_MOVE}, {dstReg}, {srcReg}"
+
+
+def constructAddress(offset: int, register: MIPSLocation) -> MIPSLocation:
+    """
+    Construct a mips address of the format 'offset(register)'
+
+    :param offset: The offset to the register contents
+    :param register: The register contents to use as an address
+    :return: The address MIPSLocation
+    """
+
+    return MIPSLocation(f"{offset}({register})")
+
+
+def store(instrType: str, src, dstReg: MIPSLocation):
+    if not (instrType == "RW" or instrType == "RB"):
+        raise Exception("incorrect mips load type")
+
+    instruction = mk.R_SW if instrType == "RW" else mk.R_SB
+    return f"{instruction} {src}, {dstReg}"
+
+
+def MIPSComment(text: str):
+    return mk.COMMENT_PREFIX + " " + text

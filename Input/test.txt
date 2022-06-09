@@ -1,12 +1,12 @@
-int main(){
-	int x = 5;
-	if (x < 5){
-	} else {
-	}
-	if (x == 5 && 1){
-		if (x == 5){
-		} else {
-		}
-	}
-	return 1;
+int f() { return 3; }
+
+int main() {
+  int i0 = 1;
+  int i1 = 4;
+  int i = 2 * i1 + i0 - i0 * 4;
+  // int i = 2 * i1 + i0 - - i0 * 4;
+
+  //f();
+
+  return 0;
 }

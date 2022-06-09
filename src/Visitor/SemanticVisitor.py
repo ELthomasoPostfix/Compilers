@@ -1,6 +1,7 @@
 from src.Nodes.ASTreeNode import *
 from src.Exceptions.exceptions import MisplacedJumpStatement, InvalidReturnStatement, InvalidFunctionCall, \
-    InvalidBinaryOperation, UnsupportedFeature, DeclarationException, InitializationException, OutOfBoundsLiteral
+    InvalidBinaryOperation, UnsupportedFeature, DeclarationException, InitializationException, OutOfBoundsLiteral, \
+    GlobalScope
 from src.Nodes.JumpNodes import ContinueNode, BreakNode, ReturnNode
 from src.Nodes.LiteralNodes import IntegerNode, FloatNode, CharNode
 from src.Nodes.OperatorNodes import ModNode, ArraySubscriptNode
@@ -150,15 +151,24 @@ class SemanticVisitor(ASTreeVisitor):
 
         # A char type may be assigned an int value
         if lhsType == self.typeList[BuiltinNames.CHAR] and (rhsType == self.typeList[BuiltinNames.INT]):
-            return
+            pass
 
         elif lhsType != rhsType:
             raise UnsupportedFeature(f"The compiler does not support implicit nor explicit type conversions of any kind.\n"
                                      f"In binary {node.__str__()} got (lhs type, rhs type) = "
                                      f"({self.toTypeName(lhsType)}, {self.toTypeName(rhsType)})")
 
+        if not node.hasTypeAncestor(FunctiondefinitionNode) and not isinstance(node.getChild(1), LiteralNode):
+            raise InitializationException(f"Global assignments must have a literal rhs, but got {node.getChild(1).__str__()}")
+
+        # This check depends on initializations being split off from declarations
+        if not node.hasTypeAncestor(FunctiondefinitionNode) and not isinstance(node.getSibling(-1), VariabledeclarationNode):
+            raise GlobalScope("Variable assignments not allowed, only initializations")
+
+
     def visitLiteral(self, node: LiteralNode):
-        lims = [-32768, 32767, -3.40282346639e+38, 3.40282346639e+38, -128, 127]
+        # -2^31, 2^31-1, 32-bit single precision floating point + and -
+        lims = [-2147483648, 2147483647, -3.40282346639e+38, 3.40282346639e+38, -128, 127]
         baseIdx = 0 if isinstance(node, IntegerNode) else\
             (2 if isinstance(node, FloatNode) else
              (4 if isinstance(node, CharNode) else -1))

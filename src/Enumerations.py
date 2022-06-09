@@ -153,6 +153,7 @@ class MIPSLocation(str):
 class MIPSKeywords:
     DATA: str = ".data"
     TEXT: str = ".text"
+    COMMENT_PREFIX: str = "#"
 
     ZERO: MIPSLocation = MIPSLocation("$0")
     ZERO_FULL: MIPSLocation = MIPSLocation("$zero")
@@ -189,18 +190,18 @@ class MIPSKeywords:
 
     @staticmethod
     def getArgRegisters():
-        return [MIPSLocation(f"$a{num}") for num in range(MIPSRegisterInfo.A_REG_COUNT).__reversed__()]
+        return [MIPSLocation(f"$a{num}") for num in range(MIPSRegisterInfo.A_REG_COUNT)]
 
     @staticmethod
     def getTempRegisters():
-        return [MIPSLocation(f"$t{num}") for num in range(MIPSRegisterInfo.T_REG_COUNT).__reversed__()]
+        return [MIPSLocation(f"$t{num}") for num in range(MIPSRegisterInfo.T_REG_COUNT)]
 
     @staticmethod
     def getSavedRegisters():
-        return [MIPSLocation(f"$s{num}") for num in range(MIPSRegisterInfo.S_REG_COUNT).__reversed__()]
+        return [MIPSLocation(f"$s{num}") for num in range(MIPSRegisterInfo.S_REG_COUNT)]
 
     @staticmethod
     def getVarRegisters():
-        return [MIPSLocation(f"$v{num}") for num in range(MIPSRegisterInfo.V_REG_COUNT).__reversed__()]
+        return [MIPSLocation(f"$v{num}") for num in range(MIPSRegisterInfo.V_REG_COUNT)]
 
 

@@ -80,6 +80,10 @@ class InvalidBinaryOperation(SemanticException):
     def __init__(self, operator: str, details: str):
         super().__init__(f"Invalid binary {operator}: {details}")
 
+class GlobalScope(SemanticException):
+    def __init__(self, details: str):
+        super(f"Disallowed at global scope: {details}")
+
 ##########################
 # Compilation exceptions #
 ##########################
