@@ -154,6 +154,7 @@ class MIPSKeywords:
     DATA: str = ".data"
     TEXT: str = ".text"
     COMMENT_PREFIX: str = "#"
+    WS: str = " " * 4
 
     ZERO: MIPSLocation = MIPSLocation("$0")
     ZERO_FULL: MIPSLocation = MIPSLocation("$zero")

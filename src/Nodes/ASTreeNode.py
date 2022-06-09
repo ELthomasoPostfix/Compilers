@@ -367,6 +367,7 @@ class FunctioncallNode(ExpressionNode):
         return self.getChild(0)
 
     def evaluateErshovNumber(self):
+        self.ershovNumber = 1
         paramExpressions = self.getParameterNodes()
         if len(paramExpressions) == 0:
             return
@@ -375,16 +376,9 @@ class FunctioncallNode(ExpressionNode):
             param.evaluateErshovNumber()
 
         # The first expression needs to at least be evaluated
-        self.ershovNumber = paramExpressions[0].ershovNumber
-        for idx in range(1, len(paramExpressions)):
-            ershov = paramExpressions[idx].ershovNumber     # next expression's ershov number
-            # If all param expressions are evaluated in order, then the max of
-            # the new epxr and the current max is enough to evaluate both
-            if self.ershovNumber != ershov:
-                self.ershovNumber = max(self.ershovNumber, ershov)
-            # Holding the previous result costs one register
-            else:
-                self.ershovNumber += 1
+        self.ershovNumber = 0
+        for idx in range(0, len(paramExpressions)):
+            self.ershovNumber = max(self.ershovNumber, paramExpressions[idx].ershovNumber)
 
 
 ## An recursive instance of an ExpressionNode.
