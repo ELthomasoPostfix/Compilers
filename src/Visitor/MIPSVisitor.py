@@ -497,12 +497,16 @@ class MIPSVisitor(GenerationVisitor):
         self._openScope(node)
         while True:
             elseCheck = False
-            str_comp = self.evaluateExpression(node.getChild(0))
+            baseIdx, endIdx = 0, len(node.children)
+            if isinstance(node, IfNode):
+                str_comp = self._evaluateExpression(node.getChild(0))
             if isinstance(node, IfNode):
                 self._addTextInstruction(f"beq {str_comp},$0,$L{self.labelCounter}\n")
                 if isinstance(node.getChild(-1), ElseNode):
                     elseCheck = True
-            for i in range(1, len(node.children)-1):
+                baseIdx = 1
+                endIdx -= 1
+            for i in range(baseIdx, endIdx):
                 node.children[i].accept(self)
             if not elseCheck:
                 self._addTextLabel(f"$L{self.labelCounter}")
