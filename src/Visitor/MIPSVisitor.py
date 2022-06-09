@@ -5,6 +5,7 @@ from typing import Set
 from src.Nodes.ASTreeNode import *
 from src.Enumerations import MIPSKeywords as mk, MIPSLocation, MIPSRegisterInfo
 from src.Nodes.LiteralNodes import IntegerNode, CharNode
+from src.Nodes.SelectionNodes import IfNode, ElseNode
 from src.Visitor.GenerationVisitor import GenerationVisitor
 
 
@@ -162,6 +163,7 @@ class MIPSVisitor(GenerationVisitor):
         self._resetSavedUsage()
         self._reservedLocations = []
         self._SUbase = 0
+        self.labelCounter = 0
         super().__init__(typeList)
 
     # TODO  when loading immediates, there are two options: .data section label + lw OR use li for smaller
@@ -493,8 +495,23 @@ class MIPSVisitor(GenerationVisitor):
 
     def visitSelectionstatement(self, node: SelectionstatementNode):
         self._openScope(node)
-        self.evaluateExpression(node.getChild(0))
-
+        while True:
+            elseCheck = False
+            str_comp = self.evaluateExpression(node.getChild(0))
+            if isinstance(node, IfNode):
+                self._addTextInstruction(f"beq {str_comp},$0,$L{self.labelCounter}\n")
+                if isinstance(node.getChild(-1), ElseNode):
+                    elseCheck = True
+            for i in range(1, len(node.children)-1):
+                node.children[i].accept(self)
+            if not elseCheck:
+                self._addTextLabel(f"$L{self.labelCounter}")
+                self.labelCounter += 1
+                break
+            node = node.getChild(-1)
+            self.labelCounter += 1
+            self._addTextInstruction(f"b $L{self.labelCounter}")
+            self._addTextLabel(f"$L{self.labelCounter - 1}")
         self._closeScope()
 
 #########################################

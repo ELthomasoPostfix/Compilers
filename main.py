@@ -67,10 +67,10 @@ def main():
 
     outputType = "c"
 
-    #llvmVisitor = LLVMVisitor(tl)
-    #listener.root.accept(llvmVisitor)
-    #a = llvmVisitor.instructions
-    #outputType = "ll"
+    # llvmVisitor = LLVMVisitor(tl)
+    # listener.root.accept(llvmVisitor)
+    # a = llvmVisitor.instructions
+    # outputType = "ll"
 
     mipsVisitor = MIPSVisitor(tl)
     listener.root.accept(mipsVisitor)
