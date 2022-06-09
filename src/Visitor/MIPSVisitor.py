@@ -147,13 +147,16 @@ class MIPSVisitor(GenerationVisitor):
         self._functionDefinitions: List[MIPSFunctionDefinition] = []
         self._currFuncDef: MIPSFunctionDefinition | None = None
 
-        self._registerDescriptors: dict = dict()    # variable names whose current value is in a register {reg: [IDs]}
-        self._addressDescriptors: dict = dict()     # all locations where the current value of a variable is stored # TODO this is register member of SymbolTable???
 
         self._argRegisters = mk.getArgRegisters()
         self._varRegisters = mk.getVarRegisters()
         self._tempRegisters = mk.getTempRegisters()
         self._savedRegisters = mk.getSavedRegisters()
+
+        # variable names whose current value is in a register {reg: [IDs]}
+        self._registerDescriptors: dict = dict()
+        # all locations where the current value of a variable is stored
+        self._addressDescriptors: dict = dict()
 
         self._usedSavedRegisters = []
         self._resetSavedUsage()
@@ -212,12 +215,12 @@ class MIPSVisitor(GenerationVisitor):
 
         return self._currFuncDef.framePointerOffset
 
-    def _reserveRegister(self, regType: str) -> MIPSLocation:
+    def _reserveRegister(self, regType: str) -> MIPSLocation | None:
         """
         Reserve a single register of the specified type.
 
         :param regType: Type of desired register
-        :return: register
+        :return: register if any available, else None
         """
 
         regList = []
@@ -233,7 +236,7 @@ class MIPSVisitor(GenerationVisitor):
         if len(regList) == 0:
             # TODO spill some register and return the newly freed register
             #   ==> depends on regType value
-            return MIPSLocation("")
+            return None
 
         return regList.pop()
 
@@ -292,23 +295,6 @@ class MIPSVisitor(GenerationVisitor):
             return 1
         elif cType == self.typeList[BuiltinNames.INT] or cType == self.typeList[BuiltinNames.FLOAT]:
             return mk.WORD_SIZE
-
-    def getIdentifierLocation(self, identifier: IdentifierNode) -> MIPSLocation:
-        """
-        Get the location where the value of the identifierNode is stored. This
-        can be either a register or an address.
-
-        :param identifier:
-        :return:
-        """
-
-        location = self.currentSymbolTable[identifier.identifier].register
-
-        if location == "":
-            location = constructAddress(self._stackReserve(identifier.getType()), mk.FP)
-            self.currentSymbolTable[identifier.identifier].register = location
-
-        return location
 
     ###########################
     #   OTHER VISIT METHODS   #
@@ -465,34 +451,38 @@ class MIPSVisitor(GenerationVisitor):
         self._ensureErshovReady(node)
 
         if isinstance(node.parent, ExpressionNode):
-            instrType = "R" + ("B" if node.inferType(self.typeList) == CharNode.inferType(self.typeList) else "W")
-            dst = self._reservedLocations[self._SUbase + node.parent.ershovNumber - 1]
-            src = self.currentSymbolTable[node.identifier].register
-            if src == "":
-                src = constructAddress(self._stackReserve(node.getType()), mk.FP)
-                self.currentSymbolTable[node.identifier].register = src
-            loadInstr = load(instrType, src, dst)
-            loadInstr += mk.WS + "\t" + MIPSComment(f"load undeclared variable '{node.identifier}'")
-            self._addTextInstruction(loadInstr)
+            src: MIPSLocation = self.currentSymbolTable[node.identifier].register
+            if not src.isRegister():
+                instrType = "R" + ("B" if node.inferType(self.typeList) == CharNode.inferType(self.typeList) else "W")
+                dst = self._reservedLocations[self._SUbase + node.parent.ershovNumber - 1]
+                comment: str = f"load {node.identifier}"
+                if src == "":
+                    src = constructAddress(self._stackReserve(node.getType()), mk.FP)
+                    self.currentSymbolTable[node.identifier].register = src
+                    comment = " (undeclared variable)"
+                loadInstr = load(instrType, src, dst, comment)
+                self._addTextInstruction(loadInstr)
 
-            self.currentSymbolTable[node.identifier].register = dst
+                self.currentSymbolTable[node.identifier].register = dst
 
     def visitVar_assig(self, node: Var_assigNode):
-        rhsLoc = self.evaluateExpression(node.getChild(1))
-        lhsLoc = self.getIdentifierLocation(node.getIdentifierNode())
-        instruction = ""
+        rhs: ExpressionNode = node.getChild(1)
+        lhs: IdentifierNode = node.getIdentifierNode()
+
+        rhsLoc = self.evaluateExpression(rhs)
+        lhsLoc = self.currentSymbolTable[lhs.identifier].register
+
+        if isinstance(rhs, LiteralNode):
+            self._addTextInstruction(load("I", rhs.getValue(), self._reserveRegister("t")))
 
         if lhsLoc.isRegister():
             # TODO Make the expression load directly into the location of lhs???
-            instruction = move(rhsLoc, lhsLoc)
+            self._addTextInstruction(move(rhsLoc, lhsLoc))
         elif lhsLoc.isAddress():
-            rhsType = node.getChild(1).inferType(self.typeList)
-            instruction = store("R" + ("B" if rhsType == self.typeList[BuiltinNames.CHAR] else "W"),
-                                rhsLoc, lhsLoc)
+            # TODO what in case of pointers???
+            self.currentSymbolTable[lhs.identifier].register = rhsLoc
         else:
             raise Exception("variable assignment lhs location guard clause")
-
-        self._addTextInstruction(instruction)
 
     def visitLiteral(self, node: LiteralNode):
         self._ensureErshovReady(node)
@@ -513,7 +503,7 @@ class MIPSVisitor(GenerationVisitor):
 #
 
 
-def load(instrType: str, srcAddress: MIPSLocation, dstReg: MIPSLocation):
+def load(instrType: str, srcAddress: MIPSLocation, dstReg: MIPSLocation, comment: str = ""):
     if not (instrType == "I" or instrType == "RW" or instrType == "RB" or instrType == "RA"):
         raise Exception("Incorrect mips load type")
 
@@ -530,7 +520,7 @@ def load(instrType: str, srcAddress: MIPSLocation, dstReg: MIPSLocation):
 
     instruction = mk.I_L if instrType == "I" else\
         (mk.R_LW if instrType == "RW" else (mk.R_LB if instrType == "RB" else mk.R_LA))
-    return f"{instruction} {dstReg}, {srcAddress}"
+    return f"{instruction} {dstReg}, {srcAddress}" + ("" if comment == "" else ('\t'*2 + MIPSComment(comment)))
 
 
 def move(srcReg: MIPSLocation, dstReg: MIPSLocation):
@@ -549,14 +539,14 @@ def constructAddress(offset: int, register: MIPSLocation) -> MIPSLocation:
     return MIPSLocation(f"{offset}({register})")
 
 
-def store(instrType: str, src: MIPSLocation, dstReg: MIPSLocation):
+def store(instrType: str, src: MIPSLocation, dstReg: MIPSLocation, comment: str = ""):
     if not (instrType == "RW" or instrType == "RB"):
         raise Exception("incorrect mips load type")
 
     assert dstReg.isAddress(), "Must store into an address"
 
     instruction = mk.R_SW if instrType == "RW" else mk.R_SB
-    return f"{instruction} {src}, {dstReg}"
+    return f"{instruction} {src}, {dstReg}" + ("" if comment == "" else ('\t'*2 + MIPSComment(comment)))
 
 
 def MIPSComment(text: str):
