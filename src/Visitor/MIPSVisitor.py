@@ -47,7 +47,7 @@ class MIPSFunctionDefinition:
         raLocation: MIPSLocation | None = None
 
         def addComment(tabCount: int, text: str):
-            result[-1] += "\t"*tabCount + MIPSComment(text)
+            result[-1] += "\t" * tabCount + MIPSComment(text)
 
         # Construct stack frame
         result.append(ws + MIPSComment("start of prologue"))
@@ -107,9 +107,9 @@ class MIPSFunctionDefinition:
 
         # return
         result.append(ws + f"{mk.JR} {mk.RA}")
-        
+
         return result
-    
+
     def argumentSlotLocation(self, argSlotIdx: int) -> MIPSLocation:
         """
         Get the address for the specified argument slot. Throws assertion error if the
@@ -136,7 +136,7 @@ class MIPSFunctionDefinition:
 
     def isLeafFunction(self):
         return not self.storeRA
-    
+
     def _usedSavedRegisterCount(self) -> int:
         return len(self.usedSavedRegisters)
 
@@ -149,8 +149,8 @@ class MIPSVisitor(GenerationVisitor):
         self._currFuncDef: MIPSFunctionDefinition | None = None
         self.addInstrs = True
 
-        self._registerDescriptors: dict = dict()    # variable names whose current value is in a register {reg: [IDs]}
-        self._addressDescriptors: dict = dict()     # all locations where the current value of a variable is stored # TODO this is register member of SymbolTable???
+        self._registerDescriptors: dict = dict()  # variable names whose current value is in a register {reg: [IDs]}
+        self._addressDescriptors: dict = dict()  # all locations where the current value of a variable is stored # TODO this is register member of SymbolTable???
         self._frameSize: int = 0
 
         self._argRegisters = mk.getArgRegisters()
@@ -192,7 +192,7 @@ class MIPSVisitor(GenerationVisitor):
         self._frameSize = mk.REGISTER_SIZE + mk.REGISTER_SIZE
 
     def _spillRegister(self, register: str):
-        pass    # TODO spill the 32-bit (== word) register into memory
+        pass  # TODO spill the 32-bit (== word) register into memory
 
     def _stackPush(self, arg: str) -> None:
         """
@@ -201,13 +201,13 @@ class MIPSVisitor(GenerationVisitor):
 
         :param arg: The register to push onto the stack.
         """
-        pass    # TODO lengthen the stack frame by the passed argument
+        pass  # TODO lengthen the stack frame by the passed argument
 
     def _stackPop(self):
-        pass    # TODO reset stack pointer to frame pointer
+        pass  # TODO reset stack pointer to frame pointer
 
     def _constructStackFrame(self, functionCall: FunctioncallNode):
-        pass    # TODO review spilling conventions for function calls in lecture 7 slides 31-32
+        pass  # TODO review spilling conventions for function calls in lecture 7 slides 31-32
 
     def _reserveRegister(self, regType: str) -> MIPSLocation:
         """
@@ -273,7 +273,7 @@ class MIPSVisitor(GenerationVisitor):
         self._sectionText.append(f"{labelName}:")
 
     def _addTextInstruction(self, instruction: str, insertIndex: int = -1):
-        instruction = ' '*4 + instruction
+        instruction = ' ' * 4 + instruction
         if insertIndex >= 0:
             self._sectionText.insert(insertIndex, instruction)
             # TODO !!!
@@ -318,8 +318,8 @@ class MIPSVisitor(GenerationVisitor):
         # TODO for function 'main' no stack frame needed?
 
         # Do function body
-        sfInsertIndex = len(self._sectionText)      # The index to later insert the stack frame construction
-        self.visitChild(node, 2)    # Generate code for the function body
+        sfInsertIndex = len(self._sectionText)  # The index to later insert the stack frame construction
+        self.visitChild(node, 2)  # Generate code for the function body
 
         # update scope
         self._closeScope()
@@ -362,9 +362,9 @@ class MIPSVisitor(GenerationVisitor):
         if lhs.ershovNumber == rhs.ershovNumber:
             rhs.accept(self)
 
-            self._SUbase -= 1       # Lower base recursively for lhs
-            lhs.accept(self)        # TODO save results before fCall?
-            self._SUbase += 1       # Reset base recursively after lhs
+            self._SUbase -= 1  # Lower base recursively for lhs
+            lhs.accept(self)  # TODO save results before fCall?
+            self._SUbase += 1  # Reset base recursively after lhs
 
             # Gather results
             rhsResult = self._reservedLocations[dstIndex]
@@ -384,7 +384,6 @@ class MIPSVisitor(GenerationVisitor):
             # Gather results
             rhsResult = self._reservedLocations[dstIndex]
             lhsResult = self._reservedLocations[self._SUbase + lhs.ershovNumber - 1]
-
 
         mipsKeyword = ""
 
@@ -439,7 +438,6 @@ class MIPSVisitor(GenerationVisitor):
             #  the stack frame, which is where the arg slots are located
             # TODO move register resultIndex into $a register or memory
 
-
         self._reservedLocations = reservationsBackup
 
         # Spill convention
@@ -479,6 +477,16 @@ class MIPSVisitor(GenerationVisitor):
     def visitLiteral(self, node: LiteralNode):
         self._ensureErshovReady(node)
 
+    def evaluateExpression(self, node: ExpressionNode):
+        node.accept(self)
+        return MIPSLocation("$t0")
+
+    def visitSelectionstatement(self, node: SelectionstatementNode):
+        self._openScope(node)
+        self.evaluateExpression(node.getChild(0))
+
+        self._closeScope()
+
 
 def load(instrType: str, srcAddress: MIPSLocation, dstReg: MIPSLocation):
     if not (instrType == "I" or instrType == "RW" or instrType == "RB" or instrType == "RA"):
@@ -495,7 +503,7 @@ def load(instrType: str, srcAddress: MIPSLocation, dstReg: MIPSLocation):
     if not dstReg.isRegister():
         raise Exception(f"Loading into incorrect destination (should be register): load into '{dstReg}'")
 
-    instruction = mk.I_L if instrType == "I" else\
+    instruction = mk.I_L if instrType == "I" else \
         (mk.R_LW if instrType == "RW" else (mk.R_LB if instrType == "RB" else mk.R_LA))
     return f"{instruction} {dstReg}, {srcAddress}"
 
