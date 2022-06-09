@@ -24,6 +24,7 @@ class LLVMVisitor(GenerationVisitor):
         self.thenCounter = 0
         self.elseCounter = 0
         self.endCounter = 0
+        self.labelCounter = 0
         super().__init__(typeList)
 
     #
@@ -436,12 +437,10 @@ class LLVMVisitor(GenerationVisitor):
             if elseCheck:
                 self.instructions.append('\n' + f"if.else{self.elseCounter}:" + '\n')
                 self.elseCounter += 1
+                node = node.getChild(-1)
             else:
                 self.instructions.append('\n' + f"if.end{self.endCounter}:" + '\n')
                 self.endCounter += 1
-            if elseCheck:
-                node = node.getChild(-1)
-            else:
                 break
         self._closeScope()
 
