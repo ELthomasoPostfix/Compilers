@@ -443,6 +443,7 @@ class LLVMVisitor(GenerationVisitor):
                 node = node.getChild(-1)
             else:
                 break
+        self._closeScope()
 
     def visitIterationstatement(self, node: IterationstatementNode):
         self._openScope(node)
