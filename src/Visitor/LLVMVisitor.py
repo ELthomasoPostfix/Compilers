@@ -418,7 +418,8 @@ class LLVMVisitor(GenerationVisitor):
         self._openScope(node)
         while True:
             elseCheck = False
-            if node.getChild(0) is not None:
+            baseIdx, endIdx = 0, len(node.children)
+            if isinstance(node, IfNode):
                 result = self._evaluateExpression(node.getChild(0))
             if isinstance(node, IfNode):
                 if isinstance(node.getChild(-1), ElseNode):
@@ -431,8 +432,13 @@ class LLVMVisitor(GenerationVisitor):
                                                     f"label %if.end{self.endCounter}" + '\n')
                 self.instructions.append('\n' + f"if.then{self.thenCounter}:" + '\n')
                 self.thenCounter += 1
-            for i in range(1, len(node.children) - 1):
+
+                baseIdx = 1
+                endIdx -= 1
+
+            for i in range(baseIdx, endIdx):
                 node.children[i].accept(self)
+
             self.instructions.append('\t' + f"br label %if.end{self.endCounter}" + '\n')
             if elseCheck:
                 self.instructions.append('\n' + f"if.else{self.elseCounter}:" + '\n')
