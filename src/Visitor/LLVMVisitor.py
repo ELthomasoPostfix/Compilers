@@ -5,7 +5,7 @@ from typing import Tuple
 from src.CompilersUtils import coloredDef
 from src.Exceptions.exceptions import UnknownType, UnsupportedFeature, InvalidBinaryOperation
 from src.Nodes.IterationNodes import WhileNode
-from src.Nodes.JumpNodes import ReturnNode
+from src.Nodes.JumpNodes import *
 from src.Nodes.LiteralNodes import *
 from src.Nodes.SelectionNodes import IfNode, ElseNode
 from src.SymbolTable import FunctionCType
@@ -21,13 +21,14 @@ class LLVMVisitor(GenerationVisitor):
         self.tab = '\t'
         self.localRegisterCounter = 0
         self.globalRegisterCounter = 0
-        self.labelCounter = 0
+        self.thenCounter = 0
+        self.elseCounter = 0
+        self.endCounter = 0
         super().__init__(typeList)
 
     #
     #   REGISTER HANDLING HELPER METHODS
     #
-
     def _reserveUnnamedRegister(self, prefix: str) -> str:
         if prefix == "%":
             reservedReg: str = f"%{self.localRegisterCounter}"
@@ -38,7 +39,8 @@ class LLVMVisitor(GenerationVisitor):
             self._incrGlobalRegCtr()
             return reservedReg
         else:
-            raise Exception(f"unknown unnamed temporary prefix: '{prefix}' when trying to reserve unnamed temporary register")
+            raise Exception(
+                f"unknown unnamed temporary prefix: '{prefix}' when trying to reserve unnamed temporary register")
 
     def _incrGlobalRegCtr(self):
         self.globalRegisterCounter += 1
@@ -94,8 +96,11 @@ class LLVMVisitor(GenerationVisitor):
             # the value of the named register into an unnamed one
             if not NamedRegister[1:].isnumeric():
                 UnnamedRegister = self._reserveUnnamedRegister(NamedRegister[0])
-                NamedRegType = self._CToLLVMType(expression.getType()) + "*"     # TODO implicit address-of operator should take care of this???
-                self.instructions.append(self._createLoadStatement(NamedRegType, NamedRegister, NamedRegType[:-1], UnnamedRegister, wrap=True))
+                NamedRegType = self._CToLLVMType(
+                    expression.getType()) + "*"  # TODO implicit address-of operator should take care of this???
+                self.instructions.append(
+                    self._createLoadStatement(NamedRegType, NamedRegister, NamedRegType[:-1], UnnamedRegister,
+                                              wrap=True))
 
                 self.currentSymbolTable[expression.identifier].register = UnnamedRegister
 
@@ -110,10 +115,10 @@ class LLVMVisitor(GenerationVisitor):
     def _evaluateExpression(self, expressionNode: ExpressionNode) -> str:
         expressionNode.accept(self)
         return self._getExpressionLocation(expressionNode)
+
     #
     #   SCOPE HANDLING HELPER METHODS
     #
-
 
     def _openScope(self, node: ScopedNode):
         """Access the passed node to change the current scope to the scope it represents."""
@@ -224,7 +229,6 @@ class LLVMVisitor(GenerationVisitor):
     #   VISITOR METHODS
     #
 
-
     def visitFunctiondefinition(self, node: FunctiondefinitionNode):
         # update scope
         self._openScope(node)
@@ -234,7 +238,7 @@ class LLVMVisitor(GenerationVisitor):
 
         output_string = ""
         identifierNode = node.getIdentifierNode()
-        retType = self.returnTypeString(identifierNode)     # the LLVM type of the return type
+        retType = self.returnTypeString(identifierNode)  # the LLVM type of the return type
 
         output_string += f"{llk.DEFINE} {retType} @{identifierNode.identifier}("
 
@@ -253,7 +257,8 @@ class LLVMVisitor(GenerationVisitor):
             allocations.append('\t' + f"{cpyRegister} = {llk.ALLOCA} {paramType}" + '\n')
             stores.append(self._createStoreStatement(
                 paramType, registerPrefix + idName,
-                paramType + '*', cpyRegister,       # TODO  the '*' should be done through implicit address-of operator for the right side of a assignment
+                           paramType + '*', cpyRegister,
+                # TODO  the '*' should be done through implicit address-of operator for the right side of a assignment
                 wrap=True))
             self.currentSymbolTable[idName].register = cpyRegister
 
@@ -297,9 +302,9 @@ class LLVMVisitor(GenerationVisitor):
         if dstLocation[0] == '@':
             initValue = 0
 
-            rightSibling = node.parent.getChild(node.parent.children.index(node)+1)
-            if rightSibling is not None and isinstance(rightSibling, Var_assigNode) and\
-                rightSibling.getIdentifierNode().identifier == identifier and\
+            rightSibling = node.parent.getChild(node.parent.children.index(node) + 1)
+            if rightSibling is not None and isinstance(rightSibling, Var_assigNode) and \
+                    rightSibling.getIdentifierNode().identifier == identifier and \
                     isinstance(rightSibling.getChild(1), LiteralNode):
                 initValue = rightSibling.getChild(1).getValue()
                 idLLVMType = self._CToLLVMType(rightSibling.getChild(1).inferType(self.typeList))
@@ -310,7 +315,6 @@ class LLVMVisitor(GenerationVisitor):
 
         self.currentSymbolTable[identifier].register = dstLocation
         self.instructions.append(allocInstr)
-
 
     # TODO  for global variables,
     # TODO      int a;
@@ -342,7 +346,6 @@ class LLVMVisitor(GenerationVisitor):
         #  output_string = self._createStoreStatement(rhsLLVMType, rhsLocation, lhsLLVMType, lhsLocation, wrap=True)
         #  self.instructions.append(output_string)
 
-
     def visitBinaryop(self, node: BinaryopNode):
 
         lhs: ExpressionNode = node.getChild(0)
@@ -361,8 +364,8 @@ class LLVMVisitor(GenerationVisitor):
         binaryOpInstruction = node.getLLVMOpKeyword()
         binaryOpInstruction = self._getBinaryOpPrefix(binaryOpInstruction, lhsLLVMType) + binaryOpInstruction
 
-        output_string = '\t' +\
-                        f"{dstTempRegister} = {binaryOpInstruction} {lhsLLVMType} {lhsLocation}, {rhsLocation}" +\
+        output_string = '\t' + \
+                        f"{dstTempRegister} = {binaryOpInstruction} {lhsLLVMType} {lhsLocation}, {rhsLocation}" + \
                         '\n'
         self.instructions.append(output_string)
 
@@ -406,62 +409,40 @@ class LLVMVisitor(GenerationVisitor):
             funcDefType = node.getAncestorOfType(FunctiondefinitionNode).getIdentifierNode().getType()
             output_string = self.returnStatement(node, self._CToLLVMType(funcDefType))
             self.instructions.append(output_string)
+        if isinstance(node, ContinueNode):
+            a = 5
+            pass
 
     def visitSelectionstatement(self, node: SelectionstatementNode):
         self._openScope(node)
-        ifn = node
-        # evaluate condition
-        result = self._evaluateExpression(ifn.getChild(0))
-        output_string = ""
-        output_string += '\t' + f"{llk.BRANCH} {llk.I1} {result}, label %if.then, label %if.else" + '\n'
-        output_string += '\n' + "if.then:" + '\n'
-        self.instructions.append(output_string)
-        for i in range(1, len(node.children)-1):
-            node.children[i].accept(self)
-        iteration_node = node.getChild(2).getChild(0)
-
-        # TODO  This check SHOULD be deleted, as it blocks any else node with no children
-        #   ==> iteration_node = node.getChild(2).getChild(0)
-        #   should be
-        #   ==> iteration_node = node.getChild(2)
-        if iteration_node is None:
-            return
-
-        branch_counter = 2
-        output_string = ""
         while True:
-            if isinstance(iteration_node, ElseNode):
-                if branch_counter != 2:
-                    output_string += '\n' + '\n'
-                    output_string += f"if.else{branch_counter}:" + '\n'
-                    self.instructions.append(output_string)
-                    for i in range(1, len(iteration_node.parent.children)-1):
-                        iteration_node.parent.children[i].accept(self)
-                    output_string = '\t' + "br label %if.end" + '\n' + '\n'
-                    output_string += f"if.end:" + '\n'
-                    output_string += '\t' + f"br label %if.end{branch_counter+1}" + '\n'
-                    self.instructions.append(output_string)
+            elseCheck = False
+            if node.getChild(0) is not None:
+                result = self._evaluateExpression(node.getChild(0))
+            if isinstance(node, IfNode):
+                if isinstance(node.getChild(-1), ElseNode):
+                    elseCheck = True
+                if elseCheck:
+                    self.instructions.append('\t' + f"{llk.BRANCH} {llk.I1} {result}, label %if.then{self.thenCounter}, " \
+                                                    f"label %if.else{self.elseCounter}" + '\n')
+                else:
+                    self.instructions.append('\t' + f"{llk.BRANCH} {llk.I1} {result}, label %if.then{self.thenCounter}, " \
+                                                    f"label %if.end{self.endCounter}" + '\n')
+                self.instructions.append('\n' + f"if.then{self.thenCounter}:" + '\n')
+                self.thenCounter += 1
+            for i in range(1, len(node.children) - 1):
+                node.children[i].accept(self)
+            self.instructions.append('\t' + f"br label %if.end{self.endCounter}" + '\n')
+            if elseCheck:
+                self.instructions.append('\n' + f"if.else{self.elseCounter}:" + '\n')
+                self.elseCounter += 1
+            else:
+                self.instructions.append('\n' + f"if.end{self.endCounter}:" + '\n')
+                self.endCounter += 1
+            if elseCheck:
+                node = node.getChild(-1)
+            else:
                 break
-            self.instructions.append('\t' + "br label %if.end4")
-            self.instructions.append('\n' + f"if.else:" + '\n')
-            ifn = iteration_node
-            # TODO  same as above comment (or at least similar)
-            if ifn.getChild(0) is None:
-                return
-            result = self._evaluateExpression(ifn.getChild(0))
-            output_string += '\t' + f"br i1 {result}, label %if.then{branch_counter}, label %if.else{branch_counter+1}"
-            output_string += '\n' + '\n'
-            output_string += f"if.then{branch_counter}:" + '\n'
-            self.instructions.append(output_string)
-            for i in range(1, len(iteration_node.children)-1):
-                iteration_node.children[i].accept(self)
-            output_string = '\t' + "br label %if.end"
-
-            branch_counter += 1
-            iteration_node = iteration_node.children[-1]
-        output_string = '\n' + f"if.end{branch_counter+1}:" + '\n'
-        self.instructions.append(output_string)
-        self._closeScope()
 
     def visitIterationstatement(self, node: IterationstatementNode):
         self._openScope(node)
@@ -485,7 +466,6 @@ class LLVMVisitor(GenerationVisitor):
     #   NON-LLVM-GENERATING VISITOR METHODS
     #
 
-
     def visitLiteral(self, node: LiteralNode):
         # Literals should be accessed directly through the AST
         pass
@@ -493,7 +473,3 @@ class LLVMVisitor(GenerationVisitor):
     def visitIdentifier(self, node: IdentifierNode):
         # Identifiers must be components of instructions
         pass
-
-
-
-
