@@ -9,6 +9,7 @@ from src.Nodes.SelectionNodes import ElseNode
 from src.SymbolTable import SymbolTable, Record, Accessibility, ReadAccess,\
     ReadWriteAccess, CType, CType, FunctionCType
 from src.Nodes.ASTreeNode import *
+from src.Visitor.ASTreeVisitor import IncludedirectiveNode
 
 
 class SymbolVisitor(ASTreeVisitor):
@@ -146,6 +147,13 @@ class SymbolVisitor(ASTreeVisitor):
     #
     #   SYMBOL DECLARATIONS
     #
+
+    def visitIncludedirective(self, node: IncludedirectiveNode):
+        ft = FunctionCType(self.typeList[BuiltinNames.INT], False)
+        cp = CType(self.typeList[BuiltinNames.CHAR]).addPointer(False)
+        ft.paramTypes.append(cp)
+        record = Record(ft, ReadWriteAccess())
+        self.currentSymbolTable["printf"] = record
 
     def visitVariabledeclaration(self, node: VariabledeclarationNode):
         identifier, record = self._determineVariableRecord(node)

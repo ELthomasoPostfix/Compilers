@@ -90,8 +90,8 @@ class CharNode(LiteralNode):
         assert isinstance(value, int) or isinstance(value, str), f"Cannot construct {self.__class__.__name__} instance " \
                                                                  f"from {value.__class__.__name__} type value"
 
-        self._value = ctoi(value) if isinstance(value, str) else value
-        assert isinstance(self._value, int), f"{self.__class__.__name__} incorrectly set value: expected type {int}," \
+        self._value = ctoi(value) if isinstance(value, str) and len(value) == 1 else value
+        assert isinstance(self._value, int) or isinstance(self._value, str), f"{self.__class__.__name__} incorrectly set value: expected type {int}," \
                                              f" but got {type(self.getValue())}"
 
     def __repr__(self):

@@ -1,12 +1,8 @@
-int f() { return 3; }
+
+#include <stdio.h>
+
 
 int main() {
-  int i0 = 1;
-  int i1 = 4;
-  int i = 2 * i1 + i0 - i0 * 4;
-  // int i = 2 * i1 + i0 - - i0 * 4;
-
-  //f();
-
-  return 0;
+    printf("Hello World %i", 54);
+    return 0;
 }

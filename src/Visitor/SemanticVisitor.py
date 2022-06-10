@@ -68,16 +68,20 @@ class SemanticVisitor(ASTreeVisitor):
     def visitFunctioncall(self, node: FunctioncallNode):
         params = node.getParameterNodes()
         cType = node.inferType(self.typeList)
-        if len(params) != len(cType.paramTypes):
-            raise InvalidFunctionCall(f"function '{node.getIdentifierNode().identifier}' has invalid param count.\n"
-                                      f"Needed {len(cType.paramTypes)} but got {len(params)}")
+        identifier = node.getIdentifierNode()
+        if identifier.identifier == "printf":
+            pass
+        else:
+            if len(params) != len(cType.paramTypes):
+                raise InvalidFunctionCall(f"function '{node.getIdentifierNode().identifier}' has invalid param count.\n"
+                                          f"Needed {len(cType.paramTypes)} but got {len(params)}")
 
-        paramTypes = [param.inferType(self.typeList) for param in params]
-        for idx in range(len(paramTypes)):
-            if paramTypes[idx] != cType.paramTypes[idx]:
-                raise InvalidFunctionCall(f"function '{node.getIdentifierNode().identifier}' has invalid param types.\n"
-                                          f"Needed {[self.toTypeName(t) for t in cType.paramTypes]} "
-                                          f"but got {[self.toTypeName(t) for t in paramTypes]}")
+            paramTypes = [param.inferType(self.typeList) for param in params]
+            for idx in range(len(paramTypes)):
+                if paramTypes[idx] != cType.paramTypes[idx]:
+                    raise InvalidFunctionCall(f"function '{node.getIdentifierNode().identifier}' has invalid param types.\n"
+                                              f"Needed {[self.toTypeName(t) for t in cType.paramTypes]} "
+                                              f"but got {[self.toTypeName(t) for t in paramTypes]}")
 
     def visitBinaryop(self, node: BinaryopNode):
         self.visitChildren(node)

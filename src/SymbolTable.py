@@ -126,6 +126,9 @@ class CType:
     def typeName(self, typeList: TypeList):
         return typeList[self.typeIndex]
 
+    # def functionCType(self, ):
+
+
     def __eq__(self, other, requirePointerEq: bool = False):
         """
         Equality check with :other:.

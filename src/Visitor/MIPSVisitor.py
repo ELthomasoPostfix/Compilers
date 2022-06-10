@@ -468,23 +468,25 @@ class MIPSVisitor(GenerationVisitor):
                 self.currentSymbolTable[node.identifier].register = dst
 
     def visitVar_assig(self, node: Var_assigNode):
-        rhs: ExpressionNode = node.getChild(1)
-        lhs: IdentifierNode = node.getIdentifierNode()
-
-        rhsLoc = self.evaluateExpression(rhs)
-        lhsLoc = self.currentSymbolTable[lhs.identifier].register
-
-        if isinstance(rhs, LiteralNode):
-            self._addTextInstruction(load("I", rhs.getValue(), self._reserveRegister("t")))
-
-        if lhsLoc.isRegister():
-            # TODO Make the expression load directly into the location of lhs???
-            self._addTextInstruction(move(rhsLoc, lhsLoc))
-        elif lhsLoc.isAddress():
-            # TODO what in case of pointers???
-            self.currentSymbolTable[lhs.identifier].register = rhsLoc
-        else:
-            raise Exception("variable assignment lhs location guard clause")
+        self._addTextInstruction(MIPSComment("Hello im normally some shit"))
+        return
+        # rhs: ExpressionNode = node.getChild(1)
+        # lhs: IdentifierNode = node.getIdentifierNode()
+        #
+        # rhsLoc = self.evaluateExpression(rhs)
+        # lhsLoc = self.currentSymbolTable[lhs.identifier].register
+        #
+        # if isinstance(rhs, LiteralNode):
+        #     self._addTextInstruction(load("I", rhs.getValue(), self._reserveRegister("t")))
+        #
+        # if lhsLoc.isRegister():
+        #     # TODO Make the expression load directly into the location of lhs???
+        #     self._addTextInstruction(move(rhsLoc, lhsLoc))
+        # elif lhsLoc.isAddress():
+        #     # TODO what in case of pointers???
+        #     self.currentSymbolTable[lhs.identifier].register = rhsLoc
+        # else:
+        #     raise Exception("variable assignment lhs location guard clause")
 
     def visitLiteral(self, node: LiteralNode):
         self._ensureErshovReady(node)
@@ -492,6 +494,18 @@ class MIPSVisitor(GenerationVisitor):
     def evaluateExpression(self, node: ExpressionNode):
         node.accept(self)
         return MIPSLocation("$t0")
+
+    def visitIterationstatement(self, node: IterationstatementNode):
+        self._openScope(node)
+        self._addTextInstruction(f"b $L{self.labelCounter}")
+        self._addTextLabel(f"b $L{self.labelCounter + 1}")
+        for i in range(1, len(node.children)):
+            node.getChild(i).accept(self)
+        self._addTextLabel(f"$L{self.labelCounter}")
+        result = self.evaluateExpression(node.getChild(0))
+        self._addTextLabel(f"bne {result},$0,$L{self.labelCounter + 1}")
+        self.labelCounter += 1
+        self._closeScope()
 
     def visitSelectionstatement(self, node: SelectionstatementNode):
         self._openScope(node)

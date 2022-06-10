@@ -16,6 +16,7 @@ from src.Nodes.OperatorNodes import *
 from src.Nodes.ASTreeNode import CompoundstatementNode
 from src.generated.MyGrammarListener import MyGrammarListener
 from src.generated.MyGrammarParser import MyGrammarParser
+from src.Nodes.ASTreeNode import IncludedirectiveNode
 
 
 class ASTreeListener(MyGrammarListener):
@@ -91,36 +92,41 @@ class ASTreeListener(MyGrammarListener):
 
     def enterIncludedirective(self, ctx:MyGrammarParser.IncludedirectiveContext):
         # printf declaration
-        self.current.addChild(FunctiondeclarationNode()).\
-            addChild(TypedeclarationNode()).\
-            addChild(TypespecifierNode(BuiltinNames.INT))
+        self.addCurrentChild(IncludedirectiveNode())
 
-        printfDeclaration = self.current.getChild(0)
 
-        printfDeclaration.addChild(FunctionDeclaratorNode()).\
-            addChild(IdentifierNode("printf"))
+        # self.current.addChild(FunctiondeclarationNode()).\
+        #     addChild(TypedeclarationNode()).\
+        #     addChild(TypespecifierNode(BuiltinNames.INT))
+        #
+        # printfDeclaration = self.current.getChild(0)
+        #
+        # printfDeclaration.addChild(FunctionDeclaratorNode()).\
+        #     addChild(IdentifierNode("printf"))
 
-        param = VariabledeclarationNode()
-        param.addChild(TypedeclarationNode()).\
-            addChild(TypespecifierNode(BuiltinNames.CHAR))      # Type specifier
-        param.getChild(0).addChild(ConstNode(), 0)    # const
-        param.addChild(DeclaratorNode()).\
-            addChild(PointerNode())                             # pointer
-        param.getChild(1).addChild(IdentifierNode("format"))    # identifier (format)
 
-        printfDeclaration.addChild(param)
+        # IncludeDirectiveNode = 4
+        # param = VariabledeclarationNode()
+        # param.addChild(TypedeclarationNode()).\
+        #     addChild(TypespecifierNode(BuiltinNames.CHAR))      # Type specifier
+        # param.getChild(0).addChild(ConstNode(), 0)    # const
+        # param.addChild(DeclaratorNode()).\
+        #     addChild(PointerNode())                             # pointer
+        # param.getChild(1).addChild(IdentifierNode("format"))    # identifier (format)
+        #
+        # printfDeclaration.addChild(param)
 
 
         # scanf declaration
-        self.current.addChild(FunctiondeclarationNode()).\
-            addChild(TypedeclarationNode()).\
-            addChild(TypespecifierNode(BuiltinNames.VOID))
-
-        scanfDeclaration = self.current.getChild(1)
-
-        scanfDeclaration.addChild(FunctionDeclaratorNode()).\
-            addChild(IdentifierNode("scanf"))
-        # TODO scanf parameters
+        # self.current.addChild(FunctiondeclarationNode()).\
+        #     addChild(TypedeclarationNode()).\
+        #     addChild(TypespecifierNode(BuiltinNames.VOID))
+        #
+        # scanfDeclaration = self.current.getChild(1)
+        #
+        # scanfDeclaration.addChild(FunctionDeclaratorNode()).\
+        #     addChild(IdentifierNode("scanf"))
+        # # TODO scanf parameters
         # print(coloredDef("The AST scanf declaration does not define any parameters"))
 
     def enterBlock(self, ctx: MyGrammarParser.BlockContext):

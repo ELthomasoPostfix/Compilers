@@ -452,7 +452,6 @@ class LLVMVisitor(GenerationVisitor):
 
     def visitIterationstatement(self, node: IterationstatementNode):
         self._openScope(node)
-
         output_string = ""
         ifn = node
         result = self._evaluateExpression(ifn.getChild(0))

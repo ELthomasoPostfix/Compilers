@@ -225,6 +225,11 @@ class Var_assigNode(ASTree):
     def getIdentifierNode(self) -> IdentifierNode:
         return self.getChild(0)
 
+class IncludedirectiveNode(ASTree):
+    def accept(self, visitor: ASTreeVisitor):
+        visitor.visitIncludedirective(self)
+
+
 
 class DeclaratorNode(ASTree):
     def accept(self, visitor: ASTreeVisitor):
