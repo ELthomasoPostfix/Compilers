@@ -73,7 +73,8 @@ class MIPSFunctionDefinition:
 
         # Spill needed saved registers
         for idx, sr in enumerate(self.usedSavedRegisters):
-            result.append(mk.WS + store("RW", sr, constructAddress(spilledOffset - idx * mk.WORD_SIZE, spillBaseRegister)))
+            result.append(
+                mk.WS + store("RW", sr, constructAddress(spilledOffset - idx * mk.WORD_SIZE, spillBaseRegister)))
 
         result.append(mk.WS + MIPSComment("end of prologue"))
         result.append("")
@@ -87,7 +88,8 @@ class MIPSFunctionDefinition:
 
         # Load pre-spilled saved registers
         for idx, sr in enumerate(self.usedSavedRegisters):
-            result.append(mk.WS + load("RW", constructAddress(spilledOffset - idx * mk.WORD_SIZE, spillBaseRegister), sr))
+            result.append(
+                mk.WS + load("RW", constructAddress(spilledOffset - idx * mk.WORD_SIZE, spillBaseRegister), sr))
 
         # TODO DO NOT RELOAD ARGUMENT REGISTERS? THEY ARE NOT NEEDED POST FCALL
 
@@ -108,9 +110,9 @@ class MIPSFunctionDefinition:
 
         # return
         result.append(mk.WS + f"{mk.JR} {mk.RA}")
-        
+
         return result
-    
+
     def argumentSlotLocation(self, argSlotIdx: int) -> MIPSLocation:
         """
         Get the address for the specified argument slot. Throws assertion error if the
@@ -137,7 +139,7 @@ class MIPSFunctionDefinition:
 
     def isLeafFunction(self):
         return self.isLeaf
-    
+
     def _usedSavedRegisterCount(self) -> int:
         return len(self.usedSavedRegisters)
 
@@ -153,6 +155,8 @@ class MIPSVisitor(GenerationVisitor):
         self._varRegisters = mk.getVarRegisters()
         self._tempRegisters = mk.getTempRegisters()
         self._savedRegisters = mk.getSavedRegisters()
+
+        self._stringCounter = 0
 
         # variable names whose current value is in a register {reg: [IDs]}
         self._registerDescriptors: Dict[MIPSLocation: List[str]] = dict()
@@ -408,9 +412,38 @@ class MIPSVisitor(GenerationVisitor):
 
         self.visitChildren(node)
 
+    def concatinateString(self, input):
+        init_string = input[0]
+        init_stringc = 0
+        output_string = ""
+        acc_list = ['i', 'd', 's']
+        del input[0]
+        i = 0
+        while i < len(init_string):
+            if init_string[i] == '%':
+                if init_string[i + 1] in acc_list:
+                    output_string += str(input[init_stringc])
+                    init_stringc += 1
+                    i += 2
+            else:
+                output_string += init_string[i]
+                i += 1
+        return output_string
+
     # TODO See lecture 7 slides 31-32 for mips spilling conventions
     # TODO See lecture 7 slides 33-34 for stack frame
     def visitFunctioncall(self, node: FunctioncallNode):
+        identifier = node.getIdentifierNode()
+        if identifier.identifier == "printf":
+            temp = []
+            for i in range(1, len(node.children)):
+                temp.append(node.getChild(i).getValue())
+            output_str = self.concatinateString(temp)
+            self._sectionData.append(f"string{self._stringCounter}: .asciiz \"{output_str}\"" )
+            self._addTextInstruction("li $v0, 4")
+            self._addTextInstruction(f"la $a0, string{self._stringCounter}")
+            self._addTextInstruction("syscall")
+
         self._currFuncDef.isLeaf = False
         self._currFuncDef.adjustArgumentSlotCount(node)
 
