@@ -170,7 +170,7 @@ class FunctionCType(CType):
                super().__eq__(other, requirePointerEq)
 
     def __str__(self):
-        return str(self.paramTypes) + " -> " + str(self.typeIndex) + " " + super().__str__()
+        return str(self.paramTypes) + " -> " + super().__str__()
 
 
 
@@ -184,6 +184,10 @@ class Record:
         self.access = access
         self.register: str | MIPSLocation = ""
         self.fpOffset: int = -1     # Offset of the allocated stack memory to the frame pointer
+        assert not self.isFpOffsetInitialized(), "Treat negative offset as uninitialized/unallocated"
+
+    def isFpOffsetInitialized(self) -> bool:
+        return self.fpOffset >= 0
 
     def __repr__(self):
         return str([self.type, self.access, self.register])

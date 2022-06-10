@@ -30,6 +30,17 @@ class ExpressionNode(ASTree):
     def ershovNumberIsEvaluated(self):
         return self.ershovNumber >= 1
 
+    def sethiUllmanNumber(self, base: int):
+        """
+        Calculate the number of the register the callee expression
+        will store its result in.
+
+        :param base: The base in the Sethi-Ullman algorithm
+        :return: The index of the expression's result register
+        """
+
+        return base + self.ershovNumber - 1
+
 
 class TypedNode(ExpressionNode):
     __metaclass__ = ABCMeta
@@ -372,7 +383,7 @@ class FunctioncallNode(ExpressionNode):
         return self.getChild(0)
 
     def evaluateErshovNumber(self):
-        self.ershovNumber = 1
+        self.ershovNumber = 1       # need a register to store the return value
         paramExpressions = self.getParameterNodes()
         if len(paramExpressions) == 0:
             return
@@ -381,7 +392,6 @@ class FunctioncallNode(ExpressionNode):
             param.evaluateErshovNumber()
 
         # The first expression needs to at least be evaluated
-        self.ershovNumber = 0
         for idx in range(0, len(paramExpressions)):
             self.ershovNumber = max(self.ershovNumber, paramExpressions[idx].ershovNumber)
 

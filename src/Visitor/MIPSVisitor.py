@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from typing import Set
+from typing import Set, Dict
 
+from src.Exceptions.exceptions import UnsupportedFeature
 from src.Nodes.ASTreeNode import *
 from src.Enumerations import MIPSKeywords as mk, MIPSLocation, MIPSRegisterInfo
 from src.Nodes.LiteralNodes import IntegerNode, CharNode
@@ -47,7 +48,7 @@ class MIPSFunctionDefinition:
         raLocation: MIPSLocation | None = None
 
         def addComment(tabCount: int, text: str):
-            result[-1] += "\t"*tabCount + MIPSComment(text)
+            result[-1] += "\t" * tabCount + MIPSComment(text)
 
         # Construct stack frame
         result.append(mk.WS + MIPSComment("start of prologue"))
@@ -132,7 +133,7 @@ class MIPSFunctionDefinition:
 
         self._argSlotCount = max(len(node.getParameterNodes()), self._argSlotCount)
         assert self._argSlotCount >= 4, "Incorrectly adjusted argument slot count of function definition"
-        assert self.isLeaf, "Function call should imply storing the return address"
+        assert not self.isLeafFunction(), "Function call should imply storing the return address"
 
     def isLeafFunction(self):
         return self.isLeaf
@@ -148,26 +149,21 @@ class MIPSVisitor(GenerationVisitor):
         self._functionDefinitions: List[MIPSFunctionDefinition] = []
         self._currFuncDef: MIPSFunctionDefinition | None = None
 
-
         self._argRegisters = mk.getArgRegisters()
         self._varRegisters = mk.getVarRegisters()
         self._tempRegisters = mk.getTempRegisters()
         self._savedRegisters = mk.getSavedRegisters()
 
         # variable names whose current value is in a register {reg: [IDs]}
-        self._registerDescriptors: dict = dict()
+        self._registerDescriptors: Dict[MIPSLocation: List[str]] = dict()
         # all locations where the current value of a variable is stored
-        self._addressDescriptors: dict = dict()
+        self._addressDescriptors: Dict[str: List[MIPSLocation]] = dict()
 
-        self._usedSavedRegisters = []
-        self._resetSavedUsage()
         self._reservedLocations = []
+        self._expressionEvalDstReg: MIPSLocation | None = None
         self._SUbase = 0
         self.labelCounter = 0
         super().__init__(typeList)
-
-    # TODO  when loading immediates, there are two options: .data section label + lw OR use li for smaller
-    #   immediates (< 2^26) and lui + ori for larger immediates (>= 2^26) (take signedness into account!!)
 
     @property
     def instructions(self):
@@ -184,20 +180,33 @@ class MIPSVisitor(GenerationVisitor):
     ######################
     #
 
-    def _spillRegister(self, register: str):
-        pass    # TODO spill the 32-bit (== word) register into memory
+    def _addAddressDescriptor(self, identifier: IdentifierNode, descriptor: MIPSLocation):
+        self._addressDescriptors.setdefault(identifier.identifier, []).append(descriptor)
 
-    def _stackPush(self, arg: str) -> None:
-        """
-        Push an argument onto the stack. This method is used in
-        constructing a stack frame.
+    def _addRegisterDescriptor(self, register: MIPSLocation, descriptor: IdentifierNode):
+        self._registerDescriptors.setdefault(register, []).append(descriptor)
 
-        :param arg: The register to push onto the stack.
-        """
-        pass    # TODO lengthen the stack frame by the passed argument
+    def _overwriteRegisterDescriptors(self, register: MIPSLocation, descriptor: IdentifierNode):
+        self._registerDescriptors[register] = [descriptor]
 
-    def _stackPop(self):
-        pass    # TODO reset stack pointer to frame pointer
+    def _getAssignableAddressDescriptor(self, identifier: IdentifierNode):
+        for location in self._addressDescriptors.setdefault(identifier.identifier, []):
+            if location.isRegister():
+                regDescriptors = self._registerDescriptors[location]
+                assert identifier in regDescriptors, f"identifier {identifier.identifier} is supposed to be stored in" \
+                                                     f" register {location}, but is not marked as such"
+                if len(regDescriptors) == 1:
+                    return location
+        return None
+
+    def _spillRegister(self, register: MIPSLocation):
+        for identifier in self._registerDescriptors[register]:
+            # Identifier has spare locations copies, simply disassociate the identifier and register
+            if len(self._addressDescriptors[identifier]) > 1:
+                self._addressDescriptors[identifier].remove(register)
+            if not self.currentSymbolTable[identifier].isFpOffsetInitialized():
+                pass
+
 
     def _stackReserve(self, cType: CType) -> int:
         """
@@ -217,61 +226,51 @@ class MIPSVisitor(GenerationVisitor):
 
         return self._currFuncDef.framePointerOffset
 
-    def _reserveRegister(self, regType: str) -> MIPSLocation | None:
+    def _getReservedLocation(self, expression: ExpressionNode) -> MIPSLocation:
+        return self._reservedLocations[expression.sethiUllmanNumber(self._SUbase)]
+
+
+    def _getAssignableSavedRegister(self) -> MIPSLocation | None:
         """
-        Reserve a single register of the specified type.
+        Reserve a single saved register. May spill an in use register
+        to obtain the requested register.
 
-        :param regType: Type of desired register
-        :return: register if any available, else None
+        :return: register
         """
 
-        regList = []
-        if regType == "s":
-            regList = self._savedRegisters
-        elif regList == "t":
-            regList = self._tempRegisters
-        elif regList == "v":
-            regList = self._varRegisters
-        elif regList == "a":
-            regList = self._argRegisters
+        result = ""
 
-        if len(regList) == 0:
-            # TODO spill some register and return the newly freed register
-            #   ==> depends on regType value
-            return None
+        for register in self._savedRegisters:
+            if len(self._registerDescriptors[register]) == 0:
+                result = register
 
-        return regList.pop()
+        if result == "":
+            result = self._savedRegisters[-1]
+            self._spillRegister(result)
 
-    @staticmethod
-    def _ensureErshovReady(node: ExpressionNode):
-        if not node.ershovNumberIsEvaluated():
-            node.evaluateErshovNumber()
+        # TODO move this to visitVar_assig()?
+        self._currFuncDef.usedSavedRegisters.add(result)
 
-    def _ensureRegisterReservations(self, node: ExpressionNode):
-        # TODO And function call parameters? The FunctioncallNode is a ExpressionNode!!
-        if self._isExpressionRoot(node):
-            self._SURootErshov = node.ershovNumber
-            self._reservedLocations = self._reserveRegisters(node.ershovNumber)
+        return result
 
     @staticmethod
     def _isExpressionRoot(node: ExpressionNode):
         return not isinstance(node.parent, ExpressionNode)
 
-    def _reserveRegisters(self, count: int) -> List[MIPSLocation]:
+    def _reserveRegisters(self, amount: int) -> List[MIPSLocation]:
         """
         Reserve :count: temporary and saved registers. There is a preference for
         temporary registers. A lacking number of temporaries is filled out with
         saved registers.
 
-        :param count: The amount of registers to reserve
+        :param amount: The amount of registers to reserve
         :return: The reserved registers
         """
 
         reserved = []
 
         # TODO reserve actual registers
-        reserved = [MIPSLocation(f"$s{num}") for num in range(count)]
-        self._currFuncDef.usedSavedRegisters.update(reserved)
+        reserved = self._tempRegisters[:amount]
         # TODO reserve actual registers
 
         return reserved
@@ -280,14 +279,11 @@ class MIPSVisitor(GenerationVisitor):
         self._currFuncDef.instructions.append(labelName + ":")
 
     def _addTextInstruction(self, instruction: str, insertIndex: int = -1):
-        instruction = ' '*4 + instruction
+        instruction = ' ' * 4 + instruction
         if insertIndex >= 0:
             self._currFuncDef.instructions.insert(insertIndex, instruction)
         else:
             self._currFuncDef.instructions.append(instruction)
-
-    def _resetSavedUsage(self):
-        self._usedSavedRegisters = [0] * len(self._savedRegisters)
 
     def _addTextWhiteSpace(self, instructionIndex: int):
         self._sectionText[instructionIndex] += "\n"
@@ -297,6 +293,17 @@ class MIPSVisitor(GenerationVisitor):
             return 1
         elif cType == self.typeList[BuiltinNames.INT] or cType == self.typeList[BuiltinNames.FLOAT]:
             return mk.WORD_SIZE
+
+    def _registerIsOccupied(self, register: MIPSLocation):
+        return self._registerDescriptors.__contains__(register) and len(self._registerDescriptors[register]) != 0
+
+    def _closeScope(self):
+        # Purge all saved register usage information of the current scope
+        for identifier in self.currentSymbolTable.mapping.keys():
+            for location in self._addressDescriptors.get(identifier, []):
+                if location.isRegister():
+                    self._registerDescriptors.get(location).remove(identifier)
+        super()._closeScope()
 
     ###########################
     #   OTHER VISIT METHODS   #
@@ -310,12 +317,8 @@ class MIPSVisitor(GenerationVisitor):
         self._functionDefinitions.append(MIPSFunctionDefinition(node.getIdentifierNode().identifier))
         self._currFuncDef = self._functionDefinitions[-1]
 
-        # Function body setup
-        self._resetSavedUsage()
-        # TODO for function 'main' no stack frame needed?
-
         # Do function body
-        self.visitChild(node, 2)    # Generate code for the function body
+        self.visitChild(node, 2)  # Generate code for the function body
 
         # update scope
         self._closeScope()
@@ -339,14 +342,9 @@ class MIPSVisitor(GenerationVisitor):
         #   only in visitBinaryop and not visitAssignment or smth ensures that every possible binary expression is
         #   evaluated using it??? What about array operations/access???
 
-        self._ensureErshovReady(node)
-
-        # TODO are reserved registers actually needed? Simply store intermediate results in memory if ever needed
-        self._ensureRegisterReservations(node)
-
         lhs = node.getChild(0)
         rhs = node.getChild(1)
-        dstIndex = self._SUbase + node.ershovNumber - 1
+        dstIndex = self._SUbase + node.ershovNumber - 1  # The index of the register the result of the bop will be stored in
 
         # TODO save results before fCall? ==> Backtrack through tree and use ershov
         #   index (b + k - 1), + take big/small child into consideration, to
@@ -356,11 +354,11 @@ class MIPSVisitor(GenerationVisitor):
         #   3) move temps to mem when needed ==> !!! increment frame size !!!²
 
         if lhs.ershovNumber == rhs.ershovNumber:
+            self._SUbase += 1  # Increment base recursively for rhs
             rhs.accept(self)
+            self._SUbase -= 1  # Decrement base recursively after rhs
 
-            self._SUbase -= 1       # Lower base recursively for lhs
-            lhs.accept(self)        # TODO save results before fCall?
-            self._SUbase += 1       # Reset base recursively after lhs
+            lhs.accept(self)
 
             # Gather results
             rhsResult = self._reservedLocations[dstIndex]
@@ -381,7 +379,6 @@ class MIPSVisitor(GenerationVisitor):
             rhsResult = self._reservedLocations[dstIndex]
             lhsResult = self._reservedLocations[self._SUbase + lhs.ershovNumber - 1]
 
-
         mipsKeyword = ""
 
         if isinstance(lhs, LiteralNode):
@@ -396,15 +393,15 @@ class MIPSVisitor(GenerationVisitor):
         else:
             mipsKeyword = node.getMIPSROpKeyword('RN')
 
-        bopInstruction = f"{mipsKeyword} {self._reservedLocations[dstIndex]}, {lhsResult}, {rhsResult}"
+        dstRegister = self._expressionEvalDstReg if self._isExpressionRoot(node) and self._expressionEvalDstReg is not None\
+            else self._reservedLocations[dstIndex]
+        bopInstruction = f"{mipsKeyword} {dstRegister}, {lhsResult}, {rhsResult}"
         self._addTextInstruction(bopInstruction)
 
     def visitUnaryexpression(self, node: UnaryexpressionNode):
-        self._ensureErshovReady(node)
         node.getSubExpression().accept(self)
 
     def visitUnaryop(self, node: UnaryopNode):
-        self._ensureErshovReady(node)
         # single child, Ershov number remains unchanged
 
         # +, -, !
@@ -414,28 +411,23 @@ class MIPSVisitor(GenerationVisitor):
     # TODO See lecture 7 slides 31-32 for mips spilling conventions
     # TODO See lecture 7 slides 33-34 for stack frame
     def visitFunctioncall(self, node: FunctioncallNode):
-
-        self._ensureErshovReady(node)
-
         self._currFuncDef.isLeaf = False
         self._currFuncDef.adjustArgumentSlotCount(node)
 
+        # TODO save intermediary results of the expression this function call is a part of
+
         # Calculate parameters
         paramExpressions = node.getParameterNodes()
-        reservationsBackup = self._reservedLocations
         self._reservedLocations = []
 
         for argIdx, paramExp in enumerate(paramExpressions):
             # TODO reserve registers, reserve registers so that final result stored in $a reg or mem
 
-            paramExp.accept(self)
+            paramLoc = self.evaluateExpression(paramExp)
 
             # TODO store f"$a{argIdx}" into f"{argIdx*mk.WORD_SIZE}($sp)", because stack pointer should be at the end of
             #  the stack frame, which is where the arg slots are located
             # TODO move register resultIndex into $a register or memory
-
-
-        self._reservedLocations = reservationsBackup
 
         # Spill convention
 
@@ -443,57 +435,112 @@ class MIPSVisitor(GenerationVisitor):
 
         # copy return values (for array $v0 contains ptr to first element and array elements are stored in memory???)
 
-    def visitVariabledeclaration(self, node: VariabledeclarationNode):
-        return
-        # Pre-allocate each declared variable matching space on the stack
-        allocatedAddress = self._stackReserve(node.getIdentifierNode().getType())
-        self.currentSymbolTable[node.getIdentifierNode().identifier].fpOffset = -allocatedAddress
+    def visitVar_assig(self, node: Var_assigNode):
+        rhs: ExpressionNode = node.getChild(1)
+        lhs: IdentifierNode = node.getIdentifierNode()
 
-    def visitIdentifier(self, node: IdentifierNode):
-        self._ensureErshovReady(node)
+        if not isinstance(lhs, IdentifierNode):
+            raise UnsupportedFeature("The lhs of an assignment must be an identifier for now")
 
-        if isinstance(node.parent, ExpressionNode):
-            src: MIPSLocation = self.currentSymbolTable[node.identifier].register
+        lhsLoc = self._getAssignableAddressDescriptor(lhs)      # an overwritable register of lhs, else None
+        if lhsLoc is None:
+            lhsLoc = self._getAssignableSavedRegister()
+        rhsLoc = self.evaluateExpression(rhs, resultDstReg=lhsLoc)
+
+        # TODO if lhsLoc is a register that will be used in evaluating the rhs expression,
+        #   then the value in its will be lost/changed during the evaluation, making the
+        #   result of the evaluation possibly incorrect
+
+        if isinstance(lhs, IdentifierNode):
+            # If identifier does not yet have a
+            if lhsLoc == "" or lhsLoc.isAddress():
+                self._addAddressDescriptor(lhs, rhsLoc)
+                self._addRegisterDescriptor(rhsLoc, lhs)
+            # All other identifiers making use of lhs' register must have their
+            # descriptors changed as well
+
+
+    def evaluateExpression(self, expression: ExpressionNode, resultDstReg: MIPSLocation | None = None):
+        """
+        Evaluate the passed expression and return the register containing the final result.
+        In the case of a literal that is not the root of an expression, the literal value
+        is returned instead.
+
+        :param expression: The expression to evaluate
+        :param resultDstReg: A specified location the result of the evaluation should be stored at
+        :return: The result of the evaluation
+        """
+
+        if not expression.ershovNumberIsEvaluated():
+            expression.evaluateErshovNumber()
+
+        dstLoc = ""
+        if self._isExpressionRoot(expression):
+            self._reservedLocations = self._reserveRegisters(expression.ershovNumber)
+            assert resultDstReg is None or resultDstReg.isRegister()
+            self._expressionEvalDstReg = resultDstReg
+
+        # Expression was a single literal
+        if isinstance(expression, LiteralNode):
+            value = str(expression.getValue())
+
+            # If Literal not part of an expression, store it in an intermediate register
+            if self._isExpressionRoot(expression):
+                dstRegister = self._getReservedLocation(expression) if resultDstReg is None\
+                    else resultDstReg
+                self._addTextInstruction(load('I', value, dstRegister))
+                value = dstRegister
+
+            dstLoc = value
+        # Sub-expression is an identifier
+        elif isinstance(expression, IdentifierNode):
+
+            # Ensure that an identifier part of an expression gets loaded
+            # into a register
+            src: MIPSLocation = self.currentSymbolTable[expression.identifier].register
             if not src.isRegister():
-                instrType = "R" + ("B" if node.inferType(self.typeList) == CharNode.inferType(self.typeList) else "W")
-                dst = self._reservedLocations[self._SUbase + node.parent.ershovNumber - 1]
-                comment: str = f"load {node.identifier}"
+                assert src == "" or src.isAddress(), "Invalid identifier mips location"
+                # Prepare load instruction for src
+                instrType = "R" + (
+                    "B" if expression.inferType(self.typeList) == CharNode.inferType(self.typeList) else "W")
+                dstRegister = self._getReservedLocation(expression)\
+                    if resultDstReg is None or not self._isExpressionRoot(expression)\
+                    else resultDstReg
+                comment: str = f"load {expression.identifier}"
+
+                # Using uninitialized variable, allocate stack memory
                 if src == "":
-                    src = constructAddress(self._stackReserve(node.getType()), mk.FP)
-                    self.currentSymbolTable[node.identifier].register = src
-                    comment = " (undeclared variable)"
-                loadInstr = load(instrType, src, dst, comment)
+                    record = self.currentSymbolTable[expression.identifier]
+                    fpOffset = record.fpOffset
+                    if not record.isFpOffsetInitialized():
+                        fpOffset = self._stackReserve(expression.getType())
+                    self.currentSymbolTable[expression.identifier].fpOffset = fpOffset
+                    src = constructAddress(fpOffset, mk.FP)
+
+                    # Log assigned stack memory
+                    self._addAddressDescriptor(expression, src)
+
+                    comment += " (uninitialized)"
+
+                loadInstr = load(instrType, src, dstRegister, comment)
                 self._addTextInstruction(loadInstr)
 
-                self.currentSymbolTable[node.identifier].register = dst
+                self._addAddressDescriptor(expression, dstRegister)
+                self.currentSymbolTable[expression.identifier].register = dstRegister
 
-    def visitVar_assig(self, node: Var_assigNode):
-        self._addTextInstruction(MIPSComment("Hello im normally some shit"))
-        return
-        # rhs: ExpressionNode = node.getChild(1)
-        # lhs: IdentifierNode = node.getIdentifierNode()
-        #
-        # rhsLoc = self.evaluateExpression(rhs)
-        # lhsLoc = self.currentSymbolTable[lhs.identifier].register
-        #
-        # if isinstance(rhs, LiteralNode):
-        #     self._addTextInstruction(load("I", rhs.getValue(), self._reserveRegister("t")))
-        #
-        # if lhsLoc.isRegister():
-        #     # TODO Make the expression load directly into the location of lhs???
-        #     self._addTextInstruction(move(rhsLoc, lhsLoc))
-        # elif lhsLoc.isAddress():
-        #     # TODO what in case of pointers???
-        #     self.currentSymbolTable[lhs.identifier].register = rhsLoc
-        # else:
-        #     raise Exception("variable assignment lhs location guard clause")
+            # Always returns a register
+            dstLoc = self.currentSymbolTable[expression.identifier].register
+        else:
+            # Evaluate the expression
+            expression.accept(self)
 
-    def visitLiteral(self, node: LiteralNode):
-        self._ensureErshovReady(node)
+            dstLoc = self._getReservedLocation(expression)
 
-    def evaluateExpression(self, node: ExpressionNode):
-        node.accept(self)
-        return MIPSLocation("$t0")
+        # TODO free registers???
+        if self._isExpressionRoot(expression):
+            pass
+
+        return dstLoc
 
     def visitIterationstatement(self, node: IterationstatementNode):
         self._openScope(node)
@@ -532,30 +579,38 @@ class MIPSVisitor(GenerationVisitor):
             self._addTextLabel(f"$L{self.labelCounter - 1}")
         self._closeScope()
 
+    #
+    #   NON-LLVM-GENERATING VISITOR METHODS
+    #
+
+    def visitLiteral(self, node: LiteralNode):
+        # Literals should be accessed directly through the AST
+        pass
+
+    def visitIdentifier(self, node: IdentifierNode):
+        # Identifiers must be components of instructions
+        pass
+
+
 #########################################
 #   MIPS Instruction Creation METHODS   #
 #########################################
 #
 
 
-def load(instrType: str, srcAddress: MIPSLocation, dstReg: MIPSLocation, comment: str = ""):
+def load(instrType: str, srcAddress, dstReg: MIPSLocation, comment: str = ""):
     if not (instrType == "I" or instrType == "RW" or instrType == "RB" or instrType == "RA"):
         raise Exception("Incorrect mips load type")
 
-    # TODO
-    # TODO
-    # TODO """"$s" not in srcAddress""" is a quick fix, remove this
-    # TODO
-    # TODO
-    if instrType != "I" and not srcAddress.isAddress() and "$s" not in srcAddress:
+    if instrType != "I" and not srcAddress.isAddress():
         raise Exception(f"Loading from incorrect source (should be address): load from '{srcAddress}'")
 
     if not dstReg.isRegister():
         raise Exception(f"Loading into incorrect destination (should be register): load into '{dstReg}'")
 
-    instruction = mk.I_L if instrType == "I" else\
+    instruction = mk.I_L if instrType == "I" else \
         (mk.R_LW if instrType == "RW" else (mk.R_LB if instrType == "RB" else mk.R_LA))
-    return f"{instruction} {dstReg}, {srcAddress}" + ("" if comment == "" else ('\t'*2 + MIPSComment(comment)))
+    return f"{instruction} {dstReg}, {srcAddress}" + ("" if comment == "" else ('\t' * 2 + MIPSComment(comment)))
 
 
 def move(srcReg: MIPSLocation, dstReg: MIPSLocation):
@@ -581,7 +636,7 @@ def store(instrType: str, src: MIPSLocation, dstReg: MIPSLocation, comment: str 
     assert dstReg.isAddress(), "Must store into an address"
 
     instruction = mk.R_SW if instrType == "RW" else mk.R_SB
-    return f"{instruction} {src}, {dstReg}" + ("" if comment == "" else ('\t'*2 + MIPSComment(comment)))
+    return f"{instruction} {src}, {dstReg}" + ("" if comment == "" else ('\t' * 2 + MIPSComment(comment)))
 
 
 def MIPSComment(text: str):
