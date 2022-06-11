@@ -160,6 +160,8 @@ class MIPSVisitor(GenerationVisitor):
         self._tempRegisters = mk.getTempRegisters()
         self._savedRegisters = mk.getSavedRegisters()
 
+        self._stringCounter = 0
+
         # variable names whose current value is in a register {reg: [IDs]}
         self._registerDescriptors: Dict[MIPSLocation: List[str]] = dict()
         # all locations where the current value of a variable is stored
@@ -461,9 +463,38 @@ class MIPSVisitor(GenerationVisitor):
 
         self.visitChildren(node)
 
+    def concatinateString(self, input):
+        init_string = input[0]
+        init_stringc = 0
+        output_string = ""
+        acc_list = ['i', 'd', 's']
+        del input[0]
+        i = 0
+        while i < len(init_string):
+            if init_string[i] == '%':
+                if init_string[i + 1] in acc_list:
+                    output_string += str(input[init_stringc])
+                    init_stringc += 1
+                    i += 2
+            else:
+                output_string += init_string[i]
+                i += 1
+        return output_string
+
     # TODO See lecture 7 slides 31-32 for mips spilling conventions
     # TODO See lecture 7 slides 33-34 for stack frame
     def visitFunctioncall(self, node: FunctioncallNode):
+        identifier = node.getIdentifierNode()
+        if identifier.identifier == "printf":
+            temp = []
+            for i in range(1, len(node.children)):
+                temp.append(node.getChild(i).getValue())
+            output_str = self.concatinateString(temp)
+            self._sectionData.append(f"string{self._stringCounter}: .asciiz \"{output_str}\"" )
+            self._addTextInstruction("li $v0, 4")
+            self._addTextInstruction(f"la $a0, string{self._stringCounter}")
+            self._addTextInstruction("syscall")
+
         self._currFuncDef.isLeaf = False
         self._currFuncDef.adjustArgumentSlotCount(node)
 
@@ -539,7 +570,7 @@ class MIPSVisitor(GenerationVisitor):
             if self._isExpressionRoot(expression):
                 dstRegister = self._getReservedLocation(expression) if resultDstReg is None\
                     else resultDstReg
-                self._addTextInstruction(load('I', value, dstRegister,))
+                self._addTextInstruction(load('I', value, dstRegister))
                 value = dstRegister
 
             dstLoc = value
