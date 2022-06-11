@@ -76,9 +76,9 @@ O: optional feature
 | 3   | Comments 1                 | V                      | N           | N           | M    | ingore comments                                                                                                 |
 |     | Comments 2                 | N                      | X           |             | O    | transfer comments to generated LLVM/MIPS                                                                        |
 |     | Comments 3                 | N                      | X           |             | O    | comment after every LLVM/MIPS statement                                                                         |
-|     | Printf                     | V                      | N           | N           | M    | Only recognition in input C code                                                                                |
+|     | Printf                     | V                      | X           | -           | M    | Only recognition in input C code                                                                                |
 | 4   | Loops                      | V                      | V           |             | M    | for, while                                                                                                      |
-|     | Conditionals 1             | V                      | -           |             | M    | if, else                                                                                                        |
+|     | Conditionals 1             | V                      | V           |             | M    | if, else                                                                                                        |
 |     | Conditionals 2             | X                      | X           |             | O    | switch, case, default                                                                                           |
 |     | Jump statements            | V                      | X           |             | M    | continue, break                                                                                                 |
 |     | Scopes                     | V                      | V           |             | M    | unnamed scope, loops and conditional scopes                                                                     |

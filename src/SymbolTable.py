@@ -79,11 +79,12 @@ class TypeList:
 class CType:
     """A class representing type information for a variable."""
 
-    def __init__(self, typeIndex: int, isArray: bool = False):
+    def __init__(self, typeIndex: int, isArray: bool = False, isConstType=False):
         super().__init__()
         self.typeIndex = typeIndex
         self.isArray = isArray
         self._pointers: List[bool] = []
+        self.isConstType = isConstType
 
     ## Add a level of indirection to the CType, possibly marked const through the isConst parameter.
     #

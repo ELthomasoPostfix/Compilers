@@ -56,7 +56,7 @@ class SymbolVisitor(ASTreeVisitor):
     def _attachRecord(self, node: IdentifierNode):
         record: Record = self.currentSymbolTable[node.identifier]
         if record is None:      # TODO  push this into a SemanticVisitor ???
-            raise UndeclaredSymbol(node.identifier)
+            raise UndeclaredSymbol(node.identifier, node.location)
         node.record = record
 
     def _determineCTypeInfo(self, node: TypedeclarationNode) -> Tuple[str, Accessibility]:
@@ -77,6 +77,8 @@ class SymbolVisitor(ASTreeVisitor):
         varType: CType = CType(self.typeList[typeName])
         self._addPointerTypeInfo(node.getDeclaratorNode(), varType)
         varType.isArray = isinstance(node.getDeclaratorNode(), ArrayDeclaratorNode)
+        if any(isinstance(child, ConstNode) for child in node.getChild(0).children):
+            varType.isConstType = True
 
         return varType, access
 

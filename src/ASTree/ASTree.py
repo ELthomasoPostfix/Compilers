@@ -6,9 +6,11 @@ from src.ASTree.Element import Element
 
 
 class ASTree(Element):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, location=None):
         self.children: [ASTree] = []
         self.parent: ASTree = parent
+        assert(not isinstance(location, int))   #LineNr debug purposes
+        self.location: list = location
 
     def replaceSelf(self, replacement) -> None:
         """
@@ -152,7 +154,7 @@ class ASTree(Element):
         minimal representation plus meta info, of the ASTree node.
         :return: detailed string representation
         """
-        return self.__str__()
+        return self.__str__() + f"\\n line = {self.location}"
 
     def __str__(self):
         """

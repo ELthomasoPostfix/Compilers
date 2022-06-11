@@ -12,8 +12,8 @@ from abc import ABCMeta, abstractmethod
 
 
 class ExpressionNode(ASTree):
-    def __init__(self, parent=None):
-        super(ExpressionNode, self).__init__(parent)
+    def __init__(self, parent=None, location              = None):
+        super(ExpressionNode, self).__init__(parent, location=location)
         self.ershovNumber = 0
 
     def accept(self, visitor: ASTreeVisitor):
@@ -46,8 +46,8 @@ class TypedNode(ExpressionNode):
     __metaclass__ = ABCMeta
 
     """An abstract base class for nodes that are registered into the symbol table."""
-    def __init__(self, parent=None):
-        super().__init__(parent)
+    def __init__(self, parent=None, location = None):
+        super().__init__(parent, location=location)
         self.record: Record | None = None
 
     def getType(self) -> CType:
@@ -73,8 +73,8 @@ class ScopedNode(ASTree):
     as they introduce a new scope.
     """
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
+    def __init__(self, parent=None, location=None):
+        super().__init__(parent, location)
         self.symbolTable: SymbolTable | None = None
 
     def __repr__(self):
@@ -182,8 +182,8 @@ class UnaryopNode(ExpressionNode):
 
 
 class IdentifierNode(TypedNode):
-    def __init__(self, identifier: str, parent: ASTree = None):
-        super().__init__(parent)
+    def __init__(self, identifier: str, parent: ASTree = None, location = -1):
+        super().__init__(parent, location=location)
         self.identifier: str = identifier
 
     def inferType(self, typeList: TypeList) -> CType:
@@ -267,8 +267,8 @@ class FunctionDeclaratorNode(DeclaratorNode):
 
 
 class TypedeclarationNode(ASTree):
-    def __init__(self, parent: ASTree = None, const: bool = False):
-        super().__init__(parent)
+    def __init__(self, parent: ASTree = None, const: bool = False, location=None):
+        super().__init__(parent, location=location)
         self.const: bool = const
 
     def accept(self, visitor: ASTreeVisitor):
@@ -291,8 +291,8 @@ class TypequalifierNode(ASTree):
 
 
 class TypespecifierNode(ASTree):
-    def __init__(self, specifier: str, parent: ASTree = None):
-        super().__init__(parent)
+    def __init__(self, specifier: str, parent: ASTree = None, location = None):
+        super().__init__(parent, location= location)
         self.specifier: str = specifier
 
     def accept(self, visitor: ASTreeVisitor):
@@ -311,8 +311,8 @@ class LiteralNode(ExpressionNode):
     An atomic instance of an ExpressionNode.
     """
 
-    def __init__(self, value, parent: ASTree = None):
-        super().__init__(parent)
+    def __init__(self, value, parent: ASTree = None, location = None):
+        super().__init__(parent, location=location)
         self._value = None
         self.setValue(value)
 

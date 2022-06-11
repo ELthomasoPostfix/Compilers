@@ -335,7 +335,7 @@ class LLVMVisitor(GenerationVisitor):
         rhsLocation = self._evaluateExpression(rhs)
 
         if not isinstance(lhs, IdentifierNode):
-            raise UnsupportedFeature("The left hand side of an assignment MUST be an identifier for now")
+            raise UnsupportedFeature("The left hand side of an assignment MUST be an identifier for now", location = node.location)
 
         # Visit lhs expression
         lhs.accept(self)
