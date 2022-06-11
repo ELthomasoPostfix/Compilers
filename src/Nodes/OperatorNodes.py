@@ -131,6 +131,9 @@ class NeqNode(BinaryopNode):
     def evaluate(self, left: LiteralNode, right: LiteralNode):
         return left.getValue() != right.getValue()
 
+    def getLLVMOpKeyword(self) -> str:
+        return f"{llk.COMPARE} {llk.NEQ}"
+
     def __str__(self):
         return '!='
 

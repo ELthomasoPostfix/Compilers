@@ -221,96 +221,101 @@ class ASTreeListener(MyGrammarListener):
         self.addCurrentChild(NullstatementNode())
 
     def enterMultiplicationexp(self, ctx: MyGrammarParser.MultiplicationexpContext):
+        location = self.returnLocation(ctx)
         if self.isTerminalType(ctx.getChild(1), MyGrammarParser.STAR):
-            self.addCurrentChild(MulNode())
+            self.addCurrentChild(MulNode(location=location))
         elif self.isTerminalType(ctx.getChild(1), MyGrammarParser.DIV):
-            self.addCurrentChild(DivNode())
+            self.addCurrentChild(DivNode(location=location))
         elif self.isTerminalType(ctx.getChild(1), MyGrammarParser.MOD):
-            self.addCurrentChild(ModNode())
+            self.addCurrentChild(ModNode(location=location))
 
     def enterAddexp(self, ctx: MyGrammarParser.AddexpContext):
+        location = self.returnLocation(ctx)
         if self.isTerminalType(ctx.getChild(1), MyGrammarParser.PLUS):
-            self.addCurrentChild(SumNode())
+            self.addCurrentChild(SumNode(location=location))
         elif self.isTerminalType(ctx.getChild(1), MyGrammarParser.MIN):
-            self.addCurrentChild(MinNode())
+            self.addCurrentChild(MinNode(location=location))
 
     def enterRelationalexp(self, ctx: MyGrammarParser.RelationalexpContext):
+        location = self.returnLocation(ctx)
         if self.isTerminalType(ctx.getChild(1), MyGrammarParser.LT):
-            self.addCurrentChild(LtNode())
+            self.addCurrentChild(LtNode(location=location))
         elif self.isTerminalType(ctx.getChild(1), MyGrammarParser.LTE):
-            self.addCurrentChild(LteNode())
+            self.addCurrentChild(LteNode(location=location))
         elif self.isTerminalType(ctx.getChild(1), MyGrammarParser.GT):
-            self.addCurrentChild(GtNode())
+            self.addCurrentChild(GtNode(location=location))
         elif self.isTerminalType(ctx.getChild(1), MyGrammarParser.GTE):
-            self.addCurrentChild(GteNode())
+            self.addCurrentChild(GteNode(location=location))
 
     def enterEqualityexp(self, ctx: MyGrammarParser.EqualityexpContext):
+        location = self.returnLocation(ctx)
         if self.isTerminalType(ctx.getChild(1), MyGrammarParser.EQ):
-            self.addCurrentChild(EqNode())
+            self.addCurrentChild(EqNode(location=location))
         elif self.isTerminalType(ctx.getChild(1), MyGrammarParser.NEQ):
-            self.addCurrentChild(NeqNode())
+            self.addCurrentChild(NeqNode(location=location))
 
     def enterAndexp(self, ctx: MyGrammarParser.AndexpContext):
-        self.addCurrentChild(AndNode())
+        self.addCurrentChild(AndNode(location=self.returnLocation(ctx)))
 
     def enterOrexp(self, ctx: MyGrammarParser.AndexpContext):
-        self.addCurrentChild(OrNode())
+        self.addCurrentChild(OrNode(location=self.returnLocation(ctx)))
 
-    def possiblyAddUnaryExpressionNode(self):
+    def possiblyAddUnaryExpressionNode(self, ctx):
         if not isinstance(self.current, UnaryexpressionNode):
-            self.addCurrentChild(UnaryexpressionNode())
+            self.addCurrentChild(UnaryexpressionNode(location=self.returnLocation(ctx)))
 
     def removeUnneededUnaryExpressionNode(self):
         if len(self.current.children) == 1:
             self.replaceCurrent(self.current.getChild(0))
 
     def enterUnarypostfixexp(self, ctx: MyGrammarParser.UnarypostfixexpContext):
-        self.possiblyAddUnaryExpressionNode()
+        self.possiblyAddUnaryExpressionNode(ctx)
 
     def exitUnarypostfixexp(self, ctx: MyGrammarParser.UnarypostfixexpContext):
         if self.isTerminalType(ctx.getChild(-1), MyGrammarParser.INCR):
-            self.current.addChild(PrefixIncrementNode())
+            self.current.addChild(PrefixIncrementNode(location=self.returnLocation(ctx)))
         elif self.isTerminalType(ctx.getChild(-1), MyGrammarParser.DECR):
-            self.current.addChild(PrefixDecrementNode())
+            self.current.addChild(PrefixDecrementNode(location=self.returnLocation(ctx)))
         self.removeUnneededUnaryExpressionNode()
 
     def enterUnaryprefixexp(self, ctx: MyGrammarParser.UnaryprefixexpContext):
-        self.possiblyAddUnaryExpressionNode()
+        self.possiblyAddUnaryExpressionNode(ctx)
         if self.isTerminalType(ctx.getChild(0), MyGrammarParser.INCR):
-            self.current.addChild(PostfixIncrementNode())
+            self.current.addChild(PostfixIncrementNode(location=self.returnLocation(ctx)))
         elif self.isTerminalType(ctx.getChild(0), MyGrammarParser.DECR):
-            self.current.addChild(PostfixDecrementNode())
+            self.current.addChild(PostfixDecrementNode(location=self.returnLocation(ctx)))
 
     def exitUnaryprefixexp(self, ctx: MyGrammarParser.UnaryprefixexpContext):
         self.removeUnneededUnaryExpressionNode()
 
     def enterUnaryexp(self, ctx: MyGrammarParser.UnaryexpContext):
-        self.possiblyAddUnaryExpressionNode()
+        self.possiblyAddUnaryExpressionNode(ctx)
 
     def exitUnaryexp(self, ctx: MyGrammarParser.UnaryexpContext):
         self.removeUnneededUnaryExpressionNode()
 
     def enterUnaryop(self, ctx: MyGrammarParser.UnaryopContext):
         unaryop = ctx.getChild(0)
+        location = self.returnLocation(ctx)
         if self.isTerminalType(unaryop, MyGrammarParser.PLUS):
-            self.addCurrentChild(PositiveNode())
+            self.addCurrentChild(PositiveNode(location=location))
         elif self.isTerminalType(unaryop, MyGrammarParser.MIN):
-            self.addCurrentChild(NegativeNode())
+            self.addCurrentChild(NegativeNode(location=location))
         elif self.isTerminalType(unaryop, MyGrammarParser.NOT):
-            self.addCurrentChild(NotNode())
+            self.addCurrentChild(NotNode(location=location))
         elif self.isTerminalType(unaryop, MyGrammarParser.REF) and not \
                 self.siblingsChildIsTerminalType(ctx, 1, MyGrammarParser.STAR):
-            self.addCurrentChild(AddressOfNode())
+            self.addCurrentChild(AddressOfNode(location=location))
         elif self.isTerminalType(unaryop, MyGrammarParser.STAR) and not \
                 self.siblingsChildIsTerminalType(ctx, -1, MyGrammarParser.REF):
-            self.addCurrentChild(DereferenceNode())
+            self.addCurrentChild(DereferenceNode(location=location))
 
     def enterDeclaration(self, ctx: MyGrammarParser.DeclarationContext):
         self.addCurrentChild(VariabledeclarationNode(location=self.returnLocation(ctx)))
 
     def exitDeclaration(self, ctx: MyGrammarParser.DeclarationContext):
         if isinstance(self.current.getChild(1), FunctionDeclaratorNode):
-            self.replaceCurrent(FunctiondeclarationNode())
+            self.replaceCurrent(FunctiondeclarationNode(location = self.returnLocation(ctx)))
             if len(self.current.children) == 3:
                 raise DeclarationException(
                     f"Function declared like variable: {ctx.getChild(0).getText()} {ctx.getChild(1).getText()} = {ctx.getChild(2).getText()[1:]}",location=self.returnLocation(ctx))
@@ -339,7 +344,7 @@ class ASTreeListener(MyGrammarListener):
             self.replaceCurrent(FunctionDeclaratorNode(location=self.returnLocation(ctx)))
 
     def enterFunctionparameter(self, ctx: MyGrammarParser.FunctionparameterContext):
-        self.addCurrentChild(VariabledeclarationNode())
+        self.addCurrentChild(VariabledeclarationNode(location = self.returnLocation(ctx)))
 
     def enterTypedeclaration(self, ctx: MyGrammarParser.TypedeclarationContext):
         self.addCurrentChild(TypedeclarationNode(location=self.returnLocation(ctx)))
@@ -348,7 +353,7 @@ class ASTreeListener(MyGrammarListener):
         self.addCurrentChild(FunctioncallNode(location=self.returnLocation(ctx)))
 
     def enterLvalueliteralstring(self, ctx: MyGrammarParser.LvalueliteralstringContext):
-        self.addCurrentChild(CharNode(self.getStringContents(ctx)))
+        self.addCurrentChild(CharNode(self.getStringContents(ctx), location = self.returnLocation(ctx)))
 
     def enterLvaluearraysubscript(self, ctx: MyGrammarParser.LvaluearraysubscriptContext):
         #   & lvalue-expression [ expression ]
@@ -358,23 +363,24 @@ class ASTreeListener(MyGrammarListener):
             self.current.replaceSelf(None)
             # TODO do implied addition
             return
-        self.addCurrentChild(ArraySubscriptNode())
+        self.addCurrentChild(ArraySubscriptNode(location = self.returnLocation(ctx)))
 
     def enterLiteral(self, ctx: MyGrammarParser.LiteralContext):
+        location = self.returnLocation(ctx)
         if self.isTerminalType(ctx.getChild(0), MyGrammarParser.LITERAL_INT):
-            self.addCurrentChild(IntegerNode(int(ctx.getText()), location = self.returnLocation(ctx)))
+            self.addCurrentChild(IntegerNode(int(ctx.getText()), location=location))
         elif self.isTerminalType(ctx.getChild(0), MyGrammarParser.LITERAL_FLOAT):
-            self.addCurrentChild(FloatNode(float(ctx.getText()), location = self.returnLocation(ctx)))
+            self.addCurrentChild(FloatNode(float(ctx.getText()), location=location))
         elif self.isTerminalType(ctx.getChild(0), MyGrammarParser.LITERAL_CHAR):
             char = self.getStringContents(ctx)
             if len(char) == 0:
-                raise InitializationException("Empty char literal")
-            self.addCurrentChild(CharNode(char, location = self.returnLocation(ctx)))
+                raise InitializationException("Empty char literal", location=location)
+            self.addCurrentChild(CharNode(char, location=location))
         elif self.isTerminalType(ctx.getChild(0), MyGrammarParser.LITERAL_STRING):
-            self.addCurrentChild(CharNode(self.getStringContents(ctx), location = self.returnLocation(ctx)))
+            self.addCurrentChild(CharNode(self.getStringContents(ctx), location=location))
 
     def enterPointer(self, ctx: MyGrammarParser.PointerContext):
-        self.addCurrentChild(PointerNode())
+        self.addCurrentChild(PointerNode(location = self.returnLocation(ctx)))
 
     def enterIdentifier(self, ctx: MyGrammarParser.IdentifierContext):
         self.addCurrentChild(IdentifierNode(ctx.getText(),location=self.returnLocation(ctx)))
@@ -383,14 +389,15 @@ class ASTreeListener(MyGrammarListener):
         self.addCurrentChild(TypespecifierNode(ctx.getText(), location=self.returnLocation(ctx)))
 
     def enterTypequalifier(self, ctx: MyGrammarParser.TypequalifierContext):
+        location = self.returnLocation(ctx)
         if isinstance(self.current, TypedeclarationNode):
             firstChild = self.current.getChild(0)
             if firstChild is None or not isinstance(firstChild, QualifierNode):
                 if self.isTerminalType(ctx.getChild(0), MyGrammarParser.QUALIFIER_CONST):
-                    self.current.addChild(ConstNode(), 0)
+                    self.current.addChild(ConstNode(location=location), 0)
         elif isinstance(self.current, DeclaratorNode) and \
                 isinstance(self.current.getChild(-1), PointerNode):
-            self.current.getChild(-1).makeConst(ConstNode())
+            self.current.getChild(-1).makeConst(ConstNode(location=location))
         else:
             print("Invalid parent for TypequalifierNode")
 

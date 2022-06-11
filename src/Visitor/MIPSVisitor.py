@@ -16,7 +16,8 @@ class MIPSFunctionDefinition:
         self.label: str = label
         self.usedSavedRegisters: Set[MIPSLocation] = set()
         self.isLeaf: bool = True
-        self.instructions = []
+        self.instructions: List[str] = []
+        self.comments: List[List[str]] = []
         self.framePointerOffset: int = 0
         # local data                # Enough stack allocated memory to store all declared variables?
         # return address $ra        # save the previous frame pointer
@@ -34,7 +35,7 @@ class MIPSFunctionDefinition:
         frameSize = mk.WORD_SIZE + \
                     self.framePointerOffset + \
                     (0 if self.isLeafFunction() else mk.WORD_SIZE) + \
-                    len(self.usedSavedRegisters) + \
+                    len(self.usedSavedRegisters) * mk.WORD_SIZE + \
                     self._argSlotCount * mk.WORD_SIZE
         # Align frame size on double word size
         return alignOnBorder(frameSize, mk.WORD_SIZE * 2)
@@ -79,7 +80,10 @@ class MIPSFunctionDefinition:
         result.append("")
         result.append(mk.WS + MIPSComment("start of body"))
 
-        result.extend(self.instructions)
+        # Append comments
+        fs = "{0:35}{1}"    # formatting string to align comments at column 35
+        for cidx, instruction in enumerate(self.instructions):
+            result.append(fs.format(instruction, self.getInstructionComment(cidx)))
 
         result.append(mk.WS + MIPSComment("end of body"))
         result.append("")
@@ -142,9 +146,16 @@ class MIPSFunctionDefinition:
         assert len(self.instructions) > 0, "Cannot add a comment, no instructions present"
         assert len(self.instructions) > idx, f"Cannot add comment to instruction {idx}, only {len(self.instructions)}" \
                                              f"instructions present"
-        self.instructions[idx] += "\t" * 2 + MIPSComment(comment)
+        self.comments[idx].append(comment)
 
-
+    def getInstructionComment(self, idx: int):
+        commentString = ""
+        comments = self.comments[idx]
+        for cidx, comment in enumerate(comments):
+            commentString += comment
+            if cidx < len(comments) - 1:
+                commentString += ", "
+        return MIPSComment(commentString) if commentString != "" else ""
 
     def _usedSavedRegisterCount(self) -> int:
         return len(self.usedSavedRegisters)
@@ -189,17 +200,43 @@ class MIPSVisitor(GenerationVisitor):
     ######################
     #
 
-    def _addAddressDescriptor(self, identifier: str, descriptor: MIPSLocation):
+    def _addAddressDescriptor(self, identifier: str, descriptor: MIPSLocation) -> None:
         self._addressDescriptors.setdefault(identifier, []).append(descriptor)
 
-    def _addRegisterDescriptor(self, register: MIPSLocation, descriptor: str):
+    def _addRegisterDescriptor(self, register: MIPSLocation, descriptor: str) -> None:
         self._registerDescriptors.setdefault(register, []).append(descriptor)
 
-    def _overwriteRegisterDescriptors(self, register: MIPSLocation, descriptor: str):
-        self._registerDescriptors.setdefault(register, [])
-        self._registerDescriptors[register] = [descriptor]
+    def _associateAddressAndRegister(self, identifier: str, register: MIPSLocation) -> None:
+        self._addAddressDescriptor(identifier, register)
+        self._addRegisterDescriptor(register, identifier)
+
+
+    def _getUsedAddressDescriptor(self, identifier: str) -> MIPSLocation | None:
+        """
+        Get an address descriptor used by :identifier:. Preferentially chooses a
+        register, else tries to provide an address.
+
+        :param identifier: The identifier to get a used descriptor for
+        :return: The descriptor if found, else None
+        """
+
+        descriptors = self._getAddressDescriptors(identifier)
+        for location in descriptors:
+            if location.isRegister():
+                return location
+
+        return descriptors[0] if len(descriptors) > 0 else None
+
 
     def _getAssignableAddressDescriptor(self, identifier: str):
+        """
+        Get an address descriptor (register) for :identifier: which stores only
+        the value of :identifier:, not for other identifiers.
+
+        :param identifier: The identifier for wich to find a single-possessor register
+        :return: The register if found, else None
+        """
+
         for location in self._getAddressDescriptors(identifier):
             if location.isRegister():
                 regDescriptors = self._getRegisterDescriptors(location)
@@ -236,14 +273,21 @@ class MIPSVisitor(GenerationVisitor):
 
 
     def _spillRegister(self, register: MIPSLocation):
+        """
+        Disassociate all identifiers that currently make use of the register with the register.
+        This means either altering the address and register descriptor lists or actually spilling
+        the contents of the register into an identifier's allocated memory on an identifier by
+        identifier basis.
+
+        :param register: The register to spill
+        :return: The made available register
+        """
+
         # Consider spilling each identifier making use of this register
         for identifier in self._getRegisterDescriptors(register):
-            # Identifier has copies in spare locations, simply disassociate the identifier and register
-            if len(self._getAddressDescriptors(identifier)) > 1:
-                self._getAddressDescriptors(identifier).remove(register)    # reg. descr. disassoc. happens after loop
             # Identifier has its value stored only in register, because len(addressDescriptors) == 1
             # AND identifier is associated with :register:
-            else:
+            if len(self._getAddressDescriptors(identifier)) == 1:
                 assert len(self._getAddressDescriptors(identifier)) == 1, "Case len == 0 should never occur," \
                                                                        f" because {register} is associated with" \
                                                                        f" {identifier}"
@@ -252,9 +296,14 @@ class MIPSVisitor(GenerationVisitor):
                     idRecord.fpOffset = self._stackReserve(idRecord.type)
 
                 instrType = "R" + self._instructionSizeType(idRecord.type)
-                spillInstr = store(instrType, register, constructAddress(idRecord.fpOffset, mk.FP),
-                                   f"Spill {identifier}")
-                self._addTextInstruction(spillInstr)
+                spillDst = constructAddress(-idRecord.fpOffset, mk.FP)
+                spillInstr = store(instrType, register, spillDst)
+                self._addAddressDescriptor(identifier, spillDst)      # associate the spill location with the identifier
+                self._addTextInstruction(spillInstr, comment=f"spill {identifier}")
+
+            # If len(self._getAddressDescriptors(identifier)) > 1, then
+            # identifier has copies in spare locations, simply disassociate the identifier and register
+            self._getAddressDescriptors(identifier).remove(register)  # reg. descript. disassoc. happens after loop
 
         # reset register descriptors
         self._registerDescriptors[register] = []
@@ -286,10 +335,10 @@ class MIPSVisitor(GenerationVisitor):
 
     def _getAssignableSavedRegister(self) -> MIPSLocation | None:
         """
-        Reserve a single saved register. May spill an in use register
-        to obtain the requested register.
+        Reserve a single saved register. May spill the least-in-use register contents
+        to obtain/reserve the requested register.
 
-        :return: register
+        :return: A reserved saved register
         """
 
         result = ""
@@ -319,34 +368,32 @@ class MIPSVisitor(GenerationVisitor):
 
     def _reserveRegisters(self, amount: int) -> List[MIPSLocation]:
         """
-        Reserve :count: temporary and saved registers. There is a preference for
-        temporary registers. A lacking number of temporaries is filled out with
-        saved registers.
+        Reserve :count: temporary registers.
 
         :param amount: The amount of registers to reserve
         :return: The reserved registers
         """
 
-        reserved = []
-
-        # TODO reserve actual registers
-        reserved = self._tempRegisters[:amount]
-        # TODO reserve actual registers
-
-        return reserved
+        # Just use temporary registers for expressions, mixing in saved registers
+        # may get messy?
+        # TODO consider spilling saved registers to use in expressions???
+        return self._tempRegisters[:amount]
 
     def _addTextLabel(self, labelName: str):
         self._currFuncDef.instructions.append(labelName + ":")
 
-    def _addTextInstruction(self, instruction: str, insertIndex: int = -1):
+    def _addTextInstruction(self, instruction: str, insertIndex: int = -1, comment: str = ""):
         instruction = ' ' * 4 + instruction
+        comment = [] if comment == "" else [comment]
         if insertIndex >= 0:
             self._currFuncDef.instructions.insert(insertIndex, instruction)
+            self._currFuncDef.comments.insert(insertIndex, comment)
         else:
             self._currFuncDef.instructions.append(instruction)
+            self._currFuncDef.comments.append(comment)
 
     def _byteSize(self, cType: CType):
-        if cType.isPointerType():
+        if cType.isPointerType():       # TODO take dereference unary ops into account??
             return mk.WORD_SIZE
         elif cType == self.typeList[BuiltinNames.CHAR]:
             return mk.BYTE_SIZE
@@ -359,6 +406,8 @@ class MIPSVisitor(GenerationVisitor):
             for location in self._getAddressDescriptors(identifier):
                 if location.isRegister():
                     self._getRegisterDescriptors(location).remove(identifier)
+
+            self._getAddressDescriptors(identifier).clear()
         super()._closeScope()
 
     ###########################
@@ -412,28 +461,30 @@ class MIPSVisitor(GenerationVisitor):
         if lhs.ershovNumber == rhs.ershovNumber:
             self._SUbase += 1  # Increment base recursively for rhs
             rhs.accept(self)
+            #rhsResult = self.evaluateExpression(rhs)
+            rhsResult = self._getReservedLocation(rhs)
             self._SUbase -= 1  # Decrement base recursively after rhs
 
             lhs.accept(self)
+            #lhsResult = self.evaluateExpression(lhs)
 
             # Gather results
-            rhsResult = self._reservedLocations[dstIndex]
-            lhsResult = self._reservedLocations[dstIndex - 1]
+            lhsResult = self._getReservedLocation(lhs)
 
         elif lhs.ershovNumber > rhs.ershovNumber:
             lhs.accept(self)
             rhs.accept(self)
 
             # Gather results
-            rhsResult = self._reservedLocations[self._SUbase + rhs.ershovNumber - 1]
-            lhsResult = self._reservedLocations[dstIndex]
+            rhsResult = self._getReservedLocation(rhs)
+            lhsResult = self._getReservedLocation(lhs)
         else:
             rhs.accept(self)
             lhs.accept(self)
 
             # Gather results
-            rhsResult = self._reservedLocations[dstIndex]
-            lhsResult = self._reservedLocations[self._SUbase + lhs.ershovNumber - 1]
+            rhsResult = self._getReservedLocation(rhs)
+            lhsResult = self._getReservedLocation(lhs)
 
         mipsKeyword = ""
 
@@ -449,6 +500,8 @@ class MIPSVisitor(GenerationVisitor):
         else:
             mipsKeyword = node.getMIPSROpKeyword('RN')
 
+        # Use a separately specified destination for the result if possible.
+        # Else the Sethi-Ullman specified location is used.
         dstRegister = self._expressionEvalDstReg if self._isExpressionRoot(node) and self._expressionEvalDstReg is not None\
             else self._reservedLocations[dstIndex]
         bopInstruction = f"{mipsKeyword} {dstRegister}, {lhsResult}, {rhsResult}"
@@ -529,12 +582,11 @@ class MIPSVisitor(GenerationVisitor):
 
         # Select an overwritable register of lhs, else None
         lhsLoc = self._getAssignableAddressDescriptor(lhs.identifier)
-        # No assignable register, get saved register (possible spilling)
+        # No overwritable register, get saved register (possible spilling)
         if lhsLoc is None:
             lhsLoc = self._getAssignableSavedRegister()
             if isinstance(lhs, IdentifierNode):
-                self._addAddressDescriptor(lhs.identifier, lhsLoc)
-                self._addRegisterDescriptor(lhsLoc, lhs.identifier)
+                self._associateAddressAndRegister(lhs.identifier, lhsLoc)
 
 
         self.evaluateExpression(rhs, resultDstReg=lhsLoc)
@@ -578,12 +630,10 @@ class MIPSVisitor(GenerationVisitor):
         # Sub-expression is an identifier
         elif isinstance(expression, IdentifierNode):
 
-            # TODO apply address descriptors to this
             # Ensure that an identifier part of an expression gets loaded
             # into a register
-            src: MIPSLocation = self.currentSymbolTable[expression.identifier].register
-            if not src.isRegister():
-                assert src == "" or src.isAddress(), "Invalid identifier mips location"
+            src: MIPSLocation | None = self._getUsedAddressDescriptor(expression.identifier)
+            if src is None or src.isAddress():
                 # Prepare load instruction for src
                 instrType = "R" + self._instructionSizeType(expression.inferType(self.typeList))
                 dstRegister = self._getReservedLocation(expression)\
@@ -592,31 +642,29 @@ class MIPSVisitor(GenerationVisitor):
                 comment: str = f"load {expression.identifier}"
 
                 # Using uninitialized variable, allocate stack memory
-                if src == "":
+                if src is None:
                     record = self.currentSymbolTable[expression.identifier]
-                    fpOffset = record.fpOffset
                     if not record.isFpOffsetInitialized():
-                        fpOffset = self._stackReserve(expression.getType())
-                    self.currentSymbolTable[expression.identifier].fpOffset = fpOffset
-                    src = constructAddress(fpOffset, mk.FP)
+                        record.fpOffset = self._stackReserve(expression.getType())
+                    src = constructAddress(-record.fpOffset, mk.FP)
 
-                    # Log assigned stack memory
+                    # Log/associate assigned stack memory
                     self._addAddressDescriptor(expression.identifier, src)
-
                     comment += " (uninitialized)"
 
-                loadInstr = load(instrType, src, dstRegister, comment)
-                self._addTextInstruction(loadInstr)
+                loadInstr = load(instrType, src, dstRegister)
+                self._addTextInstruction(loadInstr, comment=comment)
 
-                self._addAddressDescriptor(expression.identifier, dstRegister)
-                self.currentSymbolTable[expression.identifier].register = dstRegister
-
-            # Always returns a register
-            dstLoc = self.currentSymbolTable[expression.identifier].register
+                # associate assigned register with identifier
+                self._associateAddressAndRegister(expression.identifier, dstRegister)
+                dstLoc = dstRegister
+            else:
+                dstLoc = src
         else:
             # Evaluate the expression
             expression.accept(self)
 
+            # Get the result according to Sethi-Ullman
             dstLoc = self._getReservedLocation(expression)
 
         # TODO free registers???
@@ -681,7 +729,7 @@ class MIPSVisitor(GenerationVisitor):
 #
 
 
-def load(instrType: str, srcAddress, dstReg: MIPSLocation, comment: str = ""):
+def load(instrType: str, srcAddress, dstReg: MIPSLocation):
     if not (instrType == "I" or instrType == "RW" or instrType == "RB" or instrType == "RA"):
         raise Exception("Incorrect mips load type")
 
@@ -693,7 +741,7 @@ def load(instrType: str, srcAddress, dstReg: MIPSLocation, comment: str = ""):
 
     instruction = mk.I_L if instrType == "I" else \
         (mk.R_LW if instrType == "RW" else (mk.R_LB if instrType == "RB" else mk.R_LA))
-    return f"{instruction} {dstReg}, {srcAddress}" + ("" if comment == "" else ('\t' * 2 + MIPSComment(comment)))
+    return f"{instruction} {dstReg}, {srcAddress}"
 
 
 def move(srcReg: MIPSLocation, dstReg: MIPSLocation):
@@ -712,14 +760,14 @@ def constructAddress(offset: int, register: MIPSLocation) -> MIPSLocation:
     return MIPSLocation(f"{offset}({register})")
 
 
-def store(instrType: str, src: MIPSLocation, dstReg: MIPSLocation, comment: str = ""):
+def store(instrType: str, src: MIPSLocation, dstReg: MIPSLocation):
     if not (instrType == "RW" or instrType == "RB"):
         raise Exception("incorrect mips load type")
 
     assert dstReg.isAddress(), "Must store into an address"
 
     instruction = mk.R_SW if instrType == "RW" else mk.R_SB
-    return f"{instruction} {src}, {dstReg}" + ("" if comment == "" else ('\t' * 2 + MIPSComment(comment)))
+    return f"{instruction} {src}, {dstReg}"
 
 
 def MIPSComment(text: str):

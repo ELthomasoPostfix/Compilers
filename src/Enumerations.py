@@ -50,7 +50,7 @@ class LLVMKeywords:
     FNEG: str = "fneg"
 
     EQ: str = "eq"
-    NEQ: str = "neq"
+    NEQ: str = "ne"
     LT: str = "slt"
     GT: str = "sgt"
     LTE: str = "sle"

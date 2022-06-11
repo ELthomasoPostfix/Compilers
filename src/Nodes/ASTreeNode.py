@@ -12,7 +12,7 @@ from abc import ABCMeta, abstractmethod
 
 
 class ExpressionNode(ASTree):
-    def __init__(self, parent=None, location              = None):
+    def __init__(self, parent=None, location=None):
         super(ExpressionNode, self).__init__(parent, location=location)
         self.ershovNumber = 0
 

@@ -154,7 +154,7 @@ class ASTree(Element):
         minimal representation plus meta info, of the ASTree node.
         :return: detailed string representation
         """
-        return self.__str__() + f"\\n line = {self.location}"
+        return self.__str__() + f"\\n l{self.location[0]}c{self.location[1]} to l{self.location[2]}c{self.location[3]}"
 
     def __str__(self):
         """
