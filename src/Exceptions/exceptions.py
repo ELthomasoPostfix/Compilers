@@ -48,6 +48,11 @@ class FunctionTypeMismatch(DeclarationException):
              location)
 
 
+class UndefinedFunction(DeclarationException):
+    def __init__(self, funcCallRepr: str, location):
+        super().__init__(f"Undefined function: function call of {funcCallRepr} references a yet undefined function.", location)
+
+
 class UndeclaredSymbol(DeclarationException):
     def __init__(self, identifier: str, location):
         super().__init__(f"Unknown symbol: {identifier}", location)

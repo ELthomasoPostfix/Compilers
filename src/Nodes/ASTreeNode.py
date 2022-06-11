@@ -395,6 +395,25 @@ class FunctioncallNode(ExpressionNode):
         for idx in range(0, len(paramExpressions)):
             self.ershovNumber = max(self.ershovNumber, paramExpressions[idx].ershovNumber)
 
+    def toLegibleRepr(self, typeList: TypeList) -> str:
+        """
+        Get a legible representation of the function call, of the form
+        'identifier(paramType, ...)'.
+
+        :param typeList: The TypeList
+        :return: The legible representation
+        """
+
+        res = self.getIdentifierNode().identifier + "("
+
+        params = self.getParameterNodes()
+        for param in params:
+            res += typeList[param.inferType(typeList).typeIndex]
+            if param != params[-1]:
+                res += ", "
+
+        return res + ")"
+
 
 ## An recursive instance of an ExpressionNode.
 # Provides an interface to infer the CType type of the result of the binary expression through BinaryopNode::inferType.

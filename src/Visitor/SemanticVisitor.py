@@ -1,7 +1,7 @@
 from src.Nodes.ASTreeNode import *
 from src.Exceptions.exceptions import MisplacedJumpStatement, InvalidReturnStatement, InvalidFunctionCall, \
     InvalidBinaryOperation, UnsupportedFeature, DeclarationException, InitializationException, OutOfBoundsLiteral, \
-    GlobalScope, ConstAssigException
+    GlobalScope, ConstAssigException, UndefinedFunction
 from src.Nodes.JumpNodes import ContinueNode, BreakNode, ReturnNode
 from src.Nodes.LiteralNodes import IntegerNode, FloatNode, CharNode
 from src.Nodes.OperatorNodes import ModNode, ArraySubscriptNode
@@ -70,18 +70,21 @@ class SemanticVisitor(ASTreeVisitor):
         cType = node.inferType(self.typeList)
         identifier = node.getIdentifierNode()
         if identifier.identifier == "printf":
-            pass
-        else:
-            if len(params) != len(cType.paramTypes):
-                raise InvalidFunctionCall(f"function '{node.getIdentifierNode().identifier}' at line has invalid param count.\n"
-                                          f"Needed {len(cType.paramTypes)} but got {len(params)}", node.location)
+            return
 
-            paramTypes = [param.inferType(self.typeList) for param in params]
-            for idx in range(len(paramTypes)):
-                if paramTypes[idx] != cType.paramTypes[idx]:
-                    raise InvalidFunctionCall(f"function '{node.getIdentifierNode().identifier}' has invalid param types.\n"
-                                              f"Needed {[self.toTypeName(t) for t in cType.paramTypes]} "
-                                              f"but got {[self.toTypeName(t) for t in paramTypes]}", node.location)
+        if not node.getAncestorOfType(FunctiondefinitionNode).symbolTable[identifier.identifier].type.isDefinition:
+            raise UndefinedFunction(node.toLegibleRepr(self.typeList), node.location)
+
+        if len(params) != len(cType.paramTypes):
+            raise InvalidFunctionCall(f"function '{node.getIdentifierNode().identifier}' at line has invalid param count.\n"
+                                      f"Needed {len(cType.paramTypes)} but got {len(params)}", node.location)
+
+        paramTypes = [param.inferType(self.typeList) for param in params]
+        for idx in range(len(paramTypes)):
+            if paramTypes[idx] != cType.paramTypes[idx]:
+                raise InvalidFunctionCall(f"function '{node.getIdentifierNode().identifier}' has invalid param types.\n"
+                                          f"Needed {[self.toTypeName(t) for t in cType.paramTypes]} "
+                                          f"but got {[self.toTypeName(t) for t in paramTypes]}", node.location)
 
     def visitBinaryop(self, node: BinaryopNode):
         self.visitChildren(node)
