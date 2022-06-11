@@ -163,8 +163,9 @@ class MIPSKeywords:
     FP: MIPSLocation = MIPSLocation("$fp")
     RA: MIPSLocation = MIPSLocation("$ra")
 
-    WORD_SIZE: int = 4          # word size in bytes
-    REGISTER_SIZE: int = 4      # register size in bytes
+    WORD_SIZE: int = 4                  # word size in bytes
+    BYTE_SIZE: int = 1                  # byte size in bytes
+    REGISTER_SIZE: int = WORD_SIZE      # register size in bytes
 
     R_ADD: str = "add"
     I_ADD: str = "addi"
