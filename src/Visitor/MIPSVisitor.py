@@ -142,6 +142,7 @@ class MIPSFunctionDefinition:
         assert len(self.instructions) > 0, "Cannot add a comment, no instructions present"
         assert len(self.instructions) > idx, f"Cannot add comment to instruction {idx}, only {len(self.instructions)}" \
                                              f"instructions present"
+        self.instructions[idx] += "\t" * 2 + MIPSComment(comment)
 
 
 
@@ -539,7 +540,7 @@ class MIPSVisitor(GenerationVisitor):
         self.evaluateExpression(rhs, resultDstReg=lhsLoc)
 
         if isinstance(lhs, IdentifierNode) and len(self._currFuncDef.instructions) != 0:
-            self._currFuncDef.instructions[-1] += '\t' * 2 + MIPSComment(f"assig {lhs.identifier}")
+            self._currFuncDef.addInstructionComment(f"assig {lhs.identifier}")
 
 
     def evaluateExpression(self, expression: ExpressionNode, resultDstReg: MIPSLocation | None = None):
