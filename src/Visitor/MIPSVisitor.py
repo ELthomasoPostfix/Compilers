@@ -6,6 +6,7 @@ from src.Exceptions.exceptions import UnsupportedFeature
 from src.Nodes.ASTreeNode import *
 from src.Enumerations import MIPSKeywords as mk, MIPSLocation, MIPSRegisterInfo
 from src.Nodes.IterationNodes import WhileNode
+from src.Nodes.JumpNodes import ContinueNode, BreakNode, ReturnNode
 from src.Nodes.LiteralNodes import IntegerNode, CharNode
 from src.Nodes.OperatorNodes import NotNode, NegativeNode
 from src.Nodes.SelectionNodes import IfNode, ElseNode
@@ -90,6 +91,7 @@ class MIPSFunctionDefinition:
 
         result.append(mk.WS + MIPSComment("end of body"))
         result.append("")
+        result.append(self.getExitLabel())
         result.append(mk.WS + MIPSComment("start of epilogue"))
 
         # Load pre-spilled saved registers
@@ -118,6 +120,9 @@ class MIPSFunctionDefinition:
         result.append(mk.WS + f"{mk.JR} {mk.RA}")
 
         return result
+
+    def getExitLabel(self):
+        return f"{self.label}.end:"
 
     def argumentSlotLocation(self, argSlotIdx: int) -> MIPSLocation:
         """
@@ -870,7 +875,8 @@ class MIPSVisitor(GenerationVisitor):
             node.getChild(i).accept(self)
         self._addTextLabel(f"\n$while.head{temp}")
         result = self.evaluateExpression(node.getChild(0))
-        self._addTextInstruction(f"bne {result},$0,$while.body{temp}")
+        self._addTextInstruction(f"bne {result},$0,$while.body{temp}\n")
+        self._addTextLabel(f"$while.exit{temp}")
         self.labelCounter += 1
         self._closeScope()
 
@@ -912,7 +918,17 @@ class MIPSVisitor(GenerationVisitor):
         pass
 
     def visitJumpstatement(self, node: JumpstatementNode):
-        pass
+        brent_postfix = ""
+        if isinstance(node, ContinueNode):
+            brent_postfix = "head"
+        if isinstance(node, BreakNode):
+            brent_postfix = "exit"
+        if isinstance(node, ReturnNode):
+            self.evaluateExpression(node.getChild(0), self._varRegisters[0])
+            self._addTextInstruction(f"j {self._currFuncDef.getExitLabel()}")
+            return
+        self._addTextInstruction(f"j $while.{brent_postfix}{self.labelCounter}")
+        self._currFuncDef.addInstructionComment("break")
 
 
 #########################################
