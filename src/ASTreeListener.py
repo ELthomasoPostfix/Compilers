@@ -94,7 +94,7 @@ class ASTreeListener(MyGrammarListener):
 
     def enterIncludedirective(self, ctx: MyGrammarParser.IncludedirectiveContext):
         # printf declaration
-        self.addCurrentChild(IncludedirectiveNode(location=[]))
+        self.addCurrentChild(IncludedirectiveNode(location=self.returnLocation(ctx)))
 
         # self.current.addChild(FunctiondeclarationNode()).\
         #     addChild(TypedeclarationNode()).\
