@@ -6,6 +6,7 @@ from src.Exceptions.exceptions import UnsupportedFeature
 from src.Nodes.ASTreeNode import *
 from src.Enumerations import MIPSKeywords as mk, MIPSLocation, MIPSRegisterInfo
 from src.Nodes.LiteralNodes import IntegerNode, CharNode
+from src.Nodes.OperatorNodes import NotNode, NegativeNode
 from src.Nodes.SelectionNodes import IfNode, ElseNode
 from src.SymbolTable import ReadWriteAccess
 from src.Visitor.GenerationVisitor import GenerationVisitor
@@ -389,25 +390,25 @@ class MIPSVisitor(GenerationVisitor):
     def _instructionSizeType(self, cType: CType):
         return "B" if not cType.isPointerType() and cType == CharNode.inferType(self.typeList) else "W"
 
-    def _functionParamsToStackFrameLocations(self, functionDefinition: FunctiondefinitionNode) -> List[MIPSLocation]:
+    def _functionParamsToStackFrameLocations(self, functionDefinition: FunctiondefinitionNode) -> List[Tuple[str, MIPSLocation]]:
         """
         Convert a list of parameters to a function call to the argument registers and or memory
         locations their values are stored in.
 
         :param functionDefinition: The function definition whose params to convert
-        :return: The value's locations
+        :return: A list of (param identifier, arg location) pairs
         """
 
         totalOffset = 0
-        locations: List[MIPSLocation] = []
+        locations: List[Tuple[str, MIPSLocation]] = []
         for idx, param in enumerate(functionDefinition.getParamIdentifierNodes()):
             if idx < 4:
-                locations.append(self._argRegisters[idx])
+                locations.append((param.identifier, self._argRegisters[idx]))
             else:
                 allocAmount = self._byteSize(param.getType())
                 totalOffset = alignOnBorder(totalOffset + allocAmount, allocAmount)
                 argSlotAddress = constructAddress(totalOffset, mk.FP)
-                locations.append(argSlotAddress)
+                locations.append((param.identifier, argSlotAddress))
 
         return locations
 
@@ -478,7 +479,11 @@ class MIPSVisitor(GenerationVisitor):
 
     @staticmethod
     def _isExpressionRoot(node: ExpressionNode):
-        return node is not None and not isinstance(node.parent, ExpressionNode)
+        # Has nor ExpressionNode parent or
+        # has a UnaryexpressionNode parent which has no ExpressionNode parent
+        return node is not None and (not isinstance(node.parent, ExpressionNode) or
+                                     (isinstance(node.parent, UnaryexpressionNode) and
+                                      not isinstance(node.parent.parent, ExpressionNode)))
 
     def _reserveRegisters(self, amount: int) -> List[MIPSLocation]:
         """
@@ -656,6 +661,25 @@ class MIPSVisitor(GenerationVisitor):
         # single child, Ershov number remains unchanged
 
         # +, -, !
+
+        if isinstance(node, NotNode) or isinstance(node, NegativeNode):
+            unaryInstruction = ""
+            comment = ""
+            dstRegister = self._getReservedExpressionLocation(node)
+            srcRegister = self.evaluateExpression(node.getSubExpression())
+            mipsKeyword = node.getMIPSROpKeyword('R')
+            if isinstance(node, NotNode):
+                unaryInstruction = f"{mipsKeyword} {dstRegister}, {srcRegister}, 1"
+                comment = "unary logical not"
+            elif isinstance(node, NegativeNode):
+                unaryInstruction = f"{mipsKeyword} {dstRegister}, {srcRegister}"
+                comment = "unary minus"
+
+
+            self._addTextInstruction(unaryInstruction)
+
+            if comment != "":
+                self._currFuncDef.addInstructionComment(comment)
 
         # TODO implement Sethi-Ullman with spilling here as well??????????
         # TODO implement Sethi-Ullman with spilling here as well??????????

@@ -120,6 +120,13 @@ class EqNode(BinaryopNode):
     def getLLVMOpKeyword(self) -> str:
         return f"{llk.COMPARE} {llk.EQ}"
 
+    @staticmethod
+    def getMIPSROpKeyword(instructionType: str) -> str:
+        if instructionType == "I":
+            return mk.I_AND
+        elif instructionType[0] == "R":
+            return mk.R_AND
+
     def __str__(self):
         return '=='
 
@@ -148,6 +155,11 @@ class GtNode(BinaryopNode):
     def getLLVMOpKeyword(self) -> str:
         return f"{llk.COMPARE} {llk.GT}"
 
+    @staticmethod
+    def getMIPSROpKeyword(instructionType: str) -> str:
+        if instructionType[0] in ["I", "R"]:
+            return mk.GT
+
     def __str__(self):
         return '>'
 
@@ -161,6 +173,11 @@ class GteNode(BinaryopNode):
 
     def getLLVMOpKeyword(self) -> str:
         return f"{llk.COMPARE} {llk.GTE}"
+
+    @staticmethod
+    def getMIPSROpKeyword(instructionType: str) -> str:
+        if instructionType[0] in ["I", "R"]:
+            return mk.GTE
 
     def __str__(self):
         return '>='
@@ -176,6 +193,11 @@ class LtNode(BinaryopNode):
     def getLLVMOpKeyword(self) -> str:
         return f"{llk.COMPARE} {llk.LT}"
 
+    @staticmethod
+    def getMIPSROpKeyword(instructionType: str) -> str:
+        if instructionType[0] in ["I", "R"]:
+            return mk.LT
+
     def __str__(self):
         return '<'
 
@@ -189,6 +211,11 @@ class LteNode(BinaryopNode):
 
     def getLLVMOpKeyword(self) -> str:
         return f"{llk.COMPARE} {llk.LTE}"
+
+    @staticmethod
+    def getMIPSROpKeyword(instructionType: str) -> str:
+        if instructionType[0] in ["I", "R"]:
+            return mk.LTE
 
     def __str__(self):
         return '<='
@@ -204,6 +231,13 @@ class AndNode(BinaryopNode):
     def getLLVMOpKeyword(self) -> str:
         return llk.AND
 
+    @staticmethod
+    def getMIPSROpKeyword(instructionType: str) -> str:
+        if instructionType[0] == "I":
+            return mk.I_AND
+        elif instructionType[0] == "R":
+            return mk.R_AND
+
     def __str__(self):
         return '&&'
 
@@ -217,6 +251,13 @@ class OrNode(BinaryopNode):
 
     def getLLVMOpKeyword(self) -> str:
         return llk.OR
+
+    @staticmethod
+    def getMIPSROpKeyword(instructionType: str) -> str:
+        if instructionType[0] == "I":
+            return mk.I_OR
+        elif instructionType[0] == "R":
+            return mk.R_OR
 
     def __str__(self):
         return '||'
@@ -234,6 +275,11 @@ class NegativeNode(UnaryopNode):
     def evaluate(self, value: LiteralNode):
         return - value.getValue()
 
+    @staticmethod
+    def getMIPSROpKeyword(instructionType: str) -> str:
+        if instructionType[0] in ["I", "R"]:
+            return mk.NEG
+
     def __str__(self):
         return '-'
 
@@ -241,6 +287,11 @@ class NegativeNode(UnaryopNode):
 class NotNode(UnaryopNode):
     def evaluate(self, value: LiteralNode):
         return not value.getValue()
+
+    @staticmethod
+    def getMIPSROpKeyword(instructionType: str) -> str:
+        if instructionType[0] in ["I", "R"]:
+            return mk.NOT
 
     def __str__(self):
         return '!'

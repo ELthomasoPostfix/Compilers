@@ -177,7 +177,17 @@ class MIPSKeywords:
     S_MUL_O: str = "mult"
     S_DIV: str = "div"
     S_REM: str = "rem"
-    
+    R_AND: str = "and"
+    I_AND: str = "andi"
+    R_OR: str = "or"
+    I_OR: str = "ori"
+    GT: str = "sgt"
+    GTE: str = "sge"
+    LT: str = "slt"
+    LTE: str = "sle"
+    NEG: str = "neg"
+    NOT: str = "sltiu"  # logical not: !x with x in $t0 == sltiu $t0, $t0, 1
+
     I_L: str = "li"
     R_LW: str = "lw"
     R_LB: str = "lb"
