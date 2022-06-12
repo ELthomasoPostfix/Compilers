@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Set, Dict
+from typing import Set, Dict, Tuple
 
 from src.Exceptions.exceptions import UnsupportedFeature
 from src.Nodes.ASTreeNode import *
@@ -314,15 +314,103 @@ class MIPSVisitor(GenerationVisitor):
             instrType = "R" + self._instructionSizeType(expressionType)
             spillDst = constructAddress(-fpOffset, mk.FP)
             spillInstr = store(instrType, register, spillDst)
-            self._addTextInstruction(spillInstr, comment="exp. eval. spill")
+            self._addTextInstruction(spillInstr)
 
             return spillDst
 
         return None
 
 
+    def _spillNeededIntermediateValues(self, functionCall: FunctioncallNode) -> List[Tuple[MIPSLocation, MIPSLocation, CType]]:
+        """
+        A function call implies all non-function-call-preserved registers possibly being
+        overwritten as a result of the call. This method goes up the current expression
+        evaluation branch starting from :functionCall:, spilling all non-preserved registers
+        that store intermediate values of the current expression evaluation.
+
+        :param functionCall: The node to start spilling from
+        :return: A list of (non-preserved-register, spill location) pairs
+        """
+
+        SUBase = self._SUbase     # Base gets changed in loop
+        spills: List[Tuple[MIPSLocation, MIPSLocation, CType]] = []
+        currNode: ExpressionNode = functionCall
+        r = len(self._reservedLocations)
+        identifier: str = functionCall.getIdentifierNode().identifier
+        while not self._isExpressionRoot(currNode):     # An expression root has no siblings
+            # Function calls store their param results directly into arg registers,
+            # so do not spill the other params' final results
+            if not isinstance(currNode.parent, FunctioncallNode):
+                # The other operand of the expression in case of a parent binary operator
+                otherOperand = currNode.getSibling(offset=-1, wrapAround=True)
+
+                # Unary node, no spilling
+                if otherOperand == currNode:
+                    currNode = currNode.parent
+                    continue
+
+                # There are only intermediate results to spill if the current node is the little child
+                # in a situation where r >= k (there are enough registers --> non-extended Sethi-Ullman)
+                # Consider Sethi-Ullman algorithm steps to decide if currNode is the little child
+                #   1) Spilling case (r < k), if currNode is rhs then lhs results are pending,
+                #       if currNode is lhs then the rhs results are already calculated AND spilled
+                #   2) equal children, if current node is rhs (big child) then lhs results are pending,
+                #       if currNode is lhs (little child) then rhs has results and must be spilled
+                #   3) unequal children, if current node is big child then little child results
+                #       are still pending, if current node is little child then big child results
+                #       are ready and must be spilled
+                currNodeIsLhs: bool = currNode.getSibling(offset=-1, wrapAround=False) is None
+                currNodeIsLittle = currNode.parent.ershovNumber <= r and \
+                    ((currNode.ershovNumber == otherOperand.ershovNumber and currNodeIsLhs) or
+                     currNode.ershovNumber < otherOperand.ershovNumber)
+
+
+                # Spill current node
+                if currNodeIsLittle:
+                    # If other operand is a rhs, equal child, it has a base of 1 more than the current base
+                    baseOffset = 1 if currNode.ershovNumber == otherOperand.ershovNumber and currNodeIsLhs else 0
+                    spillType = otherOperand.inferType(self.typeList)
+                    spillRegister = self._getReservedLocation(otherOperand, SUBase + baseOffset)
+                    spillAddress = self._spillRegister(spillRegister, spillType)
+                    spills.append((spillRegister, spillAddress, spillType))
+
+                if currNode.ershovNumber == otherOperand.ershovNumber and not currNodeIsLhs:
+                    SUBase -= 1
+
+            currNode = currNode.parent
+
+            # Extended Sethi-Ullman takes care of spilling on its own
+            if currNode.ershovNumber > r:
+                break
+
+        self._SUbase = SUBase     # restore base
+        return spills
+
     def _instructionSizeType(self, cType: CType):
         return "B" if not cType.isPointerType() and cType == CharNode.inferType(self.typeList) else "W"
+
+    def _functionParamsToStackFrameLocations(self, functionDefinition: FunctiondefinitionNode) -> List[MIPSLocation]:
+        """
+        Convert a list of parameters to a function call to the argument registers and or memory
+        locations their values are stored in.
+
+        :param functionDefinition: The function definition whose params to convert
+        :return: The value's locations
+        """
+
+        totalOffset = 0
+        locations: List[MIPSLocation] = []
+        for idx, param in enumerate(functionDefinition.getParamIdentifierNodes()):
+            if idx < 4:
+                locations.append(self._argRegisters[idx])
+            else:
+                allocAmount = self._byteSize(param.getType())
+                totalOffset = alignOnBorder(totalOffset + allocAmount, allocAmount)
+                argSlotAddress = constructAddress(totalOffset, mk.FP)
+                locations.append(argSlotAddress)
+
+        return locations
+
 
     def _stackReserve(self, cType: CType) -> int:
         """
@@ -334,6 +422,14 @@ class MIPSVisitor(GenerationVisitor):
             identifies the allocated memory address
         """
 
+        # TODO Keep a FunctionBody.spillOffset so that
+        #       alignOnBorder(FB.framePointerOffset + FunctionBody.spillOffset, mk.WORD_SIZE) + allocAmount
+        #   is the memory address assigned to a call to _stackReserve in the context of more spilling (also increase spillOffset),
+        #   and
+        #       alignOnBorder(FB.framePointerOffset, mk.WORD_SIZE) + allocAmount
+        #   is the memory address assigned to a call to _stackReserve in the context of reserving memory in all other
+        #   cases.
+
         allocAmount = self._byteSize(cType)
         # Word sized addressing must use word aligned addresses
         if allocAmount == mk.WORD_SIZE:
@@ -342,14 +438,14 @@ class MIPSVisitor(GenerationVisitor):
 
         return self._currFuncDef.framePointerOffset
 
-    def _getReservedLocation(self, expression: ExpressionNode) -> MIPSLocation:
-        SUIndex = expression.sethiUllmanNumber(self._SUbase)
+    def _getReservedLocation(self, expression: ExpressionNode, base: int) -> MIPSLocation:
+        SUIndex = expression.sethiUllmanNumber(base)
         return self._reservedLocations[min(SUIndex, len(self._reservedLocations)-1)]
 
     def _getReservedExpressionLocation(self, expression: ExpressionNode) -> MIPSLocation:
         return self._expressionEvalDstReg if self._isExpressionRoot(expression) and\
                                              self._expressionEvalDstReg is not None\
-            else self._getReservedLocation(expression)
+            else self._getReservedLocation(expression, self._SUbase)
 
     def _getAssignableSavedRegister(self) -> MIPSLocation | None:
         """
@@ -382,7 +478,7 @@ class MIPSVisitor(GenerationVisitor):
 
     @staticmethod
     def _isExpressionRoot(node: ExpressionNode):
-        return not isinstance(node.parent, ExpressionNode)
+        return node is not None and not isinstance(node.parent, ExpressionNode)
 
     def _reserveRegisters(self, amount: int) -> List[MIPSLocation]:
         """
@@ -440,6 +536,11 @@ class MIPSVisitor(GenerationVisitor):
         self._functionDefinitions.append(MIPSFunctionDefinition(node.getIdentifierNode().identifier))
         self._currFuncDef = self._functionDefinitions[-1]
 
+        # TODO this
+        # Associate the parameter variables with the arg registers or their memory location
+        paramLocations = self._functionParamsToStackFrameLocations(node)
+
+
         # Do function body
         self.visitChild(node, 2)  # Generate code for the function body
 
@@ -488,19 +589,20 @@ class MIPSVisitor(GenerationVisitor):
             bigType = bigChild.inferType(self.typeList)
 
             # Generate code for big child
-            self._SUbase = 1
+            self._SUbase = 0
             bigResult = self.evaluateExpression(bigChild)
             spillAddress = self._spillRegister(bigResult, bigType)
+            self._currFuncDef.addInstructionComment(f"r > k ({r > node.ershovNumber}), spill big child in R_{r-1}")
 
             # Generate code for little child
-            self._SUbase = 1 if littleChild.ershovNumber >= r else r - littleChild.ershovNumber
+            self._SUbase = 0 if littleChild.ershovNumber >= r else r - littleChild.ershovNumber - 1
             littleResult = self.evaluateExpression(littleChild)
 
             # Recover big child
             bigResult = self._reservedLocations[-2]         # load big child back into R_{r-1}
             loadType = "R" + self._instructionSizeType(bigType)
             loadInstr = load(loadType, spillAddress, bigResult)
-            self._addTextInstruction(loadInstr, comment="reload big child result into register R_{r-1}")
+            self._addTextInstruction(loadInstr, comment=f"reload big child result into register R_{r-1}")
 
             if rhsIsBig:
                 rhsResult = bigResult
@@ -529,7 +631,7 @@ class MIPSVisitor(GenerationVisitor):
         # If the lhs is a literal, load it in
         if isinstance(lhs, LiteralNode):
             mipsKeyword = node.getMIPSROpKeyword('RN')
-            literalLoadedReg = self._getReservedLocation(lhs)
+            literalLoadedReg = self._getReservedLocation(lhs, self._SUbase)
             loadLiteral = load("I", lhsResult, literalLoadedReg)
             self._addTextInstruction(loadLiteral, comment=f"literal lhs ({lhsResult} {mipsKeyword} ...)")
             lhsResult = literalLoadedReg
@@ -593,12 +695,23 @@ class MIPSVisitor(GenerationVisitor):
             self._addTextInstruction(f"la $a0, string{self._stringCounter}")
             self._addTextInstruction("syscall")
 
+        # Setup
         self._currFuncDef.isLeaf = False
         self._currFuncDef.adjustArgumentSlotCount(node)
-        # TODO save intermediary results of the expression this function call is a part of
+
+        # Save intermediate results
+        # [(register, spillAddress, spill type), ]
+        spilledIntermediaries: List[Tuple[MIPSLocation, MIPSLocation, CType]]
+        spilledIntermediaries = self._spillNeededIntermediateValues(node)
+        self._currFuncDef.addInstructionComment("spill intermediate results ...", -len(spilledIntermediaries))
+        self._currFuncDef.addInstructionComment(f"... before function call: {node.toLegibleRepr(self.typeList)}")
 
         # Calculate parameters
         paramExpressions = node.getParameterNodes()
+
+        # TODO this \/
+        # Save current function definition arguments
+
 
         for argIdx, paramExp in enumerate(paramExpressions):
             # TODO reserve registers, reserve registers so that final result stored in $a reg or mem
@@ -606,17 +719,24 @@ class MIPSVisitor(GenerationVisitor):
             # TODO implement Sethi-Ullman with spilling here as well??????????
             # TODO implement Sethi-Ullman with spilling here as well??????????
             # TODO implement Sethi-Ullman with spilling here as well??????????
-            paramLoc = self.evaluateExpression(paramExp)
+
+            paramLoc = self.evaluateExpression(paramExp, )
 
             # TODO store f"$a{argIdx}" into f"{argIdx*mk.WORD_SIZE}($sp)", because stack pointer should be at the end of
             #  the stack frame, which is where the arg slots are located
             # TODO move register resultIndex into $a register or memory
 
-        # Recover spilled expression intermediary values
-
         # copy return values (for array $v0 contains ptr to first element and array elements are stored in memory???)
         retMovInstr = move(self._varRegisters[0], self._getReservedExpressionLocation(node))
-        self._addTextInstruction(retMovInstr, comment=f"load return value of {node.toLegibleRepr(self.typeList)}")
+        self._addTextInstruction(retMovInstr, comment=f"load return value of: {node.toLegibleRepr(self.typeList)}")
+
+        # Recover spilled expression intermediary values
+        for spillRegister, spillAddress, spillType in spilledIntermediaries:
+            instrType = "R" + self._instructionSizeType(spillType)
+            self._addTextInstruction(load(instrType, spillAddress, spillRegister))
+
+        self._currFuncDef.addInstructionComment("recover intermediate results ...", -len(spilledIntermediaries))
+        self._currFuncDef.addInstructionComment(f"... after function call: {node.toLegibleRepr(self.typeList)}")
 
     def visitVar_assig(self, node: Var_assigNode):
         rhs: ExpressionNode = node.getChild(1)
@@ -651,6 +771,8 @@ class MIPSVisitor(GenerationVisitor):
         :return: The result of the evaluation
         """
 
+        # TODO for function return $v0 ????
+
         if not expression.ershovNumberIsEvaluated():
             expression.evaluateErshovNumber()
 
@@ -666,7 +788,7 @@ class MIPSVisitor(GenerationVisitor):
 
             # If Literal not part of an expression, store it in an intermediate register
             if self._isExpressionRoot(expression):
-                dstRegister = self._getReservedLocation(expression) if resultDstReg is None\
+                dstRegister = self._getReservedLocation(expression, self._SUbase) if resultDstReg is None\
                     else resultDstReg
                 self._addTextInstruction(load('I', value, dstRegister))
                 value = dstRegister
@@ -681,7 +803,7 @@ class MIPSVisitor(GenerationVisitor):
             if src is None or src.isAddress():
                 # Prepare load instruction for src
                 instrType = "R" + self._instructionSizeType(expression.inferType(self.typeList))
-                dstRegister = self._getReservedLocation(expression)\
+                dstRegister = self._getReservedLocation(expression, self._SUbase)\
                     if resultDstReg is None or not self._isExpressionRoot(expression)\
                     else resultDstReg
                 comment: str = f"load {expression.identifier}"
@@ -710,7 +832,7 @@ class MIPSVisitor(GenerationVisitor):
             expression.accept(self)
 
             # Get the result according to Sethi-Ullman
-            dstLoc = self._getReservedLocation(expression)
+            dstLoc = self._getReservedLocation(expression, self._SUbase)
 
         # TODO free registers???
         if self._isExpressionRoot(expression):

@@ -404,7 +404,7 @@ class FunctioncallNode(ExpressionNode):
         :return: The legible representation
         """
 
-        res = self.getIdentifierNode().identifier + "("
+        res = f"{typeList[self.inferType(typeList).typeIndex]} {self.getIdentifierNode().identifier}("
 
         params = self.getParameterNodes()
         for param in params:

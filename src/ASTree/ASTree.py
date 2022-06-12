@@ -64,28 +64,33 @@ class ASTree(Element):
         child.parent = self
         return child
 
-    def getChild(self, idx: int) -> ASTree:
+    def getChild(self, idx: int, wrapAround: bool = True) -> ASTree:
         """
         Get the child at the specified index. If index out of range,
         None is returned instead.
         :param idx: The index of the requested child
+        :param wrapAround: Whether negative indexes should wrap around
         :return: The requested child if index in range, else None
         """
 
         cLen = len(self.children)
-        return self.children[idx] if cLen > 0 and idx < cLen else None
+        return self.children[idx] if cLen > 0 and idx < cLen and (wrapAround or (not wrapAround and idx >= 0)) else None
 
-    def getSibling(self, offset: int):
+    def getSibling(self, offset: int, wrapAround: bool = False):
         """
         Get the sibling :offset: positions from the callee.
 
         :param offset: The amount of positions to offset from the callee in its parent's children list
+        :param wrapAround: Whether out-of-bounds (negative or too large) indexes should wrap around
         :return: The sibling if it exists, else None. Returns None callee has no parent
         """
         if self.parent is None:
             return None
 
-        return self.parent.getChild(self.parent.children.index(self) + offset)
+        idx: int = self.parent.children.index(self) + offset
+        if wrapAround:
+            idx %= len(self.parent.children)
+        return self.parent.getChild(idx, wrapAround=wrapAround)
 
     def getAncestorOfType(self, ancestorType) -> ASTree | None:
         """
