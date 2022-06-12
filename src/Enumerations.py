@@ -183,7 +183,8 @@ class MIPSKeywords:
     I_OR: str = "ori"
     GT: str = "sgt"
     GTE: str = "sge"
-    LT: str = "slt"
+    R_LT: str = "slt"
+    I_LT: str = "slti"
     LTE: str = "sle"
     NEG: str = "neg"
     NOT: str = "sltiu"  # logical not: !x with x in $t0 == sltiu $t0, $t0, 1

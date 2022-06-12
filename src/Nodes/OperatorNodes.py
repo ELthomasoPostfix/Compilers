@@ -195,8 +195,10 @@ class LtNode(BinaryopNode):
 
     @staticmethod
     def getMIPSROpKeyword(instructionType: str) -> str:
-        if instructionType[0] in ["I", "R"]:
-            return mk.LT
+        if instructionType[0] == "R":
+            return mk.R_LT
+        elif instructionType[0] == "I":
+            return mk.I_LT
 
     def __str__(self):
         return '<'

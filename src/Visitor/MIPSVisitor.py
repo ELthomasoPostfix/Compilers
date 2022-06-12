@@ -404,7 +404,7 @@ class MIPSVisitor(GenerationVisitor):
         :return: A list of (param identifier, arg location) pairs
         """
 
-        totalOffset = 0
+        totalOffset = 4
         locations: List[Tuple[str, MIPSLocation]] = []
         for idx, param in enumerate(functionDefinition.getParamIdentifierNodes()):
             if idx < 4:
@@ -671,7 +671,8 @@ class MIPSVisitor(GenerationVisitor):
             comment = ""
             dstRegister = self._getReservedExpressionLocation(node)
             srcRegister = self.evaluateExpression(node.getSubExpression())
-            mipsKeyword = node.getMIPSROpKeyword('R')
+            instrType = 'I' if isinstance(node.getSubExpression(), LiteralNode) else 'R'
+            mipsKeyword = node.getMIPSROpKeyword(instrType)
             if isinstance(node, NotNode):
                 unaryInstruction = f"{mipsKeyword} {dstRegister}, {srcRegister}, 1"
                 comment = "unary logical not"
