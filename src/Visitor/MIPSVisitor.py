@@ -59,56 +59,56 @@ class MIPSFunctionDefinition:
             return MIPSVisitor.COMMENT_FORMAT_STRING.format(arg0, arg1)
 
         result = []
+        wrapping = ["\n", "#" * 30]
         notMain = self.label != BuiltinNames.MAIN
 
-        wrapping = ["\n", "#"*30]
-        result = wrapping + \
-                 [commentFormat(f"# {alignOnBorder(self.framePointerOffset, mk.WORD_SIZE)}B", "Local data space: space reserved for allocating memory to local variables and for spilling intermediary expression results"),
-                 commentFormat(f"# {self.savedSectionSize}B", f"Saved register space ({len(self.usedSavedRegisters)} saved): space reserved for storing saved registers used within this stack frame"),
-                 commentFormat(f"# {self.argSectionSize}B", f"Arg slot space ({self._argSlotCount} slots): space reserved for storing arguments to be passed to function calls within this stack frame and"),
-                  commentFormat("#", "   four default slots to be used not by this function, but by any called functions for possibly spilling $a0-$a3 registers"),
-                  ""] +\
-                 [self.label + ":"]
-        spillBaseRegister = mk.SP
+        if notMain:
+            result = wrapping + \
+                     [commentFormat(f"# {alignOnBorder(self.framePointerOffset, mk.WORD_SIZE)}B", "Local data space: space reserved for allocating memory to local variables and for spilling intermediary expression results"),
+                     commentFormat(f"# {self.savedSectionSize}B", f"Saved register space ({len(self.usedSavedRegisters)} saved): space reserved for storing saved registers used within this stack frame"),
+                     commentFormat(f"# {self.argSectionSize}B", f"Arg slot space ({self._argSlotCount} slots): space reserved for storing arguments to be passed to function calls within this stack frame and"),
+                      commentFormat("#", "   four default slots to be used not by this function, but by any called functions for possibly spilling $a0-$a3 registers"),
+                      ""] +\
+                     [self.label + ":"]
+            spillBaseRegister = mk.SP
 
-        # arg slot offset + used saved register offset
-        spilledOffset = self.argSectionSize + self.savedSectionSize
-        raLocation: MIPSLocation | None = None
+            # arg slot offset + used saved register offset
+            spilledOffset = self.argSectionSize + self.savedSectionSize
+            raLocation: MIPSLocation | None = None
 
-        def addComment(tabCount: int, text: str):
-            result[-1] += "\t" * tabCount + MIPSComment(text)
+            def addComment(tabCount: int, text: str):
+                result[-1] += "\t" * tabCount + MIPSComment(text)
 
-        # Construct stack frame
-        result.append(mk.WS + MIPSComment("start of prologue"))
-        result.append(mk.WS + f"{mk.I_ADD_U} {mk.SP}, {mk.SP}, {-4}")
-        addComment(2, "allocate frame pointer")
+            # Construct stack frame
+            result.append(mk.WS + MIPSComment("start of prologue"))
+            result.append(mk.WS + f"{mk.I_ADD_U} {mk.SP}, {mk.SP}, {-4}")
+            addComment(2, "allocate frame pointer")
 
-        result.append(mk.WS + store("RW", mk.FP, MIPSLocation(f"0({mk.SP})")))
-        addComment(3, "save frame pointer")
+            result.append(mk.WS + store("RW", mk.FP, MIPSLocation(f"0({mk.SP})")))
+            addComment(3, "save frame pointer")
 
-        result.append(mk.WS + f"{move(mk.SP, mk.FP)}")
-        addComment(3, "$fp = $sp")
+            result.append(mk.WS + f"{move(mk.SP, mk.FP)}")
+            addComment(3, "$fp = $sp")
 
-        result.append("")
-        result.append(mk.WS + f"{mk.I_ADD_U} {mk.SP}, {mk.SP}, {-(self.frameSize - 4)}")
-        addComment(2, f"allocate rest of stack frame (aligned on double word size = {2 * mk.WORD_SIZE}B)")
-        if not self.isLeafFunction():
-            raLocation = MIPSLocation(f"{spilledOffset + mk.WORD_SIZE}({mk.SP})")
-            result.append(mk.WS + store("RW", mk.RA, raLocation))
-            addComment(2, "save return address")
-
-        if len(self.usedSavedRegisters) > 0:
             result.append("")
+            result.append(mk.WS + f"{mk.I_ADD_U} {mk.SP}, {mk.SP}, {-(self.frameSize - 4)}")
+            addComment(2, f"allocate rest of stack frame (aligned on double word size = {2 * mk.WORD_SIZE}B)")
+            if not self.isLeafFunction():
+                raLocation = MIPSLocation(f"{spilledOffset + mk.WORD_SIZE}({mk.SP})")
+                result.append(mk.WS + store("RW", mk.RA, raLocation))
+                addComment(2, "save return address")
 
-        # Spill needed saved registers
-        for idx, sr in enumerate(self.usedSavedRegisters):
-            result.append(
-                mk.WS + store("RW", sr, constructAddress(spilledOffset - idx * mk.WORD_SIZE, spillBaseRegister)))
+            if len(self.usedSavedRegisters) > 0:
+                result.append("")
 
-        result.append(mk.WS + MIPSComment("end of prologue"))
+            # Spill needed saved registers
+            for idx, sr in enumerate(self.usedSavedRegisters):
+                result.append(
+                    mk.WS + store("RW", sr, constructAddress(spilledOffset - idx * mk.WORD_SIZE, spillBaseRegister)))
+
+            result.append(mk.WS + MIPSComment("end of prologue"))
+
         result.append("")
-
-
         result.append(mk.WS + MIPSComment("start of body"))
 
         # Append comments
@@ -120,34 +120,41 @@ class MIPSFunctionDefinition:
                 result.append(instruction)
 
         result.append(mk.WS + MIPSComment("end of body"))
-
         result.append("")
         result.append(self.getExitLabel() + ":")
-        result.append(mk.WS + MIPSComment("start of epilogue"))
 
-        # Load pre-spilled saved registers
-        for idx, sr in enumerate(self.usedSavedRegisters):
-            result.append(
-                mk.WS + load("RW", constructAddress(spilledOffset - idx * mk.WORD_SIZE, spillBaseRegister), sr))
+        if notMain:
+            result.append(mk.WS + MIPSComment("start of epilogue"))
 
-        if len(self.usedSavedRegisters) > 0:
+            # Load pre-spilled saved registers
+            for idx, sr in enumerate(self.usedSavedRegisters):
+                result.append(
+                    mk.WS + load("RW", constructAddress(spilledOffset - idx * mk.WORD_SIZE, spillBaseRegister), sr))
+
+            if len(self.usedSavedRegisters) > 0:
+                result.append("")
+
+            # Destruct stack frame
+            if not self.isLeafFunction():
+                result.append(mk.WS + load("RW", raLocation, mk.RA))
+                addComment(2, "load return address")
+            result.append(mk.WS + load("RW", constructAddress(0, mk.FP), mk.FP))
+            addComment(2, "load previous frame pointer")
+            result.append("")
+            result.append(mk.WS + f"{mk.I_ADD_U} {mk.SP}, {mk.SP}, {self.frameSize}")
+            addComment(2, "deallocate entire stack frame")
+
+            result.append(mk.WS + MIPSComment("end of epilogue"))
             result.append("")
 
-        # Destruct stack frame
-        if not self.isLeafFunction():
-            result.append(mk.WS + load("RW", raLocation, mk.RA))
-            addComment(2, "load return address")
-        result.append(mk.WS + load("RW", constructAddress(0, mk.FP), mk.FP))
-        addComment(2, "load previous frame pointer")
-        result.append("")
-        result.append(mk.WS + f"{mk.I_ADD_U} {mk.SP}, {mk.SP}, {self.frameSize}")
-        addComment(2, "deallocate entire stack frame")
-
-        result.append(mk.WS + MIPSComment("end of epilogue"))
-        result.append("")
-
         # return
-        result.append(mk.WS + f"{mk.JR} {mk.RA}")
+        if notMain:
+            result.append(mk.WS + f"{mk.JR} {mk.RA}")
+        else:
+            result.append(commentFormat(f"{mk.WS}{mk.I_L} {mk.getArgRegisters()[0]}, 10", "Exit"))
+            result.append(mk.WS + mk.SYSCALL)
+            result.append("")
+
         result.extend(wrapping.__reversed__())
 
         return result

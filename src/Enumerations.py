@@ -166,6 +166,7 @@ class MIPSKeywords:
     DATA_ASCIIZ: str = ".asciiz"
     TEXT: str = ".text"
     COMMENT_PREFIX: str = "#"
+    SYSCALL: str = "syscall"
     WS: str = " " * 4
 
     ZERO: MIPSLocation = MIPSLocation("$0")
