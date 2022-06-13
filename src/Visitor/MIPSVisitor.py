@@ -194,7 +194,7 @@ class MIPSFunctionDefinition:
         if idx < 4:
             return MIPSLocation(mk.getArgRegisters()[idx])
         else:
-            return MIPSLocation(f"{8 + idx * 4}({mk.FP})")
+            return MIPSLocation(f"{-(8 + idx * 4)}({mk.FP})")
 
     def isLeafFunction(self):
         return self.isLeaf
@@ -852,9 +852,7 @@ class MIPSVisitor(GenerationVisitor):
 
         # Evaluate parameters
         for argIdx, paramExp in enumerate(paramExpressions):
-            expEvalDstBackup = self._expressionEvalDstReg
             paramLoc = self._evaluateExpression(paramExp, self._argRegisters[argIdx] if argIdx < 4 else None)
-            self._expressionEvalDstReg = expEvalDstBackup
 
             currArgLoc = paramLoc
             paramType = paramExp.inferType(self.typeList)
@@ -862,14 +860,16 @@ class MIPSVisitor(GenerationVisitor):
 
             # Get result location (possibly $a0-$a3)
             if isinstance(paramExp, IdentifierNode) and argIdx < 4:
-                currArgLoc = self._getReservedExpressionLocation(paramExp)
-            # Get arg slot location for args > 4
-            elif argIdx >= 4:
-                currArgLoc = fCallFuncDef.calculateDefaultArgSlotLocation(argIdx)
+                self._addTextInstruction(move(currArgLoc, self._expressionEvalDstReg))
+                currArgLoc = self._expressionEvalDstReg
+            elif isinstance(paramExp, LiteralNode):
+                if argIdx >= 4:
+                    currArgLoc = fCallFuncDef.calculateDefaultArgSlotLocation(argIdx)
+                else:
+                    currArgLoc = self._getReservedExpressionLocation(paramExp)
 
             assert currArgLoc is not None
-            if argIdx < len(paramExpressions) - 1 and not (isinstance(paramExpressions[argIdx+1], LiteralNode) or
-                                                           isinstance(paramExpressions[argIdx+1], IdentifierNode)):
+            if argIdx < len(paramExpressions) - 1:
                 spillAddress = constructAddress(-self._stackReserve(paramType), mk.FP)
                 preventiveSpills.append((currArgLoc, spillAddress))
                 self._addTextInstruction(store(instrType, paramLoc, spillAddress),
@@ -893,7 +893,7 @@ class MIPSVisitor(GenerationVisitor):
             self._addTextInstruction(load(instrType, preventiveSpillAddress, slot), comment=comment)
 
             if idx >= 4:
-                self._addTextInstruction(store(instrType, slot, argSlot), comment=f"store param result in arg slot{idx}")
+                self._addTextInstruction(store(instrType, slot, fCallFuncDef.calculateDefaultArgSlotLocation(idx)), comment=f"store param result in arg slot{idx}")
 
             idx -= 1
 
@@ -1127,6 +1127,7 @@ class MIPSVisitor(GenerationVisitor):
                 dstLoc = dstRegister
             else:
                 dstLoc = src
+
         else:
             # Evaluate the expression
             expression.accept(self)
