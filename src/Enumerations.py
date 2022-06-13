@@ -153,7 +153,7 @@ class MIPSLocation(str):
         return self._isAddress
 
     def isLabel(self):
-        return self._isAddress
+        return self._isLabel
 
 
 
@@ -211,6 +211,7 @@ class MIPSKeywords:
 
     JR: str = "jr"
     JAL: str = "jal"
+    JUMP: str = "j"
 
     R_MOVE: str = "move"
 
