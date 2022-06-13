@@ -33,7 +33,6 @@ class MIPSFunctionDefinition:
         self._argSlotCount: int = 4
         self._savedArgsUpTo: int = 0
         self.argLocations: List[Tuple[str, MIPSLocation]] = []
-        self.paramCalcProgress: List[List[MIPSLocation]] = []
 
     @property
     def frameSize(self) -> int:
@@ -62,56 +61,52 @@ class MIPSFunctionDefinition:
         wrapping = ["\n", "#" * 30]
         notMain = self.label != BuiltinNames.MAIN
 
-        if notMain:
-            result = wrapping + \
-                     [commentFormat(f"# {alignOnBorder(self.framePointerOffset, mk.WORD_SIZE)}B", "Local data space: space reserved for allocating memory to local variables and for spilling intermediary expression results"),
-                     commentFormat(f"# {self.savedSectionSize}B", f"Saved register space ({len(self.usedSavedRegisters)} saved): space reserved for storing saved registers used within this stack frame"),
-                     commentFormat(f"# {self.argSectionSize}B", f"Arg slot space ({self._argSlotCount} slots): space reserved for storing arguments to be passed to function calls within this stack frame and"),
-                      commentFormat("#", "   four default slots to be used not by this function, but by any called functions for possibly spilling $a0-$a3 registers"),
-                      ""] +\
-                     [self.label + ":"]
-            spillBaseRegister = mk.SP
+        result = wrapping + \
+                 [commentFormat(f"# {alignOnBorder(self.framePointerOffset, mk.WORD_SIZE)}B", "Local data space: space reserved for allocating memory to local variables and for spilling intermediary expression results"),
+                 commentFormat(f"# {self.savedSectionSize}B", f"Saved register space ({len(self.usedSavedRegisters)} saved): space reserved for storing saved registers used within this stack frame"),
+                 commentFormat(f"# {self.argSectionSize}B", f"Arg slot space ({self._argSlotCount} slots): space reserved for storing arguments to be passed to function calls within this stack frame and"),
+                  commentFormat("#", "   four default slots to be used not by this function, but by any called functions for possibly spilling $a0-$a3 registers"),
+                  ""] +\
+                 [self.label + ":"]
+        spillBaseRegister = mk.SP
 
-            # arg slot offset + used saved register offset
-            spilledOffset = self.argSectionSize + self.savedSectionSize
-            raLocation: MIPSLocation | None = None
+        # arg slot offset + used saved register offset
+        spilledOffset = self.argSectionSize + self.savedSectionSize
+        raLocation: MIPSLocation | None = None
 
-            def addComment(tabCount: int, text: str):
-                result[-1] += "\t" * tabCount + MIPSComment(text)
+        def addComment(tabCount: int, text: str):
+            result[-1] += "\t" * tabCount + MIPSComment(text)
 
-            # Construct stack frame
-            result.append(mk.WS + MIPSComment("start of prologue"))
-            result.append(mk.WS + f"{mk.I_ADD_U} {mk.SP}, {mk.SP}, {-4}")
-            addComment(2, "allocate frame pointer")
+        # Construct stack frame
+        result.append(mk.WS + MIPSComment("start of prologue"))
+        result.append(mk.WS + f"{mk.I_ADD_U} {mk.SP}, {mk.SP}, {-4}")
+        addComment(2, "allocate frame pointer")
 
-            result.append(mk.WS + store("RW", mk.FP, MIPSLocation(f"0({mk.SP})")))
-            addComment(3, "save frame pointer")
+        result.append(mk.WS + store("RW", mk.FP, MIPSLocation(f"0({mk.SP})")))
+        addComment(3, "save frame pointer")
 
-            result.append(mk.WS + f"{move(mk.SP, mk.FP)}")
-            addComment(3, "$fp = $sp")
-
-            result.append("")
-            result.append(mk.WS + f"{mk.I_ADD_U} {mk.SP}, {mk.SP}, {-(self.frameSize - 4)}")
-            addComment(2, f"allocate rest of stack frame (aligned on double word size = {2 * mk.WORD_SIZE}B)")
-            if not self.isLeafFunction():
-                raLocation = MIPSLocation(f"{spilledOffset + mk.WORD_SIZE}({mk.SP})")
-                result.append(mk.WS + store("RW", mk.RA, raLocation))
-                addComment(2, "save return address")
-
-            if len(self.usedSavedRegisters) > 0:
-                result.append("")
-
-            # Spill needed saved registers
-            for idx, sr in enumerate(self.usedSavedRegisters):
-                result.append(
-                    mk.WS + store("RW", sr, constructAddress(spilledOffset - idx * mk.WORD_SIZE, spillBaseRegister)))
-
-            result.append(mk.WS + MIPSComment("end of prologue"))
+        result.append(mk.WS + f"{move(mk.SP, mk.FP)}")
+        addComment(3, "$fp = $sp")
 
         result.append("")
+        result.append(mk.WS + f"{mk.I_ADD_U} {mk.SP}, {mk.SP}, {-(self.frameSize - 4)}")
+        addComment(2, f"allocate rest of stack frame (aligned on double word size = {2 * mk.WORD_SIZE}B)")
+        if not self.isLeafFunction():
+            raLocation = MIPSLocation(f"{spilledOffset + mk.WORD_SIZE}({mk.SP})")
+            result.append(mk.WS + store("RW", mk.RA, raLocation))
+            addComment(2, "save return address")
 
-        if not notMain:
-            result.append(self.label + ":")
+        if len(self.usedSavedRegisters) > 0:
+            result.append("")
+
+        # Spill needed saved registers
+        for idx, sr in enumerate(self.usedSavedRegisters):
+            result.append(
+                mk.WS + store("RW", sr, constructAddress(spilledOffset - idx * mk.WORD_SIZE, spillBaseRegister)))
+
+        result.append(mk.WS + MIPSComment("end of prologue"))
+
+        result.append("")
 
         result.append(mk.WS + MIPSComment("start of body"))
 
@@ -127,29 +122,28 @@ class MIPSFunctionDefinition:
         result.append("")
         result.append(self.getExitLabel() + ":")
 
-        if notMain:
-            result.append(mk.WS + MIPSComment("start of epilogue"))
+        result.append(mk.WS + MIPSComment("start of epilogue"))
 
-            # Load pre-spilled saved registers
-            for idx, sr in enumerate(self.usedSavedRegisters):
-                result.append(
-                    mk.WS + load("RW", constructAddress(spilledOffset - idx * mk.WORD_SIZE, spillBaseRegister), sr))
+        # Load pre-spilled saved registers
+        for idx, sr in enumerate(self.usedSavedRegisters):
+            result.append(
+                mk.WS + load("RW", constructAddress(spilledOffset - idx * mk.WORD_SIZE, spillBaseRegister), sr))
 
-            if len(self.usedSavedRegisters) > 0:
-                result.append("")
-
-            # Destruct stack frame
-            if not self.isLeafFunction():
-                result.append(mk.WS + load("RW", raLocation, mk.RA))
-                addComment(2, "load return address")
-            result.append(mk.WS + load("RW", constructAddress(0, mk.FP), mk.FP))
-            addComment(2, "load previous frame pointer")
+        if len(self.usedSavedRegisters) > 0:
             result.append("")
-            result.append(mk.WS + f"{mk.I_ADD_U} {mk.SP}, {mk.SP}, {self.frameSize}")
-            addComment(2, "deallocate entire stack frame")
 
-            result.append(mk.WS + MIPSComment("end of epilogue"))
-            result.append("")
+        # Destruct stack frame
+        if not self.isLeafFunction():
+            result.append(mk.WS + load("RW", raLocation, mk.RA))
+            addComment(2, "load return address")
+        result.append(mk.WS + load("RW", constructAddress(0, mk.FP), mk.FP))
+        addComment(2, "load previous frame pointer")
+        result.append("")
+        result.append(mk.WS + f"{mk.I_ADD_U} {mk.SP}, {mk.SP}, {self.frameSize}")
+        addComment(2, "deallocate entire stack frame")
+
+        result.append(mk.WS + MIPSComment("end of epilogue"))
+        result.append("")
 
         # return
         if notMain:
@@ -817,7 +811,6 @@ class MIPSVisitor(GenerationVisitor):
         paramExpressions = node.getParameterNodes()
         fCallIdentifier = node.getIdentifierNode()
         fCallFuncDef: MIPSFunctionDefinition = self._functionDefinitions[fCallIdentifier.identifier]
-        enclosingFCall: FunctioncallNode | None = node.getAncestorOfType(FunctioncallNode)
 
         # Save current function definition arguments
         argSpillLimit: int = min(min(4, len(paramExpressions)), len(self._currFuncDef.argLocations))
@@ -836,42 +829,31 @@ class MIPSVisitor(GenerationVisitor):
                 # Don't bother undoing the identifier/arg register association, the spilled
                 # values will always be loaded back in after the function call anyway
 
-        # Spill the args this fCall wants to use, but are in use by the enclosing fCall
-        if enclosingFCall is not None:
-            assert len(self._currFuncDef.paramCalcProgress) > 0, "A function call did not push its arg use list"
-            # enclosingParams
-            for argIdx in range(len(self._currFuncDef.paramCalcProgress[-1])):
-                #constructAddress(self._stackReserve(paramExp.inferType(self.typeList)))
-                pass
+        # List[Tuple[argSlot, preventiveSpillAddress]]
+        preventiveSpills = []
 
-        # Keep track of which parameters the current fCall has calculated.
-        # Let nested function calls spill them
-        self._currFuncDef.paramCalcProgress.append([])
-
+        # Evaluate parameters
         for argIdx, paramExp in enumerate(paramExpressions):
             expEvalDstBackup = self._expressionEvalDstReg
             paramLoc = self._evaluateExpression(paramExp, self._argRegisters[argIdx] if argIdx < 4 else None)
             self._expressionEvalDstReg = expEvalDstBackup
 
-            # TODO nested function calls overwrite each other's arg registers
+            currArgLoc = paramLoc
+            paramType = paramExp.inferType(self.typeList)
+            instrType = "R" + self._instructionSizeType(paramType)
 
             if isinstance(paramExp, IdentifierNode) and argIdx < 4:
-                self._addTextInstruction(move(paramLoc, self._getReservedExpressionLocation(paramExp)),
-                                         comment=f"load {paramExp.identifier} into arg{argIdx}")
+                currArgLoc = self._getReservedExpressionLocation(paramExp)
+            elif argIdx >= 4:
+                currArgLoc = fCallFuncDef.argLocations[argIdx][1]
 
-            if argIdx >= 4:
-                instrType = "R" + self._instructionSizeType(paramExp.inferType(self.typeList))
-                self._addTextInstruction(store(instrType, paramLoc, fCallFuncDef.argLocations[argIdx][1]),
-                                         comment=f"spill param{argIdx} into arg slot{argIdx} (setup argument{argIdx})")
-
-
-        # Reload params previously used by this fCall but spilled by nested function call
-        for paramExpression in self._currFuncDef.paramCalcProgress[-1]:
-            pass
-
-        self._currFuncDef.paramCalcProgress.pop()
-
-
+            assert currArgLoc is not None
+            if argIdx < len(paramExpressions) - 1 and not (isinstance(paramExpressions[argIdx+1], LiteralNode),
+                                                           isinstance(paramExpressions[argIdx+1], IdentifierNode)):
+                spillAddress = constructAddress(-self._stackReserve(paramType), mk.FP)
+                preventiveSpills.append((currArgLoc, spillAddress))
+                self._addTextInstruction(store(instrType, paramLoc, spillAddress),
+                                     comment=f"spill arg{argIdx} before eval. of arg{argIdx+1} ({fCallIdentifier})")
 
         # Save intermediate results
         # [(register, spillAddress, spill type), ]
@@ -880,6 +862,20 @@ class MIPSVisitor(GenerationVisitor):
         if len(spilledIntermediaries) > 0:
             self._currFuncDef.addInstructionComment("spill intermediate results ...", -len(spilledIntermediaries))
             self._currFuncDef.addInstructionComment(f"... before function call: {node.toLegibleRepr(self.typeList)}")
+
+        # Load back preventively spilled arg results
+        idx = len(preventiveSpills) - 1
+        for argSlot, preventiveSpillAddress in preventiveSpills.__reversed__():
+            instrType = "R" + self._instructionSizeType(paramExpressions[idx].inferType(self.typeList))
+            firstFour = idx < 4
+            slot = argSlot if firstFour else self._argRegisters[0]
+            comment = f"load back preventive arg{idx} spill" if firstFour else "intermediate spill reload"
+            self._addTextInstruction(load(instrType, preventiveSpillAddress, slot), comment=comment)
+
+            if idx >= 4:
+                self._addTextInstruction(store(instrType, slot, argSlot), comment=f"store param result in arg slot{idx}")
+
+            idx -= 1
 
         # execute function call
         correspondingFuncDef = self._getFunctionDefinition(node.getIdentifierNode().identifier)
