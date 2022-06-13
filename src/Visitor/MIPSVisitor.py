@@ -186,8 +186,15 @@ class MIPSFunctionDefinition:
         """
 
         self._argSlotCount = max(len(node.getParameterNodes()), self._argSlotCount)
+
         assert self._argSlotCount >= 4, "Incorrectly adjusted argument slot count of function definition"
         assert not self.isLeafFunction(), "Function call should imply storing the return address"
+
+    def calculateDefaultArgSlotLocation(self, idx: int) -> MIPSLocation:
+        if idx < 4:
+            return MIPSLocation(mk.getArgRegisters()[idx])
+        else:
+            return MIPSLocation(f"{8 + idx * 4}({mk.FP})")
 
     def isLeafFunction(self):
         return self.isLeaf
@@ -853,13 +860,15 @@ class MIPSVisitor(GenerationVisitor):
             paramType = paramExp.inferType(self.typeList)
             instrType = "R" + self._instructionSizeType(paramType)
 
+            # Get result location (possibly $a0-$a3)
             if isinstance(paramExp, IdentifierNode) and argIdx < 4:
                 currArgLoc = self._getReservedExpressionLocation(paramExp)
+            # Get arg slot location for args > 4
             elif argIdx >= 4:
-                currArgLoc = fCallFuncDef.argLocations[argIdx][1]
+                currArgLoc = fCallFuncDef.calculateDefaultArgSlotLocation(argIdx)
 
             assert currArgLoc is not None
-            if argIdx < len(paramExpressions) - 1 and not (isinstance(paramExpressions[argIdx+1], LiteralNode),
+            if argIdx < len(paramExpressions) - 1 and not (isinstance(paramExpressions[argIdx+1], LiteralNode) or
                                                            isinstance(paramExpressions[argIdx+1], IdentifierNode)):
                 spillAddress = constructAddress(-self._stackReserve(paramType), mk.FP)
                 preventiveSpills.append((currArgLoc, spillAddress))
