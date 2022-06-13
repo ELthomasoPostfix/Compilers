@@ -194,7 +194,7 @@ class MIPSFunctionDefinition:
         if idx < 4:
             return MIPSLocation(mk.getArgRegisters()[idx])
         else:
-            return MIPSLocation(f"{-(8 + idx * 4)}({mk.FP})")
+            return MIPSLocation(f"{8 + idx * 4}({mk.FP})")
 
     def isLeafFunction(self):
         return self.isLeaf
@@ -480,7 +480,7 @@ class MIPSVisitor(GenerationVisitor):
         #   is the memory address assigned to a call to _stackReserve in the context of reserving memory in all other
         #   cases.
 
-        allocAmount = self._byteSize(cType)
+        allocAmount = mk.WORD_SIZE # self._byteSize(cType)
         # Word sized addressing must use word aligned addresses
         if allocAmount == mk.WORD_SIZE:
             self._currFuncDef.framePointerOffset = alignOnBorder(self._currFuncDef.framePointerOffset, mk.WORD_SIZE)
