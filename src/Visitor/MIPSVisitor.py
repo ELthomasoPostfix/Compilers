@@ -33,7 +33,7 @@ class MIPSFunctionDefinition:
         self._argSlotCount: int = 4
         self._savedArgsUpTo: int = 0
         self.argLocations: List[Tuple[str, MIPSLocation]] = []
-        self.argLocationsSpillStatus: List[bool] = []
+        self.paramCalcProgress: List[List[MIPSLocation]] = []
 
     @property
     def frameSize(self) -> int:
@@ -57,6 +57,10 @@ class MIPSFunctionDefinition:
     def toMips(self):
         def commentFormat(arg0: str, arg1: str):
             return MIPSVisitor.COMMENT_FORMAT_STRING.format(arg0, arg1)
+
+        result = []
+        notMain = self.label != BuiltinNames.MAIN
+
         wrapping = ["\n", "#"*30]
         result = wrapping + \
                  [commentFormat(f"# {alignOnBorder(self.framePointerOffset, mk.WORD_SIZE)}B", "Local data space: space reserved for allocating memory to local variables and for spilling intermediary expression results"),
@@ -103,6 +107,8 @@ class MIPSFunctionDefinition:
 
         result.append(mk.WS + MIPSComment("end of prologue"))
         result.append("")
+
+
         result.append(mk.WS + MIPSComment("start of body"))
 
         # Append comments
@@ -114,6 +120,7 @@ class MIPSFunctionDefinition:
                 result.append(instruction)
 
         result.append(mk.WS + MIPSComment("end of body"))
+
         result.append("")
         result.append(self.getExitLabel() + ":")
         result.append(mk.WS + MIPSComment("start of epilogue"))
@@ -232,7 +239,10 @@ class MIPSVisitor(GenerationVisitor):
             else:
                 allInstructions += instruction + "\n"
         allInstructions += ".text\n"
-        for functionDef in self._functionDefinitions.values():
+        funcDefs = list(self._functionDefinitions.values())
+        funcDefs.remove(self._functionDefinitions["main"])
+        funcDefs.insert(0, self._functionDefinitions["main"])
+        for functionDef in funcDefs:
             for instruction in functionDef.toMips():
                 allInstructions += instruction + "\n"
         return allInstructions
@@ -600,14 +610,16 @@ class MIPSVisitor(GenerationVisitor):
         # assigned stack memory location
         totalOffset = 0
         for idx, param in enumerate(node.getParamIdentifierNodes()):
-            allocAmount = self._byteSize(param.getType())
+            # We assign each argument slot 4B of space on the stack.
+            # Using 'self._byteSize(param.getType())' you could assign
+            # more type appropriate amounts of data, but frick that.
+            allocAmount = mk.WORD_SIZE
 
             # Associate the arg registers with their params ($a)
             if idx < 4:
                 allocAmount = mk.WORD_SIZE      # The arg registers are allocated a word
                 argRegister = self._argRegisters[idx]
                 funcDef.argLocations.append((param.identifier, argRegister))
-                funcDef.argLocationsSpillStatus.append(False)
                 self._associateAddressAndRegister(param.identifier, argRegister)
 
             # Allocate memory to every argument slot (arg register and remaining args)
@@ -619,7 +631,6 @@ class MIPSVisitor(GenerationVisitor):
             if idx >= 4:
                 argSlotAddress = constructAddress(totalOffset, mk.FP)
                 funcDef.argLocations.append((param.identifier, argSlotAddress))
-                funcDef.argLocationsSpillStatus.append(True)
                 self._addAddressDescriptor(param.identifier, argSlotAddress)
 
 
@@ -826,6 +837,7 @@ class MIPSVisitor(GenerationVisitor):
         paramExpressions = node.getParameterNodes()
         fCallIdentifier = node.getIdentifierNode()
         fCallFuncDef: MIPSFunctionDefinition = self._functionDefinitions[fCallIdentifier.identifier]
+        enclosingFCall: FunctioncallNode | None = node.getAncestorOfType(FunctioncallNode)
 
         # Save current function definition arguments
         argSpillLimit: int = min(min(4, len(paramExpressions)), len(self._currFuncDef.argLocations))
@@ -837,14 +849,24 @@ class MIPSVisitor(GenerationVisitor):
             if self._getUsedAddressDescriptor(argIdentifier, [spillRegister]) is None:
                 fpOffset = self.currentSymbolTable[argStorageInfo[0]].fpOffset
                 spillAddress = constructAddress(fpOffset, mk.FP)
-                self._addTextInstruction(store("RW", spillRegister, spillAddress), comment=f"spill arg{paramArgIdx} before {fCallIdentifier.identifier} call")
+                self._addTextInstruction(store("RW", spillRegister, spillAddress), comment=f"spill arg {argIdentifier} before {fCallIdentifier.identifier} call")
                 argSpills.append((argIdentifier, spillRegister, spillAddress))
                 self._addAddressDescriptor(argIdentifier, spillAddress)
                 self._getAddressDescriptors(argIdentifier).remove(spillRegister)
-                fCallFuncDef.argLocationsSpillStatus[paramArgIdx] = True
                 # Don't bother undoing the identifier/arg register association, the spilled
                 # values will always be loaded back in after the function call anyway
 
+        # Spill the args this fCall wants to use, but are in use by the enclosing fCall
+        if enclosingFCall is not None:
+            assert len(self._currFuncDef.paramCalcProgress) > 0, "A function call did not push its arg use list"
+            # enclosingParams
+            for argIdx in range(len(self._currFuncDef.paramCalcProgress[-1])):
+                #constructAddress(self._stackReserve(paramExp.inferType(self.typeList)))
+                pass
+
+        # Keep track of which parameters the current fCall has calculated.
+        # Let nested function calls spill them
+        self._currFuncDef.paramCalcProgress.append([])
 
         for argIdx, paramExp in enumerate(paramExpressions):
             expEvalDstBackup = self._expressionEvalDstReg
@@ -862,6 +884,15 @@ class MIPSVisitor(GenerationVisitor):
                 self._addTextInstruction(store(instrType, paramLoc, fCallFuncDef.argLocations[argIdx][1]),
                                          comment=f"spill param{argIdx} into arg slot{argIdx} (setup argument{argIdx})")
 
+
+        # Reload params previously used by this fCall but spilled by nested function call
+        for paramExpression in self._currFuncDef.paramCalcProgress[-1]:
+            pass
+
+        self._currFuncDef.paramCalcProgress.pop()
+
+
+
         # Save intermediate results
         # [(register, spillAddress, spill type), ]
         spilledIntermediaries: List[Tuple[MIPSLocation, MIPSLocation, CType]]
@@ -877,7 +908,7 @@ class MIPSVisitor(GenerationVisitor):
         # Reload current function definition arguments
         for paramArgIdx, argSpillInfo in enumerate(argSpills):
             argIdentifier, spillRegister, spillAddress = argSpillInfo
-            self._addTextInstruction(load("RW", spillAddress, spillRegister), comment=f"reload arg{paramArgIdx} after {fCallIdentifier.identifier} call")
+            self._addTextInstruction(load("RW", spillAddress, spillRegister), comment=f"reload arg {argIdentifier} after {fCallIdentifier.identifier} call")
             self._associateAddressAndRegister(argIdentifier, spillRegister)
 
         # Recover spilled expression intermediary values

@@ -12,6 +12,9 @@ class BuiltinNames:
     FLOAT: str = "float"
     DOUBLE: str = "double"
 
+    MAIN: str = "main"
+    PRINTF: str = "printf"
+
 
 class BuiltinRanks:
     VOID: int = 0
