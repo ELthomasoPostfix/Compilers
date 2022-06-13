@@ -1078,7 +1078,7 @@ class MIPSVisitor(GenerationVisitor):
                 isStringLit = isinstance(expression, CharNode)
                 if isStringLit:
                     ctr = self._reserveDataCounterValue()
-                    value = f"str.lit{ctr}"     # String literal label
+                    value = MIPSLocation(f"str.lit{ctr}")     # String literal label
                     self._addDataDefinition(f"{value}: {mk.DATA_ASCIIZ} \"{value}\"")
                 self._addTextInstruction(load('I' + ('A' if isStringLit else ""), value, dstRegister))
                 value = dstRegister
@@ -1214,7 +1214,7 @@ def load(instrType: str, srcAddress, dstReg: MIPSLocation):
     if not (instrType == "I" or instrType == "IA" or instrType == "RW" or instrType == "RB" or instrType == "RA"):
         raise Exception("Incorrect mips load type")
 
-    if (instrType != "I" and not srcAddress.isAddress()) or (instrType != "IA" and not srcAddress.isLabel()):
+    if instrType[0] != "I" and not srcAddress.isAddress() and not srcAddress.isLabel():
         raise Exception(f"Loading from incorrect source (should be address): load from '{srcAddress}'")
 
     if not dstReg.isRegister():
