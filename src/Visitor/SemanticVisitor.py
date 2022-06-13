@@ -194,6 +194,7 @@ class SemanticVisitor(ASTreeVisitor):
             raise UnsupportedFeature(f"Unknown literal type: {self.toTypeName(node.inferType(self.typeList))}", node.location)
 
         minLim, maxLim = lims[baseIdx], lims[baseIdx+1]
-        if not (minLim <= node.getValue() <= maxLim):
-            raise OutOfBoundsLiteral(f"An {self.toTypeName(node.inferType(self.typeList))} literal must be between "
-                                     f"{minLim} and {maxLim}", node.location)
+        if not isinstance(node.getValue(), str):
+            if not (minLim <= node.getValue() <= maxLim):
+                raise OutOfBoundsLiteral(f"An {self.toTypeName(node.inferType(self.typeList))} literal must be between "
+                                         f"{minLim} and {maxLim}", node.location)

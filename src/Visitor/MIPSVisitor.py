@@ -155,7 +155,7 @@ class MIPSFunctionDefinition:
         if notMain:
             result.append(mk.WS + f"{mk.JR} {mk.RA}")
         else:
-            result.append(commentFormat(f"{mk.WS}{mk.I_L} {mk.getArgRegisters()[0]}, 10", "#Exit"))
+            result.append(commentFormat(f"{mk.WS}{mk.I_L} {mk.getVarRegisters()[0]}, 10", "#Exit"))
             result.append(mk.WS + mk.SYSCALL)
             result.append("")
 
@@ -911,13 +911,82 @@ class MIPSVisitor(GenerationVisitor):
         temp = self._currFuncDef
         self._currFuncDef = funcDef
 
+        self._addTextInstruction("move $t0, $a0")
+        self._addTextInstruction("li $t2, '%'")
+        self._addTextInstruction("li $t3, 'i'")
+        self._addTextInstruction("li $t4, 'd'")
+        self._addTextInstruction("li $t5, 's'")
+        self._addTextInstruction("li $t6, 'c'")
+        self._addTextInstruction("li $t9, 1")
         self._addTextInstruction("b printloop")
         self._addTextLabel("printloop")
 
-        self._addTextInstruction("move $t0,($a0)")
-        self._addTextInstruction("addi $t0,$t0,1")
-        self._addTextInstruction("beq $a0,$0,printf.end")
+        self._addTextInstruction("lb $t1, ($t0)")
+        self._addTextInstruction("addi $t0,$t0,1", comment="increment in char array")
+        self._addTextInstruction("beq $t1,$t2,percent", comment="branch if '%'")
+        self._addTextInstruction("beq $t1,$0,printf.end", comment="branch if eos")
+        self._addTextInstruction("move $a0, $t1")
         self._addTextInstruction("li $v0, 11")
+        self._addTextInstruction("syscall")
+        self._addTextInstruction("j printloop")
+
+        self._addTextLabel("percent")
+        self._addTextInstruction("lb $t1, ($t0)")
+        self._addTextInstruction("addi $t0,$t0,1")
+
+        self._addTextInstruction("beq $t9,1,first_reg")
+        self._addTextInstruction("beq $t9,2,sec_reg")
+        self._addTextInstruction("beq $t9,3,third_reg")
+        self._addTextInstruction("bgt $t9,3,k_reg")
+
+        self._addTextLabel("first_reg")
+        self._addTextInstruction("move $t8,$a1")
+        self._addTextInstruction("j percent.body")
+
+        self._addTextLabel("sec_reg")
+        self._addTextInstruction("move $t8,$a2")
+        self._addTextInstruction("j percent.body")
+
+        self._addTextLabel("third_reg")
+        self._addTextInstruction("move $t8,$a3")
+        self._addTextInstruction("j percent.body")
+
+        self._addTextLabel("k_reg")
+        self._addTextInstruction("la $t8,24($fp)", comment="load base address of $a4")
+        self._addTextInstruction("subi $t7,$t9,4", comment="initial counter value = 4")
+        self._addTextInstruction("sll $t7,$t7,2", comment="final offset value")
+        self._addTextInstruction("add $t8,$t8,$t7", comment="param address")
+        self._addTextInstruction("lw $t8,($t8)", comment="load param")
+
+        self._addTextLabel("percent.body")
+        self._addTextInstruction("addi $t9,$t9,1")
+        self._addTextInstruction("beq $t1,$t3,integer", comment="branch if '%i'")
+        self._addTextInstruction("beq $t1,$t4,decimal", comment="branch if '%d'")
+        self._addTextInstruction("beq $t1,$t5,string", comment="branch if '%s'")
+        self._addTextInstruction("beq $t1,$t6,char", comment="branch if '%c'")
+        self._addTextInstruction("j printloop")
+
+        self._addTextLabel("integer")
+        self._addTextInstruction("move $a0,$t8")
+        self._addTextInstruction("li $v0,1")
+        self._addTextInstruction("syscall")
+        self._addTextInstruction("j printloop")
+
+        self._addTextLabel("decimal")
+        self._addTextInstruction("move $a0,$t8")
+        self._addTextInstruction("li $v0,3")
+        self._addTextInstruction("syscall")
+        self._addTextInstruction("j printloop")
+
+        self._addTextLabel("string")
+        self._addTextInstruction("move $a0,$t8")
+        self._addTextInstruction("li $v0,4")
+        self._addTextInstruction("syscall")
+        self._addTextInstruction("j printloop")
+
+        self._addTextLabel("char")
+        self._addTextInstruction("move $a0,$t8")
+        self._addTextInstruction("li $v0,11")
         self._addTextInstruction("syscall")
         self._addTextInstruction("j printloop")
 
