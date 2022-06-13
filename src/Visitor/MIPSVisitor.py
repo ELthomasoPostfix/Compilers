@@ -2,13 +2,14 @@ from __future__ import annotations
 
 from typing import Set, Dict, Tuple
 
-from src.Exceptions.exceptions import UnsupportedFeature
+from src.CompilersUtils import coloredDef
+from src.Exceptions.exceptions import UnsupportedFeature, GlobalScopeException
 from src.Nodes.ASTreeNode import *
 from src.Enumerations import MIPSKeywords as mk, MIPSLocation, MIPSRegisterInfo
 from src.Nodes.IterationNodes import WhileNode
 from src.Nodes.JumpNodes import ContinueNode, BreakNode, ReturnNode
 from src.Nodes.LiteralNodes import IntegerNode, CharNode
-from src.Nodes.OperatorNodes import NotNode, NegativeNode
+from src.Nodes.OperatorNodes import NotNode, NegativeNode, ArraySubscriptNode, DereferenceNode, AddressOfNode
 from src.Nodes.SelectionNodes import IfNode, ElseNode
 from src.SymbolTable import ReadWriteAccess
 from src.Visitor.GenerationVisitor import GenerationVisitor
@@ -31,9 +32,11 @@ class MIPSFunctionDefinition:
         #                           # function calls done by the caller
         self._argSlotCount: int = 4
         self._savedArgsUpTo: int = 0
+        self.argLocations: List[Tuple[str, MIPSLocation]] = []
+        self.argLocationsSpillStatus: List[bool] = []
 
     @property
-    def frameSize(self):
+    def frameSize(self) -> int:
         # data + $ra + k spilled saved registers + n argument slots
         frameSize = mk.WORD_SIZE + \
                     self.framePointerOffset + \
@@ -43,12 +46,29 @@ class MIPSFunctionDefinition:
         # Align frame size on double word size
         return alignOnBorder(frameSize, mk.WORD_SIZE * 2)
 
+    @property
+    def argSectionSize(self) -> int:
+        return self._argSlotCount * mk.WORD_SIZE
+
+    @property
+    def savedSectionSize(self) -> int:
+        return len(self.usedSavedRegisters) * mk.WORD_SIZE
+
     def toMips(self):
-        result = [self.label + ":"]
+        def commentFormat(arg0: str, arg1: str):
+            return MIPSVisitor.COMMENT_FORMAT_STRING.format(arg0, arg1)
+        wrapping = ["\n", "#"*30]
+        result = wrapping + \
+                 [commentFormat(f"# {alignOnBorder(self.framePointerOffset, mk.WORD_SIZE)}B", "Local data space: space reserved for allocating memory to local variables and for spilling intermediary expression results"),
+                 commentFormat(f"# {self.savedSectionSize}B", f"Saved register space ({len(self.usedSavedRegisters)} saved): space reserved for storing saved registers used within this stack frame"),
+                 commentFormat(f"# {self.argSectionSize}B", f"Arg slot space ({self._argSlotCount} slots): space reserved for storing arguments to be passed to function calls within this stack frame and"),
+                  commentFormat("", "   four default slots to be used not by this function, but by any called functions for possibly spilling $a0-$a3 registers"),
+                  ""] +\
+                 [self.label + ":"]
         spillBaseRegister = mk.SP
 
         # arg slot offset + used saved register offset
-        spilledOffset = (self._argSlotCount - 1) * mk.WORD_SIZE + len(self.usedSavedRegisters) * mk.WORD_SIZE
+        spilledOffset = self.argSectionSize + self.savedSectionSize
         raLocation: MIPSLocation | None = None
 
         def addComment(tabCount: int, text: str):
@@ -73,7 +93,8 @@ class MIPSFunctionDefinition:
             result.append(mk.WS + store("RW", mk.RA, raLocation))
             addComment(2, "save return address")
 
-        result.append("")
+        if len(self.usedSavedRegisters) > 0:
+            result.append("")
 
         # Spill needed saved registers
         for idx, sr in enumerate(self.usedSavedRegisters):
@@ -85,13 +106,16 @@ class MIPSFunctionDefinition:
         result.append(mk.WS + MIPSComment("start of body"))
 
         # Append comments
-        fs = "{0:35}{1}"  # formatting string to align comments at column 35
         for cidx, instruction in enumerate(self.instructions):
-            result.append(fs.format(instruction, self.getInstructionComment(cidx)))
+            comment = self.getInstructionComment(cidx)
+            if comment != "":
+                result.append(MIPSVisitor.COMMENT_FORMAT_STRING.format(instruction, comment))
+            else:
+                result.append(instruction)
 
         result.append(mk.WS + MIPSComment("end of body"))
         result.append("")
-        result.append(self.getExitLabel())
+        result.append(self.getExitLabel() + ":")
         result.append(mk.WS + MIPSComment("start of epilogue"))
 
         # Load pre-spilled saved registers
@@ -99,9 +123,8 @@ class MIPSFunctionDefinition:
             result.append(
                 mk.WS + load("RW", constructAddress(spilledOffset - idx * mk.WORD_SIZE, spillBaseRegister), sr))
 
-        # TODO DO NOT RELOAD ARGUMENT REGISTERS? THEY ARE NOT NEEDED POST FCALL
-
-        result.append("")
+        if len(self.usedSavedRegisters) > 0:
+            result.append("")
 
         # Destruct stack frame
         if not self.isLeafFunction():
@@ -118,11 +141,12 @@ class MIPSFunctionDefinition:
 
         # return
         result.append(mk.WS + f"{mk.JR} {mk.RA}")
+        result.extend(wrapping.__reversed__())
 
         return result
 
     def getExitLabel(self):
-        return f"{self.label}.end:"
+        return f"{self.label}.end"
 
     def argumentSlotLocation(self, argSlotIdx: int) -> MIPSLocation:
         """
@@ -171,9 +195,13 @@ class MIPSFunctionDefinition:
 
 
 class MIPSVisitor(GenerationVisitor):
+    COMMENT_FORMAT_STRING: str = "{0:35}{1}"
+    INSTRUCTION_WS: str = ' ' * 4
+
     def __init__(self, typeList: TypeList):
         self._sectionData = []
-        self._functionDefinitions: List[MIPSFunctionDefinition] = []
+        self._sectionDataComments: List[str] = []
+        self._functionDefinitions: Dict[str: MIPSFunctionDefinition] = dict()
         self._currFuncDef: MIPSFunctionDefinition | None = None
 
         self._argRegisters = mk.getArgRegisters()
@@ -197,11 +225,16 @@ class MIPSVisitor(GenerationVisitor):
     @property
     def instructions(self):
         allInstructions = ".data\n"
-        for instruction in self._sectionData:
-            allInstructions += instruction + "\n"
+        for didx, instruction in enumerate(self._sectionData):
+            comment = self._sectionDataComments[didx]
+            if comment != "":
+                allInstructions += self.COMMENT_FORMAT_STRING.format(instruction,MIPSComment(comment)) + "\n"
+            else:
+                allInstructions += instruction + "\n"
         allInstructions += ".text\n"
-        for instruction in self._currFuncDef.toMips():
-            allInstructions += instruction + "\n"
+        for functionDef in self._functionDefinitions.values():
+            for instruction in functionDef.toMips():
+                allInstructions += instruction + "\n"
         return allInstructions
 
     ######################
@@ -219,18 +252,19 @@ class MIPSVisitor(GenerationVisitor):
         self._addAddressDescriptor(identifier, register)
         self._addRegisterDescriptor(register, identifier)
 
-    def _getUsedAddressDescriptor(self, identifier: str) -> MIPSLocation | None:
+    def _getUsedAddressDescriptor(self, identifier: str, excluded: List[MIPSLocation]) -> MIPSLocation | None:
         """
         Get an address descriptor used by :identifier:. Preferentially chooses a
         register, else tries to provide an address.
 
         :param identifier: The identifier to get a used descriptor for
+        :param excluded: These locations are not valid used locations
         :return: The descriptor if found, else None
         """
 
-        descriptors = self._getAddressDescriptors(identifier)
+        descriptors = [elem for elem in self._getAddressDescriptors(identifier) if elem not in excluded]
         for location in descriptors:
-            if location.isRegister():
+            if location.isRegister() and location not in excluded:
                 return location
 
         return descriptors[0] if len(descriptors) > 0 else None
@@ -395,28 +429,6 @@ class MIPSVisitor(GenerationVisitor):
     def _instructionSizeType(self, cType: CType):
         return "B" if not cType.isPointerType() and cType == CharNode.inferType(self.typeList) else "W"
 
-    def _functionParamsToStackFrameLocations(self, functionDefinition: FunctiondefinitionNode) -> List[Tuple[str, MIPSLocation]]:
-        """
-        Convert a list of parameters to a function call to the argument registers and or memory
-        locations their values are stored in.
-
-        :param functionDefinition: The function definition whose params to convert
-        :return: A list of (param identifier, arg location) pairs
-        """
-
-        totalOffset = 4
-        locations: List[Tuple[str, MIPSLocation]] = []
-        for idx, param in enumerate(functionDefinition.getParamIdentifierNodes()):
-            if idx < 4:
-                locations.append((param.identifier, self._argRegisters[idx]))
-            else:
-                allocAmount = self._byteSize(param.getType())
-                totalOffset = alignOnBorder(totalOffset + allocAmount, allocAmount)
-                argSlotAddress = constructAddress(totalOffset, mk.FP)
-                locations.append((param.identifier, argSlotAddress))
-
-        return locations
-
     def _stackReserve(self, cType: CType) -> int:
         """
         Reserve enough bytes on the stack to store a single variable
@@ -476,7 +488,7 @@ class MIPSVisitor(GenerationVisitor):
             result = minRegister
             self._spillRegister(result)
 
-        # TODO move this to visitVar_assig()?
+        # Saved register is used, must be spilled in stack frame construction
         self._currFuncDef.usedSavedRegisters.add(result)
 
         return result
@@ -486,8 +498,9 @@ class MIPSVisitor(GenerationVisitor):
         # Has nor ExpressionNode parent or
         # has a UnaryexpressionNode parent which has no ExpressionNode parent
         return node is not None and (not isinstance(node.parent, ExpressionNode) or
-                                     (isinstance(node.parent, UnaryexpressionNode) and
-                                      not isinstance(node.parent.parent, ExpressionNode)))
+            (isinstance(node.parent, UnaryexpressionNode) and not isinstance(node.parent.parent, ExpressionNode)) or
+            (isinstance(node.parent, FunctioncallNode)) or
+            (isinstance(node.parent, ReturnNode)))
 
     def _reserveRegisters(self, amount: int) -> List[MIPSLocation]:
         """
@@ -502,12 +515,26 @@ class MIPSVisitor(GenerationVisitor):
         # TODO consider spilling saved registers to use in expressions???
         return self._tempRegisters[:amount]
 
+    def _getFunctionDefinition(self, identifier: str) -> MIPSFunctionDefinition:
+        """
+        Get the function definition corresponding to :identifier:.
+        :identifier: is interpreted as the name of a function call or
+        a function declaration for the desired function definition.
+
+        :param identifier: The function call or declaration whose definition to get
+        :return: The definition if it exists, else None
+        """
+
+        return self._functionDefinitions[identifier]\
+            if identifier in self._functionDefinitions\
+            else None
+
     def _addTextLabel(self, labelName: str):
         self._currFuncDef.instructions.append(labelName + ":")
         self._currFuncDef.comments.append([""])
 
     def _addTextInstruction(self, instruction: str, insertIndex: int = -1, comment: str = ""):
-        instruction = ' ' * 4 + instruction
+        instruction = self.INSTRUCTION_WS + instruction
         comment = [] if comment == "" else [comment]
         if insertIndex >= 0:
             self._currFuncDef.instructions.insert(insertIndex, instruction)
@@ -515,6 +542,10 @@ class MIPSVisitor(GenerationVisitor):
         else:
             self._currFuncDef.instructions.append(instruction)
             self._currFuncDef.comments.append(comment)
+
+    def _addDataDefinition(self, definition: str, comment: str = ""):
+        self._sectionData.append(self.INSTRUCTION_WS + definition)
+        self._sectionDataComments.append(comment)
 
     def _byteSize(self, cType: CType):
         if cType.isPointerType():  # TODO take dereference unary ops into account??
@@ -524,14 +555,31 @@ class MIPSVisitor(GenerationVisitor):
         elif cType == self.typeList[BuiltinNames.INT] or cType == self.typeList[BuiltinNames.FLOAT]:
             return mk.WORD_SIZE
 
+    def _purgeStorageInformation(self, identifier: str) -> None:
+        """
+        Purge the storage information, namely the register-descriptor and
+        address-descriptor associations.
+
+        :param identifier: The identifier to purge the information of
+        """
+
+        for location in self._getAddressDescriptors(identifier):
+            if location.isRegister():
+                self._getRegisterDescriptors(location).remove(identifier)
+
+        self._getAddressDescriptors(identifier).clear()
+        # Restore the label of global variables at least
+        enclosingScope = self.currentSymbolTable.enclosingScope
+        if enclosingScope is not None and enclosingScope.isGlobal(identifier) and\
+            enclosingScope[identifier] == self.currentSymbolTable[identifier]:
+            self._addAddressDescriptor(identifier, enclosingScope[identifier].register)
+
     def _closeScope(self):
+        # TODO Global variable associations get mixed up with local variable associations
+        #   ==> Not good ey
         # Purge all saved register usage information of the current scope
         for identifier in self.currentSymbolTable.mapping.keys():
-            for location in self._getAddressDescriptors(identifier):
-                if location.isRegister():
-                    self._getRegisterDescriptors(location).remove(identifier)
-
-            self._getAddressDescriptors(identifier).clear()
+            self._purgeStorageInformation(identifier)
         super()._closeScope()
 
     ###########################
@@ -543,12 +591,38 @@ class MIPSVisitor(GenerationVisitor):
         # update scope
         self._openScope(node)
 
-        self._functionDefinitions.append(MIPSFunctionDefinition(node.getIdentifierNode().identifier))
-        self._currFuncDef = self._functionDefinitions[-1]
+        identifier = node.getIdentifierNode().identifier
+        funcDef = MIPSFunctionDefinition(identifier)
+        self._functionDefinitions[identifier] = funcDef
+        self._currFuncDef = funcDef
 
-        # TODO this
-        # Associate the parameter variables with the arg registers or their memory location
-        paramLocations = self._functionParamsToStackFrameLocations(node)
+        # Associate the parameter variables with the arg registers or their
+        # assigned stack memory location
+        totalOffset = 0
+        for idx, param in enumerate(node.getParamIdentifierNodes()):
+            allocAmount = self._byteSize(param.getType())
+
+            # Associate the arg registers with their params ($a)
+            if idx < 4:
+                allocAmount = mk.WORD_SIZE      # The arg registers are allocated a word
+                argRegister = self._argRegisters[idx]
+                funcDef.argLocations.append((param.identifier, argRegister))
+                funcDef.argLocationsSpillStatus.append(False)
+                self._associateAddressAndRegister(param.identifier, argRegister)
+
+            # Allocate memory to every argument slot (arg register and remaining args)
+            totalOffset = alignOnBorder(totalOffset + allocAmount, allocAmount)
+            self.currentSymbolTable[param.identifier].fpOffset = totalOffset
+
+            # Only mark the allocated as containing valid data for the
+            # remaining/non-register args
+            if idx >= 4:
+                argSlotAddress = constructAddress(totalOffset, mk.FP)
+                funcDef.argLocations.append((param.identifier, argSlotAddress))
+                funcDef.argLocationsSpillStatus.append(True)
+                self._addAddressDescriptor(param.identifier, argSlotAddress)
+
+
 
         # Do function body
         self.visitChild(node, 2)  # Generate code for the function body
@@ -576,6 +650,13 @@ class MIPSVisitor(GenerationVisitor):
         #   only in visitBinaryop and not visitAssignment or smth ensures that every possible binary expression is
         #   evaluated using it??? What about array operations/access???
 
+        # TODO array subscription
+        # TODO ershov of array subscript should be similar to other binary operators
+        #   ==> is this properly implemented????
+        if isinstance(node, ArraySubscriptNode):
+            print(coloredDef("Implement array subscription"))
+            return
+
         lhs = node.getChild(0)
         rhs = node.getChild(1)
 
@@ -598,14 +679,14 @@ class MIPSVisitor(GenerationVisitor):
             bigType = bigChild.inferType(self.typeList)
 
             # Generate code for big child
-            self._SUbase = 0
-            bigResult = self.evaluateExpression(bigChild)
+            self._SUbase = 1
+            bigResult = self._evaluateExpression(bigChild)
             spillAddress = self._spillRegister(bigResult, bigType)
             self._currFuncDef.addInstructionComment(f"r > k ({r > node.ershovNumber}), spill big child in R_{r - 1}")
 
             # Generate code for little child
-            self._SUbase = 0 if littleChild.ershovNumber >= r else r - littleChild.ershovNumber - 1
-            littleResult = self.evaluateExpression(littleChild)
+            self._SUbase = 1 if littleChild.ershovNumber >= r else r - littleChild.ershovNumber - 1
+            littleResult = self._evaluateExpression(littleChild)
 
             # Recover big child
             bigResult = self._reservedLocations[-2]  # load big child back into R_{r-1}
@@ -623,17 +704,17 @@ class MIPSVisitor(GenerationVisitor):
         # exp. eval. without spilling, equal children
         elif lhs.ershovNumber == rhs.ershovNumber:
             self._SUbase += 1  # Increment base recursively for rhs
-            rhsResult = self.evaluateExpression(rhs)
+            rhsResult = self._evaluateExpression(rhs)
             self._SUbase -= 1  # Decrement base recursively after rhs
-            lhsResult = self.evaluateExpression(lhs)
+            lhsResult = self._evaluateExpression(lhs)
         # exp. eval. without spilling, left child is big child
         elif lhs.ershovNumber > rhs.ershovNumber:
-            lhsResult = self.evaluateExpression(lhs)
-            rhsResult = self.evaluateExpression(rhs)
+            lhsResult = self._evaluateExpression(lhs)
+            rhsResult = self._evaluateExpression(rhs)
         # exp. eval. without spilling, right child is big child
         else:
-            rhsResult = self.evaluateExpression(rhs)
-            lhsResult = self.evaluateExpression(lhs)
+            rhsResult = self._evaluateExpression(rhs)
+            lhsResult = self._evaluateExpression(lhs)
 
         mipsKeyword = ""
 
@@ -666,11 +747,15 @@ class MIPSVisitor(GenerationVisitor):
 
         # +, -, !
 
+        if isinstance(node, DereferenceNode) or isinstance(node, AddressOfNode):
+            print(coloredDef("Implement array subscription"))
+            return
+
         if isinstance(node, NotNode) or isinstance(node, NegativeNode):
             unaryInstruction = ""
             comment = ""
+            srcRegister = self._evaluateExpression(node.getSubExpression())
             dstRegister = self._getReservedExpressionLocation(node)
-            srcRegister = self.evaluateExpression(node.getSubExpression())
             instrType = 'I' if isinstance(node.getSubExpression(), LiteralNode) else 'R'
             mipsKeyword = node.getMIPSROpKeyword(instrType)
             if isinstance(node, NotNode):
@@ -705,13 +790,13 @@ class MIPSVisitor(GenerationVisitor):
                     output_string += str(input[init_stringc])
                     init_stringc += 1
                     i += 2
+                else:
+                    raise UnsupportedFeature(f"Unrecognized code in printf: {init_string[i+1]} not in {acc_list}", [0, 0, 0, 0])
             else:
                 output_string += init_string[i]
                 i += 1
         return output_string
 
-    # TODO See lecture 7 slides 31-32 for mips spilling conventions
-    # TODO See lecture 7 slides 33-34 for stack frame
     def visitFunctioncall(self, node: FunctioncallNode):
         identifier = node.getIdentifierNode()
         if identifier.identifier == "printf":
@@ -719,74 +804,143 @@ class MIPSVisitor(GenerationVisitor):
             for i in range(1, len(node.children)):
                 temp.append(node.getChild(i).getValue())
             output_str = self.concatinateString(temp)
-            self._sectionData.append(f"string{self._stringCounter}: .asciiz \"{output_str}\"")
+            self._addDataDefinition(f"string{self._stringCounter}: .asciiz \"{output_str}\"",
+                                    "printf string")
             self._addTextInstruction("li $v0, 4")
             self._addTextInstruction(f"la $a0, string{self._stringCounter}")
             self._addTextInstruction("syscall")
+            return
+
 
         # Setup
         self._currFuncDef.isLeaf = False
         self._currFuncDef.adjustArgumentSlotCount(node)
 
+        if not node.ershovNumberIsEvaluated():
+            node.evaluateErshovNumber()
+
+        if self._isExpressionRoot(node):
+            self._reservedLocations = self._reserveRegisters(node.ershovNumber)
+
+        # Collect function call information
+        paramExpressions = node.getParameterNodes()
+        fCallIdentifier = node.getIdentifierNode()
+        fCallFuncDef: MIPSFunctionDefinition = self._functionDefinitions[fCallIdentifier.identifier]
+
+        # Save current function definition arguments
+        argSpillLimit: int = min(min(4, len(paramExpressions)), len(self._currFuncDef.argLocations))
+        argSpills: List[Tuple[str, MIPSLocation, MIPSLocation]] = []
+        for paramArgIdx in range(argSpillLimit):
+            argStorageInfo = self._currFuncDef.argLocations[paramArgIdx]
+            argIdentifier, spillRegister = argStorageInfo[0], argStorageInfo[1]
+            # No duplicates of the arg are stored, spill it
+            if self._getUsedAddressDescriptor(argIdentifier, [spillRegister]) is None:
+                fpOffset = self.currentSymbolTable[argStorageInfo[0]].fpOffset
+                spillAddress = constructAddress(fpOffset, mk.FP)
+                self._addTextInstruction(store("RW", spillRegister, spillAddress), comment=f"spill arg{paramArgIdx} before {fCallIdentifier.identifier} call")
+                argSpills.append((argIdentifier, spillRegister, spillAddress))
+                self._addAddressDescriptor(argIdentifier, spillAddress)
+                self._getAddressDescriptors(argIdentifier).remove(spillRegister)
+                fCallFuncDef.argLocationsSpillStatus[paramArgIdx] = True
+                # Don't bother undoing the identifier/arg register association, the spilled
+                # values will always be loaded back in after the function call anyway
+
+
+        for argIdx, paramExp in enumerate(paramExpressions):
+            expEvalDstBackup = self._expressionEvalDstReg
+            paramLoc = self._evaluateExpression(paramExp, self._argRegisters[argIdx] if argIdx < 4 else None)
+            self._expressionEvalDstReg = expEvalDstBackup
+
+            # TODO nested function calls overwrite each other's arg registers
+
+            if isinstance(paramExp, IdentifierNode) and argIdx < 4:
+                self._addTextInstruction(move(paramLoc, self._getReservedExpressionLocation(paramExp)),
+                                         comment=f"load arg{argIdx} from {paramExp.identifier}")
+
+            if argIdx >= 4:
+                instrType = "R" + self._instructionSizeType(paramExp.inferType(self.typeList))
+                self._addTextInstruction(store(instrType, paramLoc, fCallFuncDef.argLocations[argIdx][1]),
+                                         comment=f"spill param{argIdx} into arg slot{argIdx} (setup argument{argIdx})")
+
         # Save intermediate results
         # [(register, spillAddress, spill type), ]
         spilledIntermediaries: List[Tuple[MIPSLocation, MIPSLocation, CType]]
         spilledIntermediaries = self._spillNeededIntermediateValues(node)
-        self._currFuncDef.addInstructionComment("spill intermediate results ...", -len(spilledIntermediaries))
-        self._currFuncDef.addInstructionComment(f"... before function call: {node.toLegibleRepr(self.typeList)}")
+        if len(spilledIntermediaries) > 0:
+            self._currFuncDef.addInstructionComment("spill intermediate results ...", -len(spilledIntermediaries))
+            self._currFuncDef.addInstructionComment(f"... before function call: {node.toLegibleRepr(self.typeList)}")
 
-        # Calculate parameters
-        paramExpressions = node.getParameterNodes()
+        # execute function call
+        correspondingFuncDef = self._getFunctionDefinition(node.getIdentifierNode().identifier)
+        self._addTextInstruction(f"{mk.JAL} {correspondingFuncDef.label}")
 
-        # TODO this \/
-        # Save current function definition arguments
-
-        for argIdx, paramExp in enumerate(paramExpressions):
-            # TODO reserve registers, reserve registers so that final result stored in $a reg or mem
-
-            # TODO implement Sethi-Ullman with spilling here as well??????????
-            # TODO implement Sethi-Ullman with spilling here as well??????????
-            # TODO implement Sethi-Ullman with spilling here as well??????????
-
-            paramLoc = self.evaluateExpression(paramExp, )
-
-            # TODO store f"$a{argIdx}" into f"{argIdx*mk.WORD_SIZE}($sp)", because stack pointer should be at the end of
-            #  the stack frame, which is where the arg slots are located
-            # TODO move register resultIndex into $a register or memory
-
-        # copy return values (for array $v0 contains ptr to first element and array elements are stored in memory???)
-        retMovInstr = move(self._varRegisters[0], self._getReservedExpressionLocation(node))
-        self._addTextInstruction(retMovInstr, comment=f"load return value of: {node.toLegibleRepr(self.typeList)}")
+        # Reload current function definition arguments
+        for paramArgIdx, argSpillInfo in enumerate(argSpills):
+            argIdentifier, spillRegister, spillAddress = argSpillInfo
+            self._addTextInstruction(load("RW", spillAddress, spillRegister), comment=f"reload arg{paramArgIdx} after {fCallIdentifier.identifier} call")
+            self._associateAddressAndRegister(argIdentifier, spillRegister)
 
         # Recover spilled expression intermediary values
         for spillRegister, spillAddress, spillType in spilledIntermediaries:
             instrType = "R" + self._instructionSizeType(spillType)
             self._addTextInstruction(load(instrType, spillAddress, spillRegister))
 
-        self._currFuncDef.addInstructionComment("recover intermediate results ...", -len(spilledIntermediaries))
-        self._currFuncDef.addInstructionComment(f"... after function call: {node.toLegibleRepr(self.typeList)}")
+        if len(spilledIntermediaries) > 0:
+            self._currFuncDef.addInstructionComment("recover intermediate results ...", -len(spilledIntermediaries))
+            self._currFuncDef.addInstructionComment(f"... after function call: {node.toLegibleRepr(self.typeList)}")
+
+        # copy return values (for array $v0 contains ptr to first element and array elements are stored in memory???)
+        retMovInstr = move(self._varRegisters[0], self._getReservedExpressionLocation(node))
+        self._addTextInstruction(retMovInstr, comment=f"load return value of: {node.toLegibleRepr(self.typeList)}")
+
 
     def visitVar_assig(self, node: Var_assigNode):
         rhs: ExpressionNode = node.getChild(1)
         lhs: IdentifierNode = node.getIdentifierNode()
 
-        if not isinstance(lhs, IdentifierNode):
-            raise UnsupportedFeature("The lhs of an assignment must be an identifier for now", location=lhs.location)
+        # Global scope assignments/initialization
+        if isinstance(lhs, IdentifierNode) and self.currentSymbolTable.isGlobalScope():
+            if not isinstance(rhs, LiteralNode):
+                raise GlobalScopeException("Assignments at global scope must use a literal rhs", node.location)
 
-        # Select an overwritable register of lhs, else None
-        lhsLoc = self._getAssignableAddressDescriptor(lhs.identifier)
-        # No overwritable register, get saved register (possible spilling)
-        if lhsLoc is None:
-            lhsLoc = self._getAssignableSavedRegister()
+            lhsType = lhs.getType()
+            # TODO  add strings to this?
+            dataType = mk.DATA_FLOAT if lhsType == self.typeList[BuiltinNames.FLOAT]\
+                else (mk.DATA_WORD if lhsType == self.typeList[BuiltinNames.INT]
+                      else mk.DATA_BYTE)
+            dataLabel = MIPSLocation(lhs.identifier)
+            self._addDataDefinition(f"{dataLabel}: {dataType} {rhs.getValue()}", f"global assig {lhs.identifier}")
+            self._addAddressDescriptor(lhs.identifier, dataLabel)
+            self.currentSymbolTable[lhs.identifier].register = dataLabel
+
+        # Non-global scope assignments/initialization
+        else:
+            if not isinstance(lhs, IdentifierNode):
+                raise UnsupportedFeature("The lhs of an assignment must be an identifier for now", location=lhs.location)
+
+            # TODO When assigning to a variable, all locations except
+            #   the location (register or address) that was just assigned to
+            #   have become invalid; they do not store the up-to-date value of the
+            #   variable anymore????
+
+            # Select an overwritable register of lhs, else None
+            lhsLoc = self._getAssignableAddressDescriptor(lhs.identifier)
+            # No overwritable register, get saved register (possible spilling)
+            if lhsLoc is None:
+                lhsLoc = self._getAssignableSavedRegister()     # Reserve destination register
+
+            self._evaluateExpression(rhs, resultDstReg=lhsLoc)
+
+            # Mark the destination register as containing the contents of lhs
             if isinstance(lhs, IdentifierNode):
+                # Assignment ==> all previous storage locations contain out-of-date values
+                self._purgeStorageInformation(lhs.identifier)
                 self._associateAddressAndRegister(lhs.identifier, lhsLoc)
 
-        self.evaluateExpression(rhs, resultDstReg=lhsLoc)
+            if isinstance(lhs, IdentifierNode) and len(self._currFuncDef.instructions) != 0:
+                self._currFuncDef.addInstructionComment(f"assig {lhs.identifier}")
 
-        if isinstance(lhs, IdentifierNode) and len(self._currFuncDef.instructions) != 0:
-            self._currFuncDef.addInstructionComment(f"assig {lhs.identifier}")
-
-    def evaluateExpression(self, expression: ExpressionNode, resultDstReg: MIPSLocation | None = None):
+    def _evaluateExpression(self, expression: ExpressionNode, resultDstReg: MIPSLocation | None = None):
         """
         Evaluate the passed expression and return the register containing the final result.
         In the case of a literal that is not the root of an expression, the literal value
@@ -825,7 +979,7 @@ class MIPSVisitor(GenerationVisitor):
 
             # Ensure that an identifier part of an expression gets loaded
             # into a register
-            src: MIPSLocation | None = self._getUsedAddressDescriptor(expression.identifier)
+            src: MIPSLocation | None = self._getUsedAddressDescriptor(expression.identifier, [])
             if src is None or src.isAddress():
                 # Prepare load instruction for src
                 instrType = "R" + self._instructionSizeType(expression.inferType(self.typeList))
@@ -875,7 +1029,7 @@ class MIPSVisitor(GenerationVisitor):
         for i in range(1, len(node.children)):
             node.getChild(i).accept(self)
         self._addTextLabel(f"\n$while.head{temp}")
-        result = self.evaluateExpression(node.getChild(0))
+        result = self._evaluateExpression(node.getChild(0))
         self._addTextInstruction(f"bne {result},$0,$while.body{temp}\n")
         self._addTextLabel(f"$while.exit{temp}")
         self.labelCounter += 1
@@ -919,17 +1073,25 @@ class MIPSVisitor(GenerationVisitor):
         pass
 
     def visitJumpstatement(self, node: JumpstatementNode):
-        brent_postfix = ""
-        if isinstance(node, ContinueNode):
-            brent_postfix = "head"
-        if isinstance(node, BreakNode):
-            brent_postfix = "exit"
-        if isinstance(node, ReturnNode):
-            self.evaluateExpression(node.getChild(0), self._varRegisters[0])
+        labelPostfix = ""
+        if isinstance(node, ContinueNode) or isinstance(node, BreakNode):
+            if isinstance(node, ContinueNode):
+                labelPostfix = "head"
+            elif isinstance(node, BreakNode):
+                labelPostfix = "exit"
+
+            self._addTextInstruction(f"j $while.{labelPostfix}{self.labelCounter}")
+            self._currFuncDef.addInstructionComment("break")
+        elif isinstance(node, ReturnNode):
+            # Void return functions have return nodes without expressions
+            if node.getChild(0) is not None:
+                returnRegister = self._varRegisters[0]
+                resLoc = self._evaluateExpression(node.getChild(0), returnRegister)
+
+                if isinstance(node.getChild(0), IdentifierNode):
+                    self._addTextInstruction(move(resLoc, returnRegister))
             self._addTextInstruction(f"j {self._currFuncDef.getExitLabel()}")
-            return
-        self._addTextInstruction(f"j $while.{brent_postfix}{self.labelCounter}")
-        self._currFuncDef.addInstructionComment("break")
+            self._currFuncDef.addInstructionComment("return")
 
 
 #########################################

@@ -250,12 +250,12 @@ class SymbolTable:
             # Function exclusive declaration errors
             if isinstance(value.type, FunctionCType) and isinstance(lookup.type, FunctionCType):
                 if lookup.type.isDefinition and value.type.isDefinition:
-                    raise RedefinedFunctionSymbol(key, str(lookup), str(value))
+                    raise RedefinedFunctionSymbol(key, str(lookup), str(value), location=[0, 0, 0, 0])
                 elif not lookup.type.__eq__(value.type, requireParamsEq=True):
-                    raise FunctionTypeMismatch(key, str(lookup), str(value))
+                    raise FunctionTypeMismatch(key, str(lookup), str(value), location=[0, 0, 0, 0])
             # Variable involved type errors
             elif not (self.isGlobal(key) and self._enclosingScope is not None):
-                raise RedeclaredSymbol(key, str(lookup), str(value))
+                raise RedeclaredSymbol(key, str(lookup), str(value), location=[0, 0, 0, 0])
 
         self.mapping[key] = value
 

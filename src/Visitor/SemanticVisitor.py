@@ -1,10 +1,11 @@
 from src.Nodes.ASTreeNode import *
 from src.Exceptions.exceptions import MisplacedJumpStatement, InvalidReturnStatement, InvalidFunctionCall, \
     InvalidBinaryOperation, UnsupportedFeature, DeclarationException, InitializationException, OutOfBoundsLiteral, \
-    GlobalScope, ConstAssigException, UndefinedFunction
+    GlobalScopeException, ConstAssigException, UndefinedFunction
 from src.Nodes.JumpNodes import ContinueNode, BreakNode, ReturnNode
 from src.Nodes.LiteralNodes import IntegerNode, FloatNode, CharNode
-from src.Nodes.OperatorNodes import ModNode, ArraySubscriptNode
+from src.Nodes.OperatorNodes import ModNode, ArraySubscriptNode, PrefixIncrementNode, PostfixDecrementNode, \
+    PostfixIncrementNode, PrefixDecrementNode
 from src.Visitor.ASTreeVisitor import AssignmentNode
 
 
@@ -22,6 +23,8 @@ class SemanticVisitor(ASTreeVisitor):
             raise MisplacedJumpStatement(node.__str__(), "iteration statement", node.location)
         elif isinstance(node, ReturnNode) and not node.hasTypeAncestor(FunctiondefinitionNode):
             raise MisplacedJumpStatement(node.__str__(), "function definition", node.location)
+
+        self.visitChildren(node)
 
     def visitFunctiondefinition(self, node: FunctiondefinitionNode):
         returnNodes = [retNode[0]
@@ -66,6 +69,8 @@ class SemanticVisitor(ASTreeVisitor):
         self.visitChildren(node)
 
     def visitFunctioncall(self, node: FunctioncallNode):
+        self.visitChildren(node)
+
         params = node.getParameterNodes()
         cType = node.inferType(self.typeList)
         identifier = node.getIdentifierNode()
@@ -87,8 +92,6 @@ class SemanticVisitor(ASTreeVisitor):
                                           f"but got {[self.toTypeName(t) for t in paramTypes]}", node.location)
 
     def visitBinaryop(self, node: BinaryopNode):
-        self.visitChildren(node)
-
         lhs = node.getChild(0)
         rhs = node.getChild(1)
         lhsType: CType = lhs.inferType(self.typeList)
@@ -105,6 +108,8 @@ class SemanticVisitor(ASTreeVisitor):
         if isinstance(node, ArraySubscriptNode) and rhsType != self.typeList[BuiltinNames.INT]:
             raise InvalidBinaryOperation(node.__str__(),
                                          f"array subscription expression must be of type {BuiltinNames.INT} literal", node.location)
+
+        self.visitChildren(node)
 
     def visitVariabledeclaration(self, node: VariabledeclarationNode):
         declarator = node.getDeclaratorNode()
@@ -150,9 +155,12 @@ class SemanticVisitor(ASTreeVisitor):
         # TODO  make sure & and * operations are applied validly
         self.visitChildren(node)
 
-    def visitVar_assig(self, node: Var_assigNode):
-        self.visitChildren(node)
+    def visitUnaryop(self, node: UnaryopNode):
+        if isinstance(node, PrefixIncrementNode) or isinstance(node, PostfixIncrementNode) or\
+            isinstance(node, PrefixDecrementNode) or isinstance(node, PostfixDecrementNode):
+            raise UnsupportedFeature(f"Unsupported unary operator: {node.__str__()}", node.location)
 
+    def visitVar_assig(self, node: Var_assigNode):
         lhsType = node.getIdentifierNode().inferType(self.typeList)
         rhsType = node.getChild(1).inferType(self.typeList)
         if isinstance(node.getSibling(-1),VariabledeclarationNode) and node.getChild(0).inferType(self.typeList).isConstType:
@@ -171,8 +179,9 @@ class SemanticVisitor(ASTreeVisitor):
 
         # This check depends on initializations being split off from declarations
         if not node.hasTypeAncestor(FunctiondefinitionNode) and not isinstance(node.getSibling(-1), VariabledeclarationNode):
-            raise GlobalScope("Variable assignments not allowed, only initializations",node.location)
+            raise GlobalScopeException("Variable assignments not allowed, only initializations", node.location)
 
+        self.visitChildren(node)
 
     def visitLiteral(self, node: LiteralNode):
         # -2^31, 2^31-1, 32-bit single precision floating point + and -

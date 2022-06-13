@@ -110,6 +110,9 @@ class JumpstatementNode(ScopedNode):
     def accept(self, visitor: ASTreeVisitor):
         visitor.visitJumpstatement(self)
 
+    def hasExpression(self):
+        pass
+
 
 class SelectionstatementNode(ScopedNode):
     def accept(self, visitor: ASTreeVisitor):

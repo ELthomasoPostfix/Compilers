@@ -99,7 +99,7 @@ class InvalidBinaryOperation(SemanticException):
         super().__init__(f"Invalid binary {operator}: {details}", location)
 
 
-class GlobalScope(SemanticException):
+class GlobalScopeException(SemanticException):
     def __init__(self, details: str, location):
         super(f"Disallowed at global scope: {details}", location)
 

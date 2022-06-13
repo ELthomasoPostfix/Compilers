@@ -98,6 +98,7 @@ class MIPSLocation(str):
         super().__init__()
         self._isRegister: bool = re.fullmatch(MIPSRegisterInfo.REGISTER_REGEX, value) is not None
         self._isAddress:  bool = False
+        self._isLabel: bool = re.fullmatch(self.label, value) is not None
         if not self._isRegister:
             # Register contents based address
             #       ($t0)
@@ -148,10 +149,18 @@ class MIPSLocation(str):
     def isAddress(self):
         return self._isAddress
 
+    def isLabel(self):
+        return self._isAddress
+
 
 
 class MIPSKeywords:
-    DATA: str = ".data"
+    DATA_DATA: str = ".data"
+    DATA_BYTE: str = ".byte"
+    DATA_WORD: str = ".word"
+    DATA_FLOAT: str = ".float"
+    DATA_ASCII: str = ".ascii"
+    DATA_ASCIIZ: str = ".asciiz"
     TEXT: str = ".text"
     COMMENT_PREFIX: str = "#"
     WS: str = " " * 4
