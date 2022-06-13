@@ -62,7 +62,7 @@ class MIPSFunctionDefinition:
                  [commentFormat(f"# {alignOnBorder(self.framePointerOffset, mk.WORD_SIZE)}B", "Local data space: space reserved for allocating memory to local variables and for spilling intermediary expression results"),
                  commentFormat(f"# {self.savedSectionSize}B", f"Saved register space ({len(self.usedSavedRegisters)} saved): space reserved for storing saved registers used within this stack frame"),
                  commentFormat(f"# {self.argSectionSize}B", f"Arg slot space ({self._argSlotCount} slots): space reserved for storing arguments to be passed to function calls within this stack frame and"),
-                  commentFormat("", "   four default slots to be used not by this function, but by any called functions for possibly spilling $a0-$a3 registers"),
+                  commentFormat("#", "   four default slots to be used not by this function, but by any called functions for possibly spilling $a0-$a3 registers"),
                   ""] +\
                  [self.label + ":"]
         spillBaseRegister = mk.SP
@@ -855,7 +855,7 @@ class MIPSVisitor(GenerationVisitor):
 
             if isinstance(paramExp, IdentifierNode) and argIdx < 4:
                 self._addTextInstruction(move(paramLoc, self._getReservedExpressionLocation(paramExp)),
-                                         comment=f"load arg{argIdx} from {paramExp.identifier}")
+                                         comment=f"load {paramExp.identifier} into arg{argIdx}")
 
             if argIdx >= 4:
                 instrType = "R" + self._instructionSizeType(paramExp.inferType(self.typeList))
