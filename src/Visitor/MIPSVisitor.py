@@ -155,7 +155,7 @@ class MIPSFunctionDefinition:
         if notMain:
             result.append(mk.WS + f"{mk.JR} {mk.RA}")
         else:
-            result.append(commentFormat(f"{mk.WS}{mk.I_L} {mk.getArgRegisters()[0]}, 10", "Exit"))
+            result.append(commentFormat(f"{mk.WS}{mk.I_L} {mk.getArgRegisters()[0]}, 10", "#Exit"))
             result.append(mk.WS + mk.SYSCALL)
             result.append("")
 
@@ -799,39 +799,8 @@ class MIPSVisitor(GenerationVisitor):
 
         self.visitChildren(node)
 
-    def concatinateString(self, input):
-        init_string = input[0]
-        init_stringc = 0
-        output_string = ""
-        acc_list = ['i', 'd', 's']
-        del input[0]
-        i = 0
-        while i < len(init_string):
-            if init_string[i] == '%':
-                if init_string[i + 1] in acc_list:
-                    output_string += str(input[init_stringc])
-                    init_stringc += 1
-                    i += 2
-                else:
-                    raise UnsupportedFeature(f"Unrecognized code in printf: {init_string[i+1]} not in {acc_list}", [0, 0, 0, 0])
-            else:
-                output_string += init_string[i]
-                i += 1
-        return output_string
 
     def visitFunctioncall(self, node: FunctioncallNode):
-        identifier = node.getIdentifierNode()
-        if identifier.identifier == "printf":
-            temp = []
-            for i in range(1, len(node.children)):
-                temp.append(node.getChild(i).getValue())
-            output_str = self.concatinateString(temp)
-            self._addDataDefinition(f"string{self._stringCounter}: .asciiz \"{output_str}\"",
-                                    "printf string")
-            self._addTextInstruction("li $v0, 4")
-            self._addTextInstruction(f"la $a0, string{self._stringCounter}")
-            self._addTextInstruction("syscall")
-            return
 
 
         # Setup
@@ -935,6 +904,24 @@ class MIPSVisitor(GenerationVisitor):
         retMovInstr = move(self._varRegisters[0], self._getReservedExpressionLocation(node))
         self._addTextInstruction(retMovInstr, comment=f"load return value of: {node.toLegibleRepr(self.typeList)}")
 
+    def visitIncludedirective(self, node: IncludedirectiveNode):
+        identifier = "printf"
+        funcDef = MIPSFunctionDefinition(identifier)
+        self._functionDefinitions[identifier] = funcDef
+        temp = self._currFuncDef
+        self._currFuncDef = funcDef
+
+        self._addTextInstruction("b printloop")
+        self._addTextLabel("printloop")
+
+        self._addTextInstruction("move $t0,($a0)")
+        self._addTextInstruction("addi $t0,$t0,1")
+        self._addTextInstruction("beq $a0,$0,printf.end")
+        self._addTextInstruction("li $v0, 11")
+        self._addTextInstruction("syscall")
+        self._addTextInstruction("j printloop")
+
+        self._currFuncDef = temp
 
     def visitVar_assig(self, node: Var_assigNode):
         rhs: ExpressionNode = node.getChild(1)
