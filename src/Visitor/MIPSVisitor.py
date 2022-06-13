@@ -1075,11 +1075,12 @@ class MIPSVisitor(GenerationVisitor):
             if self._isExpressionRoot(expression):
                 dstRegister = self._getReservedLocation(expression, self._SUbase) if resultDstReg is None \
                     else resultDstReg
-                isStringLit = isinstance(expression, CharNode)
+                isStringLit = isinstance(expression, CharNode) and isinstance(expression.getValue(),str) and len(expression.getValue()) > 1
                 if isStringLit:
                     ctr = self._reserveDataCounterValue()
-                    value = MIPSLocation(f"str.lit{ctr}")     # String literal label
-                    self._addDataDefinition(f"{value}: {mk.DATA_ASCIIZ} \"{value}\"")
+                    label = MIPSLocation(f"str.lit{ctr}")     # String literal label
+                    self._addDataDefinition(f"{label}: {mk.DATA_ASCIIZ} \"{value}\"")
+                    value = label
                 self._addTextInstruction(load('I' + ('A' if isStringLit else ""), value, dstRegister))
                 value = dstRegister
 
