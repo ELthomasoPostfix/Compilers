@@ -109,6 +109,10 @@ class MIPSFunctionDefinition:
             result.append(mk.WS + MIPSComment("end of prologue"))
 
         result.append("")
+
+        if not notMain:
+            result.append(self.label + ":")
+
         result.append(mk.WS + MIPSComment("start of body"))
 
         # Append comments
