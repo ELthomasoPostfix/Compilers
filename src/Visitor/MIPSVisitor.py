@@ -108,8 +108,6 @@ class MIPSFunctionDefinition:
 
         result.append("")
 
-        result.append(self.label + ":")
-
         result.append(mk.WS + MIPSComment("start of body"))
 
         # Append comments
