@@ -50,15 +50,15 @@ def main():
 
         outputType = "c"
 
-        llvmVisitor = LLVMVisitor(tl)
-        listener.root.accept(llvmVisitor)
-        a = llvmVisitor.instructions
-        outputType = "ll"
+        # llvmVisitor = LLVMVisitor(tl)
+        # listener.root.accept(llvmVisitor)
+        # a = llvmVisitor.instructions
+        # outputType = "ll"
 
-        # mipsVisitor = MIPSVisitor(tl)
-        # listener.root.accept(mipsVisitor)
-        # a = mipsVisitor.instructions
-        # outputType = "asm"
+        mipsVisitor = MIPSVisitor(tl)
+        listener.root.accept(mipsVisitor)
+        a = mipsVisitor.instructions
+        outputType = "asm"
 
         file = open("Output/" + f"{ifName}.{outputType}", "w")
         for string in a:

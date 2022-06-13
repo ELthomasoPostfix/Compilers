@@ -76,18 +76,18 @@ O: optional feature
 | 3   | Comments 1                 | V                      | N           | N           | M    | ingore comments                                                                                                 |
 |     | Comments 2                 | N                      | X           |             | O    | transfer comments to generated LLVM/MIPS                                                                        |
 |     | Comments 3                 | N                      | X           |             | O    | comment after every LLVM/MIPS statement                                                                         |
-|     | Printf                     | V                      | X           | -           | M    | Only recognition in input C code                                                                                |
+|     | Printf                     | V                      | -           | V           | M    | Only recognition in input C code                                                                                |
 | 4   | Loops                      | V                      | V           |             | M    | for, while                                                                                                      |
 |     | Conditionals 1             | V                      | V           |             | M    | if, else                                                                                                        |
 |     | Conditionals 2             | X                      | X           |             | O    | switch, case, default                                                                                           |
-|     | Jump statements            | V                      | X           |             | M    | continue, break                                                                                                 |
+|     | Jump statements            | V                      | V           |             | M    | continue, break                                                                                                 |
 |     | Scopes                     | V                      | V           |             | M    | unnamed scope, loops and conditional scopes                                                                     |
 |     | Semantic Analysis          | V                      | N           | N           | M    | variable resolution now depends on scope, first check current scope and only then eclosing scope                |
 | 5   | Reserved words             | V                      | V           |             | M    | return, void                                                                                                    |
 |     | Scopes                     | V                      | V           |             | M    | function scopes                                                                                                 |
 |     | Local and Global variables | -                      | -           |             | M    |                                                                                                                 |
 |     | Semantic Analysis 1        | V                      | N           | N           | M    | 1) consistency of return statement with return type <br>2) consistency forward declaration and definition types |
-|     | Semantic Analysis 2        | X                      | N           | N           | O    | Check whether all path in the function body end with a return (only for non-void functions)                     |
+|     | Semantic Analysis 2        | V                      | N           | N           | O    | Check whether all path in the function body end with a return (only for non-void functions)                     |
 |     | Optimizations 1            | X                      | X           |             | M    | Do not generate code for unreachable and dead C code (code after a return statement)                            |
 |     | Optimizations 2            | X                      | X           |             | M    | Do not generate code for C code after continue or break                                                         |
 |     | Optimizations 3            | X                      | X           |             | O    | Do not generate code for unused variables                                                                       |
@@ -96,7 +96,7 @@ O: optional feature
 |     | Multi-dimensional Arrays 1 | X                      | X           |             | O    | Multi-dimensional array variables                                                                               |
 |     | Multi-dimensional Arrays 2 | X                      | X           |             | O    | Assignment of complete arrays or array rows                                                                     |
 |     | Dynamic arrays             | X                      | X           |             | O    |                                                                                                                 |
-|     | Import                     | V                      | X           |             | M    | Support for import of stdio.h and use of printf and scanf, with sequences with codes d, i, s and c              |
+|     | Import                     | V                      | V           |             | M    | Support for import of stdio.h and use of printf and scanf, with sequences with codes d, i, s and c              |
 
 * Unary +, - (LLVM): Unary - works for floats but not for ints.
 * Types Pointers: The grammar does not allow (*var)++ or ++(*var). The grammar variable lvalue is missing a similar to 'STAR lvalue' for this to work.

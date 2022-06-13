@@ -1,6 +1,6 @@
 #include <stdio.h>
 int main(){
-    const int a = 5;
-    a = 4;
+    int i = 22;
+    printf("Bob is %i years old, Thomas is  years young and  lives in ", i);
     return 0;
 }
